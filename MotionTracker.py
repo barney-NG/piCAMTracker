@@ -86,11 +86,18 @@ class track:
         if do_update:
             self.updates += 1
             self.tr.append([xn+wn/2,yn+hn/2])
+            if(len(self.tr) > 100):
+                del self.tr[0]
 
     def showTrack(self, vis, color=(220,0,0)):
-        pts=np.int32(self.tr) * 16
+        x = 16 * self.x
+        y = 16 * self.y
+        pts=np.int32(self.tr[-10:]) * 16
+        #pts=np.roll(pts,1,axis=1)
         cv2.polylines(vis, [pts], False, color)
-        cv2.putText(vis, self.name, (self.x, self.y), cv2.FONT_HERSHEY_SIMPLEX, 0.5,color,1)
+        txt = "%d,%d" % ( x,y )
+        cv2.putText(vis,txt,(x,y),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,1)
+        #cv2.putText(vis,self.name,(y,x),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,1)
 
     def printTrack(self):
         sys.stdout.write("[%s]:" %(self.name))
