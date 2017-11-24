@@ -7,6 +7,9 @@ from time import sleep,clock
 from math import degrees,atan2,pi
 import MotionTracker
 
+# sort tracks by number of updates
+def by_updates(t):
+    return t.updates
 
 class MotionAnalyser(picamera.array.PiMotionAnalysis):
     def __init__(self,camera, show=False):
@@ -18,14 +21,15 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.show    = show
         self.mmx     = None
         self.mmy     = None
-        self.tmask   = None
         self.hitList =  None
         self.xcross  = None
         self.loop = 0
         self.maxDelta = 90.0
         self.notPlaced = True
         self.maxMovements = 100
-        self.tracker = MotionTracker.Tracker()
+        self.all_tracks = []
+        for i in range(0,32):
+            self.all_tracks.append(MotionTracker.track())
 
     def intersects(self,rects,xn,yn,wn,hn):
         i = 0
@@ -57,6 +61,39 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         return rects
 
+    def printTracks(self):
+        for track in sorted(self.all_tracks, key=by_updates, reverse=True):
+            track.printTrack()
+
+    def showTracks(self, vis):
+        for track in self.all_tracks:
+            track.showTrack(vis)
+
+    def update_tracks(self, motion):
+        # walk through all changes
+        for x0,y0,w0,h0,vx,vy in motion:
+            # search a track for this coordinate
+            tracked = False
+            #for track in self.all_tracks:
+            for track in sorted(self.all_tracks, key=by_updates, reverse=True):
+                tracked = track.update_track(x0,y0,w0,h0,vx,vy)
+                if tracked:
+                    break
+            # not yet tracked -> find a free slot
+            if not tracked:
+                for track in self.all_tracks:
+                    if track.updates == 0:
+                        track.new_track(x0,y0,w0,h0,vx,vy)
+                        break
+
+        if self.show:
+            esti = (MotionTracker.track.estimates > 0).astype(np.uint8) * 255
+            esti_big = cv2.resize(esti,(self.big.shape[1],self.big.shape[0]))
+            self.big[:,:,0] = 255 - esti_big
+
+        MotionTracker.track.estimates.fill(0)
+
+
     def analyse(self, a=None):
         t1 = clock()
         dt = t1 - self.t0
@@ -68,14 +105,11 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             self.hitList  = np.zeros(a.shape, np.uint8)
             self.mmx      = np.zeros(a.shape, np.float32)
             self.mmy      = np.zeros(a.shape, np.float32)
-            self.sad      = np.zeros(a.shape, np.float32)
-            self.tmask    = np.zeros(a.shape, np.uint32)
+            MotionTracker.track.estimates = np.zeros(a.shape, np.uint32)
             self.xcross   = self.cols / 2
             self.maxMovements = self.rows * self.cols / 4
             return
 
-        #- remove blocks of too much pixel difference
-        is_similar = a['sad'] < 255
         #- identify movement in actual frame
         has_movement = np.abs(a['x']) + np.abs(a['y']) > 0
 
@@ -84,8 +118,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             return
 
         #- mask out movement
-        bmask = np.logical_and(is_similar, has_movement)
-        mask  = bmask.astype(np.uint8) # * 255
+        mask = has_movement.astype(np.uint8) * 255
 
         if self.show:
             if self.big is None:
@@ -100,7 +133,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #if self.show:
         if False:
             #- thats's slow!
-            coords =  np.transpose(np.nonzero(bmask))
+            coords =  np.transpose(np.nonzero(mask))
             for y,x in coords:
                 xm = x
                 ym = y
@@ -117,123 +150,58 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
 
 
-        if not self.show:
-            print "%4.0fms" % (dt*1000.0)
 
+        # fill gaps
+        _, mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         # mark contours
         _,contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # remove intersections
-        rects  = self.removeIntersections(contours)
+        #rects  = self.removeIntersections(contours)
 
-        for x0,y0,w,h in rects:
-            # helper variables
-            x1    = x0 + w
-            y1    = y0 + h
+        new_points = []
+        #for x0,y0,w,h in rects:
+        for cnt in contours:
+            x0,y0,w,h = cv2.boundingRect(cnt)
+            if w*h > self.maxArea:
+                continue
+
             # new movement attributes
-            value = self.hitList[y0:y1,x0:x1].mean()
-            vx1   = a[y0:y1,x0:x1]['x'].mean()
-            vy1   = a[y0:y1,x0:x1]['y'].mean()
-            #sad1  = a[y0:y1,x0:x1]['sad'].mean()
-            dir1  = degrees(atan2(vy1,vx1))
-            trmask   = 0x00000000
-            #for i in range(y0,y1):
-            #    for j in range(x0,x1):
-            #        trmask |= self.tmask[i,j]
-            #print("read: %08x" % trmask) 
-            #self.tmask[y0:y1,x0:x1] = 0
+            x1 = x0 + w
+            y1 = y0 + h
+            vx   = a[y0:y1,x0:x1]['x'].mean()
+            vy   = a[y0:y1,x0:x1]['y'].mean()
 
-            # old movement attributes
-            vx0  = self.mmx[y0:y1,x0:x1].mean()
-            vy0  = self.mmy[y0:y1,x0:x1].mean()
-            #sad0 = self.sad[y0:y1,x0:x1].mean()
-            dir0 = degrees(atan2(vy0,vx0))
+            new_points.append([x0,y0,w,h,vx,vy])
 
-            avg_speed = np.array([vx0+vx1, vx0+vx1]) / 2
 
-            # assessment
-            delta_dir = (dir0 - dir1 + 360.0) % 360
-            #delta_sad = abs(sad0 - sad1)
-            #accel     = abs(vx0 - vx1) + abs(vy0 - vy1)
-
-            # movement ok?
-            value += np.linalg.norm(avg_speed)
-
-            # direction ok?
-            if delta_dir > self.maxDelta:
-                value = 0
-                #trmask = self.tracker.reset(trmask)
-                #print("reset:%08x" % trmask) 
-            else:
-                #trmask = self.tracker.update(trmask,x1,y1,w,h,vx1,vy1)
-                #print("new:  %08x" % trmask) 
-                value += self.maxDelta / (delta_dir + 1)
-
-            if value < 0:
-                value = 0
-
-            #@@print "x:%3d y:%3d vx:%3.0f vy:%3.0f wx:%3.0f wy:%3.0f ds:%4.2f value:%4.0f" % \
-            #@@      (x0,y0,vx1,vy1,speed_x, speed_y,sad1,value)
-            #value = 10 * (0.3 * dir + 0.3 * pos + 0.3 * acc)
-            value_txt = "%4.2f" % (value)
-            #---------------------------------------------------
-            #-- HIT ESTIMATION
-            #-- 
-            #-- vx > 0 and x   >= tx - delta
-            #-- vx < 0 and x+w <= tx + delta
-            #---------------------------------------------------
-            beep = 1
-            if vx1 > 0.0:
-                dx = abs(x0 - self.xcross)
-                if dx < 3 and value > 10.0:
-                    print "x:%d y:%d vx:%6.2f value:%6.2f %4.2fms" % (x0,y0,vx1,value,(1000.0*dt))
-                    beep = -1
-            if vx1 < 0.0:
-                dx = abs(x1 - self.xcross)
-                if dx < 3 and value > 10.0:
-                    print "x:%d y:%d vx:%6.2f value:%6.2f %d" % (x0,y0,vx1,value,self.loop)
-                    beep = -1
-
-            #- estimate the next frame
-            dx = int(vx1 / 4)  # TODO: should be vx * dt !!!!????
-            dy = int(vy1 / 4)  # TODO: should be vy * dt !!!!????
-
-            xl1 = max(0,x1+dx)
-            xr1 = min(self.cols,x1+dx+w)
-            yl1 = max(0,y1+dy)
-            yr1 = min(self.rows,y1+dy+h)
-            
-            # update Hitlist
-            self.hitList[yl1:yr1,xl1:xr1] += int(value)
-            #print("write:%08x" % trmask) 
-            #self.tmask[yl:yr,xl:xr] = trmask
-
-            #- update vectors
-            self.mmx[yl1:yr1,xl1:xr1] = vx1
-            self.mmy[yl1:yr1,xl1:xr1] = vy1
-            #self.sad[yl1:yr1,xl1:xr1] = sad1
-
-            if self.show and value > 0:
+            if self.show:
                 x0 *= 16
                 y0 *= 16
                 w *= 16
                 h *= 16
-                cv2.rectangle(self.big,(x0,y0),(x0+w,y0+h),(0,0,0),beep)
+                cv2.rectangle(self.big,(x0,y0),(x0+w,y0+h),(0,0,0),1)
                 xm = x0+w/2
                 ym = y0+h/2
-                xe = int(xm+4*-vx1)
-                ye = int(ym+4*-vy1)
+                xe = int(xm+4*-vx)
+                ye = int(ym+4*-vy)
                 cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(220,20,0),3)
-                cv2.putText(self.big, value_txt, (x0+w, y0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (20,150,20), 2)
+
+        ##
+        self.update_tracks(new_points)
+        #if not self.show:
+        print "%4.0fms" % (dt*1000.0)
+        self.printTracks()
 
         #self.tracker.printAll()
         if self.show:
+            self.showTracks(self.big)
             # create header
             xm = 16*self.xcross
             ye = 16*self.rows
             cv2.line(self.big,(xm,0),(xm,ye),(0,0,0),1)
             str_frate = "%4.0fms (%d)" % (dt*1000.0, self.camera.framerate)
             cv2.putText(self.big, str_frate, (3, 14), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (20,150,20), 2)
-            self.tracker.showAll(self.big)
+            #self.tracker.showAll(self.big)
 
             # Show the image in the window
             # without imshow we are at 5ms (sometimes 12ms)

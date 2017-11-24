@@ -4,10 +4,11 @@ import picamera.array
 import numpy as np
 from time import sleep
 from argparse import ArgumentParser
-from MotionAnalyser import MotionAnalyser as ma
+import MotionAnalyser
 
 def main(show=True):
     with picamera.PiCamera() as camera:
+        stream = picamera.PiCameraCircularIO(camera, seconds=10)
         resx = 1024
         resy = 576
         cl = np.zeros((resy,resx,3), np.uint8)
@@ -16,7 +17,7 @@ def main(show=True):
         camera.resolution = (resx,resy)
         #camera.annotate_text = "RaspberryPi3 Camera"
         if show:
-            camera.framerate  = 30
+            camera.framerate  = 25
         else:
             camera.framerate  = 90
         print("warm-up 2 seconds...")
@@ -47,11 +48,12 @@ def main(show=True):
         camera.awb_mode  = 'off'
         camera.awb_gains = g
         wait = 86400
-        with ma(camera, show) as output:
+        with MotionAnalyser.MotionAnalyser(camera, show) as output:
             try:
                 if show is False:
                     wait = 10
-                camera.start_recording('/dev/null', 'h264', motion_output=output)
+                #camera.start_recording('/dev/null', 'h264', motion_output=output)
+                camera.start_recording(stream, 'h264', motion_output=output)
                 camera.wait_recording(wait) # continue recording for 20 seconds
             except NotImplementedError:
                 pass
