@@ -39,33 +39,14 @@ class track:
         self.maxy = 0
         self.minx = 99999
         self.miny = 99999
+        self.progressx = 0
+        self.progressy = 0
         self.vx = 0.0
         self.vy = 0.0
         self.phi = 0.0
         self.updates = 0
         self.lastUpdate = 0
         print "[%s] reset" % self.name
-
-    def update(self,mvector):
-        for x0,y0,w0,h0,vx,vy in mvector:
-            print "rect: ",x0,y0,w0,h0
-            self.update_track(x0,y0,w0,h0,vx,vy)
-            return True
-
-        return False
-
-    def update_with_estimate(self,mvector):
-        count_myid = 0
-        for x0,y0,w0,h0,vx,vy in mvector:
-            x1 = x0 + w0
-            y1 = y0 + h0
-            count_myid = np.count_nonzero(track.estimates[y0:y1,x0:x1] & self.id)
-            if count_myid > 0:
-                print "rect: ",x0,y0,w0,h0
-                self.update_track(x0,y0,w0,h0,vx,vy)
-                return True
-
-        return False
 
     def update_estimates(self,found=True):
         if found:
@@ -98,55 +79,53 @@ class track:
 
     def new_track(self,xn,yn,wn,hn,vxn,vyn):
 
-        x1 = xn + wn
-        y1 = yn + hn
+        #x1 = xn + wn
+        #y1 = yn + hn
 
-        count_anyid = np.count_nonzero(track.estimates[yn:y1,xn:x1])
+        #count_anyid = np.count_nonzero(track.estimates[yn:y1,xn:x1])
 
-        if count_anyid > 0:
-            print "new cell occupied"
-            return False
-        else:
-            print "[%s] new" % self.name
-  
-            cxn  = xn+wn/2
-            cyn  = yn+hn/2
+        #if count_anyid > 0:
+        #    print "new cell occupied"
+        #    return False
+        #else:
+        self.reset()
 
-            self.tr = []
-            self.x  = xn
-            self.y  = yn
-            self.w  = wn
-            self.h  = hn
-            self.cx = cxn
-            self.cy = cyn
-            self.vx = vxn
-            self.vy = vyn
-            #self.ang = degrees(atan2(cyn,cxn))
-            self.ang = degrees(atan2(vyn,vxn))
-            self.tr.append([cxn,cyn])
-            self.updates = 1
-            self.lastUpdate = clock()
-            # occupy maximal area for the first time
-            dx = track.maxDist
-            dy = track.maxDist
-            xl = max(0,self.x-dx)
-            xr = min(track.estimates.shape[0],self.x+dx+self.w)
-            yl = max(0,self.y-dy)
-            yr = min(track.estimates.shape[1],self.y+dy+self.h)
-            track.estimates[yl:yr,xl:xr] += self.id
+        cxn  = xn+wn/2
+        cyn  = yn+hn/2
 
-        return True
+        self.x  = xn
+        self.y  = yn
+        self.w  = wn
+        self.h  = hn
+        self.cx = cxn
+        self.cy = cyn
+        self.vx = vxn
+        self.vy = vyn
+        #self.ang = degrees(atan2(cyn,cxn))
+        self.ang = degrees(atan2(vyn,vxn))
+        self.tr.append([cxn,cyn])
+        self.updates = 1
+        self.lastUpdate = clock()
+        # occupy maximal area for the first time
+        #dx = track.maxDist
+        #dy = track.maxDist
+        #xl = max(0,self.x-dx)
+        #xr = min(track.estimates.shape[0],self.x+dx+self.w)
+        #yl = max(0,self.y-dy)
+        #yr = min(track.estimates.shape[1],self.y+dy+self.h)
+        #track.estimates[yl:yr,xl:xr] += self.id
+
+        return self.id
         
     def update_track(self,xn,yn,wn,hn,vxn,vyn):
 
         # this is not the place for new tracks
         if self.updates < 1:
-            return False
+            return 0x00000000
 
         if clock() - self.lastUpdate > track.maxLifeTime:
-            #self.update_estimates(False)
             self.reset()
-            return False
+            return 0x00000000
 
         # double hit?
         cxn   = xn+wn/2
@@ -154,25 +133,28 @@ class track:
         if self.cx == cxn and self.cy == cyn and self.vx == vxn and self.vy == vyn:
             print "[%s] double hit" % self.name
             self.lastUpdate = clock()
-            #self.vx = (self.vx + vxn) / 2
-            #self.vy = (self.vx + vyn) / 2
-            return True
+            return self.id
 
         # try to append new coordinates to track
         dx    = cxn - self.cx
         dy    = cyn - self.cy
         dist  = hypot(dx,dy)
-        found = False
+        found = 0x00000000
 
         # 1. is the new point in range?
-        if dist > 0.0 and dist < track.maxDist:
+        max_dist = max(2*(wn+hn),track.maxDist)
+        if dist > 0.0 and dist < max_dist:
             # 2. is the new point in the right direction?
             ang_n = degrees(atan2(cyn,cxn))
             #ang_n = degrees(atan2(vyn,vxn))
-            delta = (360.0 + abs(self.ang - ang_n)) % 360.0
+            if self.updates > 3:
+                delta = (360.0 + abs(self.ang - ang_n)) % 360.0
+            else:
+                delta = 0.0
+
             if delta < track.maxDelta:
                 #print "delta+: %4.2f" % delta
-                found   = True
+                found   = self.id
                 self.lastUpdate = clock()
                 self.x  = xn
                 self.y  = yn
@@ -184,10 +166,32 @@ class track:
                 self.vy = vyn
                 self.ang = ang_n
                 self.updates += 1
-                self.maxx = max(self.maxx, cxn)
-                self.maxy = max(self.maxy, cyn)
-                self.minx = min(self.minx, cxn)
-                self.miny = min(self.miny, cyn)
+                maxx = max(self.maxx, xn + wn)
+                maxy = max(self.maxy, yn + hn)
+                minx = min(self.minx, xn)
+                miny = min(self.miny, yn)
+
+                if maxx > self.maxx or minx < self.minx:
+                    self.progressx = dx
+                else:
+                    self.progressx = 0
+
+                if maxy > self.maxy or miny < self.miny:
+                    self.progressy = dy
+                else:
+                    self.progressy = 0
+
+                # TODO: keep this status alive for a couple of frames
+                if self.updates > 50 and self.progressx == 0 and self.progressy == 0:
+                    print "[%s] no motion!" % self.name
+                    self.reset()
+                    return False
+
+                self.maxx = maxx
+                self.maxy = maxy
+                self.minx = minx
+                self.miny = miny
+
                 self.tr.append([cxn,cyn])
                 if(len(self.tr) > 64):
                     del self.tr[0]
@@ -200,7 +204,6 @@ class track:
             #    print "dist-: %4.2f" % dist
             ii = 0
 
-        self.update_estimates(found)
         return found 
 
     def showTrack(self, vis, color=(220,0,0)):
@@ -209,7 +212,9 @@ class track:
             y = 16 * self.y
             w = 16 * self.w
             h = 16 * self.h
-            pts=np.int32(self.tr[-10:]) * 16
+            if self.progressx == 0 and self.progressy == 0:
+                color = (220,220,0)
+            pts=np.int32(self.tr[-25:]) * 16
             #pts=np.roll(pts,1,axis=1)
             cv2.polylines(vis, [pts], False, color)
             txt = "[%s] %d" % ( self.name, self.updates)
@@ -218,11 +223,11 @@ class track:
             cv2.rectangle(vis,(x,y),(x+w,y+h),color,2)
 
     def printTrack(self):
-        if self.updates > 2:
+        if self.progressx <> 0 or self.progressy <> 0:
             sys.stdout.write("[%s]:" %(self.name))
             for x,y in self.tr[-4:]:
                 sys.stdout.write("  %02d,%02d -> " %(x,y))
-            print "(#%3d max:%02d,%02d min:%02d,%02d)" % (self.updates,self.maxx,self.maxy,self.minx,self.miny )
+            print "(#%3d vx:%02d vy:%02d)" % (self.updates,int(self.vx),int(self.vy))
 
 if __name__ == '__main__':
 
