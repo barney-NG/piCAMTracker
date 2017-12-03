@@ -2,20 +2,57 @@
 import numpy as np
 import sys
 import cv2
-from math import atan2,hypot,degrees
+from math import atan2,hypot,degrees,acos,pi,sqrt
 from time import clock
 
-#class Tracker:
-#    def __init__(self):
-#        pass:
+class blinker:
+    def __init__(self):
+        self.port_green = 19
+        self.port_red   = 13
+        self.setupGPIO()
+        self.greenLightsOn = 0
+        self.redLightsOn = 0
+        self.lightsOnTime = 100 # ms
+
+    def __del__(self):
+        GPIO.output(self.port_green,GPIO.LOW)
+        GPIO.output(self.port_red,GPIO.LOW)
+
+    def setupGPIO(self):
+      GPIO.setmode(GPIO.BCM)
+      GPIO.setup(self.port_green,GPIO.OUT)
+      GPIO.setup(self.port_red,GPIO.OUT)
+      GPIO.output(self.port_green,GPIO.LOW)
+      GPIO.output(self.port_red,GPIO.LOW)
+
+    def setGreen(self, set=True):
+        if set:
+            GPIO.output(self.port_green,GPIO.HIGH)
+            self.greenLightsOn = clock()
+        else:
+            GPIO.output(self.port_green,GPIO.LOW)
+            self.greenLightsOn = 0
+
+    def setRed(self, set=True):
+        if set:
+            GPIO.output(self.port_red,GPIO.HIGH)
+            self.redLightsOn = clock()
+        else:
+            GPIO.output(self.port_red,GPIO.LOW)
+            self.redLightsOn = 0
 
 class track:
     track_names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     numtracks   = 0
-    maxDelta    = 60.0
+    #minCosDelta = 0.707 #cos(45.0)
+    minCosDelta = 0.5 #cos(45.0)
     maxDist     = 5.0
-    maxLifeTime = 0.5
+    maxLifeTime = 20
     estimates   = None
+    maxX        = 99999
+    maxY        = 99999
+    xCross      = 99999
+    yCross      = 99999
 
     def __init__(self):
         # track identification
@@ -24,115 +61,100 @@ class track:
         self.id   = 1 << index
         self.name = track.track_names[index]
         # reset track data
-        self.reset()
-
-    # set all data back to start
-    def reset(self):
-        self.tr = []
-        self.x  = 0
-        self.y  = 0
-        self.w  = 0
-        self.h  = 0
-        self.cx = 0
-        self.cy = 0
+        #self.reset()
+        self.tr   = []
+        self.re   = [0,0,0,0]
+        self.vv   = np.array([0.0,0.0])
+        self.cx   = 0
+        self.cy   = 0
+        self.ang  = 0.0
         self.maxx = 0
         self.maxy = 0
         self.minx = 99999
         self.miny = 99999
-        self.progressx = 0
-        self.progressy = 0
-        self.vx = 0.0
-        self.vy = 0.0
-        self.phi = 0.0
-        self.updates = 0
-        self.lastUpdate = 0
-        print "[%s] reset" % self.name
+        self.progressx  = 0
+        self.progressy  = 0
+        self.updates    = 0
+        self.lastFrame = 0
+        self.cleanCrossings()
 
-    def update_estimates(self,found=True):
-        if found:
-            #- estimate the next frame
-            if self.updates < 3:
-                dx = int(-self.vx)  # TODO: should be vx * dt !!!!????
-                dy = int(-self.vy)  # TODO: should be vy * dt !!!!????
-            else:
-                dx = 2 * (self.tr[-1][0] - self.tr[-2][0])
-                dy = 2 * (self.tr[-1][1] - self.tr[-2][1])
+    # set all data back to start
+    def reset(self):
+        if self.updates < 1:
+            return
+        #print "[%s](%d) reset" % (self.name,self.updates)
 
-            if dx >= 0:
-                xl = max(0,self.x)
-                xr = min(track.estimates.shape[0],self.x+dx+self.w)
-            else:
-                xl = max(0,self.x+dx)
-                xr = min(track.estimates.shape[0],self.x+self.w)
+        self.tr   = []
+        self.re   = [0,0,0,0]
+        self.vv   = np.array([0.0,0.0])
+        self.cx   = 0
+        self.cy   = 0
+        self.ang  = 0.0
+        self.maxx = 0
+        self.maxy = 0
+        self.minx = 99999
+        self.miny = 99999
+        self.progressx  = 0
+        self.progressy  = 0
+        self.updates    = 0
+        self.lastFrame = 0
+        self.cleanCrossings()
 
-            if dy > 0:
-                yl = max(0,self.y)
-                yr = min(track.estimates.shape[1],self.y+dy+self.h)
-            else:
-                yl = max(0,self.y+dy)
-                yr = min(track.estimates.shape[1],self.y+self.h)
+    def cleanCrossings(self):
+        self.turnedX   = False
+        self.turnedY   = False
+        self.crossedX  = False
+        self.crossedY  = False
 
-            track.estimates[yl:yr,xl:xr] += self.id
-        else:
-            myid = track.estimates & self.id
-            track.estimates -= myid
+    def clean(self,frame):
+        if self.updates > 0:
+            # TODO: keep this status alive for a couple of frames
+            if self.updates > 10 and self.progressx == 0 and self.progressy == 0:
+                print "[%s](%d) no motion!" % (self.name, self.updates)
+                self.reset()
+                return
 
-    def new_track(self,xn,yn,wn,hn,vxn,vyn):
+            if frame - self.lastFrame > track.maxLifeTime:
+                self.reset()
 
-        #x1 = xn + wn
-        #y1 = yn + hn
+    def new_track(self,frame,rn,vn):
 
-        #count_anyid = np.count_nonzero(track.estimates[yn:y1,xn:x1])
-
-        #if count_anyid > 0:
-        #    print "new cell occupied"
-        #    return False
-        #else:
         self.reset()
 
-        cxn  = xn+wn/2
-        cyn  = yn+hn/2
+        cxn  = rn[0]+rn[2]/2 #xn+wn/2
+        cyn  = rn[1]+rn[3]/2 #yn+hn/2
 
-        self.x  = xn
-        self.y  = yn
-        self.w  = wn
-        self.h  = hn
-        self.cx = cxn
-        self.cy = cyn
-        self.vx = vxn
-        self.vy = vyn
+        self.re  = rn
+        self.vv  = np.array(vn)
+        self.cx  = cxn
+        self.cy  = cyn
+        self.ang = 0.0
         #self.ang = degrees(atan2(cyn,cxn))
-        self.ang = degrees(atan2(vyn,vxn))
+        self.ang = degrees(atan2(vn[1],vn[0]))
         self.tr.append([cxn,cyn])
         self.updates = 1
-        self.lastUpdate = clock()
-        # occupy maximal area for the first time
-        #dx = track.maxDist
-        #dy = track.maxDist
-        #xl = max(0,self.x-dx)
-        #xr = min(track.estimates.shape[0],self.x+dx+self.w)
-        #yl = max(0,self.y-dy)
-        #yr = min(track.estimates.shape[1],self.y+dy+self.h)
-        #track.estimates[yl:yr,xl:xr] += self.id
+        self.lastFrame = frame
 
         return self.id
         
-    def update_track(self,xn,yn,wn,hn,vxn,vyn):
+    def update_track(self,frame,rn,vn):
 
         # this is not the place for new tracks
         if self.updates < 1:
             return 0x00000000
 
-        if clock() - self.lastUpdate > track.maxLifeTime:
+        # remove expired tracks
+        if frame - self.lastFrame > track.maxLifeTime:
             self.reset()
             return 0x00000000
 
-        # double hit?
-        cxn   = xn+wn/2
-        cyn   = yn+hn/2
-        if self.cx == cxn and self.cy == cyn and self.vx == vxn and self.vy == vyn:
+        self.lastFrame = frame
+
+        # PiMotionAnalysis.analyse may be called more than once per frame -> double hit?
+        cxn  = rn[0]+rn[2]/2
+        cyn  = rn[1]+rn[3]/2
+        if self.cx == cxn and self.cy == cyn and self.vv[0] == vn[0] and self.vv[1] == vn[1]:
             print "[%s] double hit" % self.name
-            self.lastUpdate = clock()
             return self.id
 
         # try to append new coordinates to track
@@ -142,50 +164,65 @@ class track:
         found = 0x00000000
 
         # 1. is the new point in range?
-        max_dist = max(2*(wn+hn),track.maxDist)
-        if dist > 0.0 and dist < max_dist:
+        # large objects may move really fast
+        max_dist = max((rn[2]+rn[3]),track.maxDist)
+        if dist >= 0.0 and dist < max_dist:
             # 2. is the new point in the right direction?
-            ang_n = degrees(atan2(cyn,cxn))
-            #ang_n = degrees(atan2(vyn,vxn))
+            # wait track to become mature and then check for angle
             if self.updates > 3:
-                delta = (360.0 + abs(self.ang - ang_n)) % 360.0
+                vl = np.linalg.norm(self.vv) * np.linalg.norm(vn)
+                # accept direction if one movement vector is zero
+                if vl == 0:
+                    cos_delta = 1.0
+                else:
+                    cos_delta = np.dot(self.vv, vn) / vl
             else:
-                delta = 0.0
+                cos_delta = 1.0
 
-            if delta < track.maxDelta:
+            # reject all tracks out of direction
+            if self.updates < 3 or dist < 2.0 or abs(cos_delta) > track.minCosDelta:
                 #print "delta+: %4.2f" % delta
                 found   = self.id
-                self.lastUpdate = clock()
-                self.x  = xn
-                self.y  = yn
-                self.w  = wn
-                self.h  = hn
+                self.re = rn
+                self.vv = np.array(vn)
                 self.cx = cxn
                 self.cy = cyn
-                self.vx = vxn
-                self.vy = vyn
-                self.ang = ang_n
+                #self.ang = ang_n
                 self.updates += 1
-                maxx = max(self.maxx, xn + wn)
-                maxy = max(self.maxy, yn + hn)
-                minx = min(self.minx, xn)
-                miny = min(self.miny, yn)
 
+                # does the track expand into any direction?
+                maxx = max(self.maxx, rn[0]+rn[2])
+                maxy = max(self.maxy, rn[1]+rn[3])
+                minx = min(self.minx, rn[0])
+                miny = min(self.miny, rn[1])
+
+                # update progress indicators
                 if maxx > self.maxx or minx < self.minx:
                     self.progressx = dx
                 else:
+                    self.turnedX   = True
                     self.progressx = 0
 
                 if maxy > self.maxy or miny < self.miny:
                     self.progressy = dy
                 else:
+                    self.turnedY   = True
                     self.progressy = 0
 
-                # TODO: keep this status alive for a couple of frames
-                if self.updates > 50 and self.progressx == 0 and self.progressy == 0:
-                    print "[%s] no motion!" % self.name
+
+                # track leaves area in x direction
+                if rn[0]+rn[2]+dx > track.maxX or rn[0]+dx < 0:
+                    print "[%s](%d) X out! left:%03d right:%03d" %  \
+                    (self.name, self.updates,rn[0]+dx,rn[0]+rn[2]+dx)
                     self.reset()
-                    return False
+                    return self.id
+
+                # track leaves area in y direction
+                if rn[1]+rn[3]+dy > track.maxY or rn[1]+dy < 0:
+                    print "[%s](%d) Y out! top:%03d bottom:%03d" %  \
+                    (self.name, self.updates,rn[1]+dy,rn[1]+rn[3]+dy)
+                    self.reset()
+                    return self.id
 
                 self.maxx = maxx
                 self.maxy = maxy
@@ -195,45 +232,78 @@ class track:
                 self.tr.append([cxn,cyn])
                 if(len(self.tr) > 64):
                     del self.tr[0]
+
+                # track is crossing target line
+                if self.updates > 5 and self.turnedX == False and self.crossedX == False:
+                   crossedXPositve  =  vn[0] < 0 and rn[0]+rn[2]  >= track.xCross
+                   crossedXNegative =  vn[0] > 0 and rn[0]        <= track.xCross
+                   #if crossedXPositve or crossedXNegative:
+                   if crossedXNegative:
+                       print "[%s](%d) !!!!!!!!! CROSSED !!!!!!!" % (self.name,self.updates)
+                       self.crossedX = True
+
             else:
-                if self.updates > 3:
-                    print "delta-: %4.2f %4.2f -> %4.2f" % (delta, self.ang, ang_n)
+                print "[%s] delta-: %4.2f (%4.2f)" % (self.name,cos_delta, degrees(acos(cos_delta)))
+                print "x:%3d->%3d, y:%3d->%3d dist: %4.2f" % (self.vv[0],vn[0], self.vv[1],vn[1],dist)
+                self.reset()
                 ii = 0
         else:
             #if self.updates < 2:
-            #    print "dist-: %4.2f" % dist
+            print "[%s] dist-: %4.2f" % (self.name,dist)
             ii = 0
 
         return found 
 
     def showTrack(self, vis, color=(220,0,0)):
         if self.updates > 3:
-            x = 16 * self.x
-            y = 16 * self.y
-            w = 16 * self.w
-            h = 16 * self.h
+            ci = ord(self.name) % 3
+            if ci == 0:
+                color = (220,20,20)
+            if ci == 1:
+                color = (20,220,20)
+            if ci == 2:
+                color = (20,20,220)
+            r = self.re
+            x = 16 * r[0]
+            y = 16 * r[1]
+            w = 16 * r[2]
+            h = 16 * r[3]
             if self.progressx == 0 and self.progressy == 0:
                 color = (220,220,0)
             pts=np.int32(self.tr[-25:]) * 16
             #pts=np.roll(pts,1,axis=1)
             cv2.polylines(vis, [pts], False, color)
             txt = "[%s] %d" % ( self.name, self.updates)
-            cv2.putText(vis,txt,(x,y),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,1)
+            cv2.putText(vis,txt,(x,y),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,2)
             #cv2.putText(vis,self.name,(y,x),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,1)
-            cv2.rectangle(vis,(x,y),(x+w,y+h),color,2)
+            if self.crossedX:
+                cv2.rectangle(vis,(x,y),(x+w,y+h),color,2)
+            else:
+                cv2.rectangle(vis,(x,y),(x+w,y+h),color,1)
+            ###
+            xm = x+w/2
+            ym = y+h/2
+            dx = -8 * self.vv[0]
+            dy = -8 * self.vv[1]
+            xe = int(xm+dx)
+            ye = int(ym+dy)
+            cv2.arrowedLine(vis,(xm,ym),(xe,ye),color,2)
 
     def printTrack(self):
         if self.progressx <> 0 or self.progressy <> 0:
             sys.stdout.write("[%s]:" %(self.name))
             for x,y in self.tr[-4:]:
                 sys.stdout.write("  %02d,%02d -> " %(x,y))
-            print "(#%3d vx:%02d vy:%02d)" % (self.updates,int(self.vx),int(self.vy))
+            print "(#%3d vx:%02d vy:%02d)" % (self.updates,int(self.vv[0]),int(self.vv[1]))
 
 if __name__ == '__main__':
 
     t = track()
+    t1 = track()
     print "mask: %08x" % t.id
-    #t.update(0x55, 0,0,5,5,3.0,4.0)
+    t.new_track([8,8,14,4],[0.0,-4.0])
+    t1.new_track([1,1,4,4],[3.0,4.0])
+    t.update_track([0,0,5,5],[3.0,4.0])
     #t.update(0x50, 3,3,5,5,3.0,4.0)
     #t.update(0xAA, 0,0,5,5,3.0,4.0)
     #t.update(0xAA, 1,1,5,4,2.0,4.0)
