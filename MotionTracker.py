@@ -5,41 +5,6 @@ import cv2
 from math import atan2,hypot,degrees,acos,pi,sqrt
 from time import clock
 
-class blinker:
-    def __init__(self):
-        self.port_green = 19
-        self.port_red   = 13
-        self.setupGPIO()
-        self.greenLightsOn = 0
-        self.redLightsOn = 0
-        self.lightsOnTime = 100 # ms
-
-    def __del__(self):
-        GPIO.output(self.port_green,GPIO.LOW)
-        GPIO.output(self.port_red,GPIO.LOW)
-
-    def setupGPIO(self):
-      GPIO.setmode(GPIO.BCM)
-      GPIO.setup(self.port_green,GPIO.OUT)
-      GPIO.setup(self.port_red,GPIO.OUT)
-      GPIO.output(self.port_green,GPIO.LOW)
-      GPIO.output(self.port_red,GPIO.LOW)
-
-    def setGreen(self, set=True):
-        if set:
-            GPIO.output(self.port_green,GPIO.HIGH)
-            self.greenLightsOn = clock()
-        else:
-            GPIO.output(self.port_green,GPIO.LOW)
-            self.greenLightsOn = 0
-
-    def setRed(self, set=True):
-        if set:
-            GPIO.output(self.port_red,GPIO.HIGH)
-            self.redLightsOn = clock()
-        else:
-            GPIO.output(self.port_red,GPIO.LOW)
-            self.redLightsOn = 0
 
 class track:
     track_names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -47,12 +12,15 @@ class track:
     #minCosDelta = 0.707 #cos(45.0)
     minCosDelta = 0.5 #cos(45.0)
     maxDist     = 5.0
-    maxLifeTime = 20
+    maxLifeTime = 30
     estimates   = None
     maxX        = 99999
     maxY        = 99999
     xCross      = 99999
     yCross      = 99999
+    crossed_handler = None
+    image_handler   = None
+    missed_handler  = None
 
     def __init__(self):
         # track identification
@@ -106,13 +74,20 @@ class track:
         self.crossedX  = False
         self.crossedY  = False
 
+    def crossed(self):
+        if track.crossed_handler is not None:
+            track.crossed_handler.event.set()
+
+        if track.image_handler is not None:
+            track.image_handler.event.set()
+
     def clean(self,frame):
         if self.updates > 0:
             # TODO: keep this status alive for a couple of frames
-            if self.updates > 10 and self.progressx == 0 and self.progressy == 0:
-                print "[%s](%d) no motion!" % (self.name, self.updates)
-                self.reset()
-                return
+            #if self.updates > 20 and self.progressx == 0 and self.progressy == 0:
+            #    print "[%s](%d) no motion!" % (self.name, self.updates)
+            #    self.reset()
+            #    return
 
             if frame - self.lastFrame > track.maxLifeTime:
                 self.reset()
@@ -233,7 +208,7 @@ class track:
                 if(len(self.tr) > 64):
                     del self.tr[0]
 
-                # track is crossing target line
+                # track is crossing target line in X direction
                 if self.updates > 5 and self.turnedX == False and self.crossedX == False:
                    crossedXPositve  =  vn[0] < 0 and rn[0]+rn[2]  >= track.xCross
                    crossedXNegative =  vn[0] > 0 and rn[0]        <= track.xCross
@@ -241,6 +216,7 @@ class track:
                    if crossedXNegative:
                        print "[%s](%d) !!!!!!!!! CROSSED !!!!!!!" % (self.name,self.updates)
                        self.crossedX = True
+                       self.crossed()
 
             else:
                 print "[%s] delta-: %4.2f (%4.2f)" % (self.name,cos_delta, degrees(acos(cos_delta)))
@@ -249,7 +225,7 @@ class track:
                 ii = 0
         else:
             #if self.updates < 2:
-            print "[%s] dist-: %4.2f" % (self.name,dist)
+            #print "[%s] dist-: %4.2f" % (self.name,dist)
             ii = 0
 
         return found 

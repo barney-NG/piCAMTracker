@@ -2,13 +2,19 @@
 import picamera
 import picamera.array
 import numpy as np
+import threading
 import cv2
 from time import sleep,clock
 from math import degrees,atan2,pi
 import MotionTracker
-import RPi.GPIO as GPIO
-p1=13
-p2=19
+import gpioPort
+
+
+# sort tracks distance to point
+def by_distance(t,p):
+    px = p[0] + p[2] / 2
+    py = p[1] + p[3] / 2
+    return np.hypot(t.cx - px, t.cy - py)
 
 # sort tracks by number of updates
 def by_updates(t):
@@ -34,12 +40,17 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.port_red   = 13
         self.maxMovements = 100
         self.all_tracks = []
-        self.setupGPIO()
-        self.greenLightsOn = 0
-        self.redLightsOn = 0
-        self.lightsOnTime = 100 # ms
-        for i in range(0,32):
+        for i in range(0,16):
             self.all_tracks.append(MotionTracker.track())
+
+        self.greenLEDThread = gpioPort.gpioPort(19)
+        if self.greenLEDThread:
+            MotionTracker.track.crossed_handler = self.greenLEDThread
+
+    def __del__(self):
+        if self.greenLEDThread:
+            self.greenLEDThread.terminated = True
+            self.greenLEDThread.join()
 
     def intersects(self,rects,xn,yn,wn,hn):
         i = 0
@@ -92,29 +103,6 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         return rects
 
-    def setupGPIO(self):
-      GPIO.setmode(GPIO.BCM)
-      GPIO.setup(self.port_green,GPIO.OUT)
-      GPIO.setup(self.port_red,GPIO.OUT)
-      GPIO.output(self.port_green,GPIO.LOW)
-      GPIO.output(self.port_red,GPIO.LOW)
-
-    def setGreen(self, set=True):
-        if set:
-            GPIO.output(self.port_green,GPIO.HIGH)
-            self.greenLightsOn = clock()
-        else:
-            GPIO.output(self.port_green,GPIO.LOW)
-            self.greenLightsOn = 0
-
-    def setRed(self, set=True):
-        if set:
-            GPIO.output(self.port_red,GPIO.LOW)
-            self.redLightsOn = clock()
-        else:
-            GPIO.output(self.port_red,GPIO.HIGH)
-            self.redLightsOn = 0
-
     def printTracks(self):
         for track in sorted(self.all_tracks, key=by_updates, reverse=True):
             track.printTrack()
@@ -129,12 +117,9 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             # search a track for this coordinate
             tracked = 0x00000000
             #for track in self.all_tracks:
-            for track in sorted(self.all_tracks, key=by_updates, reverse=True):
+            #for track in sorted(self.all_tracks, key=by_updates, reverse=True):
+            for track in sorted(self.all_tracks, key=lambda e: by_distance(e,rn)):
                 tracked |= track.update_track(self.loop,rn,vn)
-                if tracked <> 0:
-                    if track.crossedX:
-                        self.setGreen(True)
-                    break
             # not yet tracked -> find a free slot
             if not tracked:
                 for track in self.all_tracks:
@@ -145,11 +130,6 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         if self.loop % 30:
             for track in self.all_tracks:
                 track.clean(self.loop)
-
-            if self.greenLightsOn > 0:
-                difftime = (clock() - self.greenLightsOn) * 1000
-                if difftime > self.lightsOnTime:
-                    self.setGreen(False)
 
 
         #if self.show:
@@ -164,6 +144,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         t1 = clock()
         dt = t1 - self.t0
         self.t0 = t1
+        #fnum = self.camera.frame.index
+        #print "fnum: %4d %4d (%d)" % (fnum,self.loop,self.camera.frame.frame_type)
 
         # initialize values not known at class initialization
         if self.mmx is None:
@@ -263,6 +245,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 #sad        = a[y0:y1,x0:x1]['sad'].mean()
                 sad_var     = a[y0:y1,x0:x1]['sad'].var()
                 sad_weights = a[y0:y1,x0:x1]['sad'].flatten()
+                sad_weights *= sad_weights
 
                 #v_vec = np.concatenate((a[y0:y1,x0:x1]['x'],a[y0:y1,x0:x1]['y']),axis=0).reshape(2,-1)
                 #print "cov"
@@ -338,4 +321,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
             key = cv2.waitKey(1) & 0xff
             if key == 27:
+                if self.greenLEDThread:
+                    self.greenLEDThread.terminated = True
+                    self.greenLEDThread.join()
                 raise NotImplementedError
