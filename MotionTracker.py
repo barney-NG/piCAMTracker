@@ -1,18 +1,113 @@
 # vim: set et sw=4 sts=4 fileencoding=utf-8:
 import numpy as np
+import threading
+from time import sleep
 import sys
 import cv2
 from math import atan2,hypot,degrees,acos,pi,sqrt
 from time import clock
 
+MAX_TRACKS = 16
+
+#- sorting functions
+def by_distance(t,p):
+    if t.updates == 0:
+        return 99999
+
+    px = p[0] + p[2] / 2
+    py = p[1] + p[3] / 2
+    return abs(t.cx - px) + abs(t.cy - py)
+    #return np.hypot(t.cx - px, t.cy - py)
+
+#- sort tracks by number of updates
+def by_updates(t):
+    return t.updates
+
+class Tracker(threading.Thread):
+    def __init__(self):
+        super(Tracker,self).__init__()
+        self.track_pool = []
+        for i in range(0,MAX_TRACKS):
+            self.track_pool.append(track())
+
+        #- thread initialisation stuff
+        self.event = threading.Event()
+        self.terminated = False
+        self.daemon = True
+        self.event.clear()
+        self.start()
+
+    def setup_sizes(self, rows, cols):
+        track.maxX = rows
+        track.maxY = cols
+
+    def update_tracks(self, frame, motion):
+        self.frame  = frame
+        self.motion = motion[:]
+        self.event.set()
+
+    def run(self):
+        while not self.terminated:
+            if self.event.wait(1):
+               self.update_track_pool(self.motion)
+               self.event.clear()
+
+    def update_track_pool(self, motion):
+        # walk through all changes
+        self.updated = False
+        has_been_tracked = 0x00000000
+
+        for rn,vn in motion:
+            # search a track for this coordinate
+            tracked = 0x00000000
+            # >>> debug
+            cx = rn[0] + rn[2] / 2
+            cy = rn[1] + rn[3] / 2
+            print "try: ", cx,cy
+            # <<< debug
+            for track in sorted(self.track_pool, key=lambda t: by_distance(t,rn)):
+                if track.updates == 0 or has_been_tracked & track.id:
+                    continue
+
+                print "   [%s]: (%2d) %3d" % (track.name, track.updates,  abs(track.cx - cx) + abs(track.cy - cy))
+
+                tracked = track.update(self.frame,rn,vn)
+                if tracked:
+                    has_been_tracked |= tracked
+                    print "[%s] updated" % track.name, cx,cy
+                    self.updated = True
+                    break
+            # not yet tracked -> find a free slot
+            if not tracked:
+                for track in self.track_pool:
+                    if track.updates == 0:
+                        print "[%s] new" % track.name, cx,cy
+                        track.new_track(self.frame,rn,vn)
+                        self.updated = True
+                        break
+
+        #ogfgf
+        for track in self.track_pool:
+            if track.updates > 3:
+                if not track.id & has_been_tracked:
+                    track.predict(self.frame)
+
+        # remove aged tracks
+        if self.frame % 5:
+            for track in self.track_pool:
+                track.clean(self.frame)
+
+'''
+=========================================================================
+'''
 
 class track:
     track_names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     numtracks   = 0
-    #minCosDelta = 0.707 #cos(45.0)
-    minCosDelta = 0.5 #cos(45.0)
-    maxDist     = 5.0
-    maxLifeTime = 30
+    #minCosDelta = 0.707 #cos(2*22.5)
+    minCosDelta = 0.5 #cos(2*30.0)
+    maxDist     = 10.0
+    maxLifeTime = 10
     estimates   = None
     maxX        = 99999
     maxY        = 99999
@@ -35,7 +130,6 @@ class track:
         self.vv   = np.array([0.0,0.0])
         self.cx   = 0
         self.cy   = 0
-        self.ang  = 0.0
         self.maxx = 0
         self.maxy = 0
         self.minx = 99999
@@ -50,6 +144,7 @@ class track:
     def reset(self):
         if self.updates < 1:
             return
+
         #print "[%s](%d) reset" % (self.name,self.updates)
 
         self.tr   = []
@@ -57,7 +152,6 @@ class track:
         self.vv   = np.array([0.0,0.0])
         self.cx   = 0
         self.cy   = 0
-        self.ang  = 0.0
         self.maxx = 0
         self.maxy = 0
         self.minx = 99999
@@ -90,11 +184,18 @@ class track:
             #    return
 
             if frame - self.lastFrame > track.maxLifeTime:
+                print "[%s] (%d) clean" % (self.name, self.updates)
                 self.reset()
 
     def new_track(self,frame,rn,vn):
 
-        self.reset()
+        #self.reset()
+        if rn[0] - vn[0] < 0 or rn[1] - vn[1] < 0:
+            print "[%s]: rejected (too low)" % self.name
+            return 0
+        if rn[0] + rn[2] - vn[0] > track.maxX or rn[1] + rn[3] - vn[1] > track.maxY:
+            print "[%s]: rejected (too high)" % self.name
+            return 0
 
         cxn  = rn[0]+rn[2]/2 #xn+wn/2
         cyn  = rn[1]+rn[3]/2 #yn+hn/2
@@ -103,16 +204,40 @@ class track:
         self.vv  = np.array(vn)
         self.cx  = cxn
         self.cy  = cyn
-        self.ang = 0.0
-        #self.ang = degrees(atan2(cyn,cxn))
-        self.ang = degrees(atan2(vn[1],vn[0]))
         self.tr.append([cxn,cyn])
         self.updates = 1
         self.lastFrame = frame
+        self.estimate()
 
         return self.id
         
-    def update_track(self,frame,rn,vn):
+    def estimate(self):
+        if track.estimates is not None:
+            vx = -int(self.vv[0])
+            vy = -int(self.vv[1])
+            dt = 4 #TODO: must delta frame or delta t
+
+            if vx >= 0:
+                xl = self.re[0]
+                xr = min(track.maxX, self.re[0] + self.re[2] + vx*dt)
+            else:
+                xl = max(0, self.re[0] + vx*dt)
+                xr = self.re[0]
+
+            if vy >= 0:
+                yl = self.re[1]
+                yr = min(track.maxY, self.re[1] + self.re[3] + vy*dt)
+            else:
+                yl = max(0, self.re[1] + vy*dt)
+                yr = self.re[1]
+
+            track.estimates[yl:yr,xl:xr] += self.id
+
+    def predict(self, frame):
+        age = frame - self.lastFrame
+        print "[%s] (%d) predict age: %d" % ( self.name, self.updates, age)
+
+    def update(self,frame,rn,vn):
 
         # this is not the place for new tracks
         if self.updates < 1:
@@ -120,6 +245,7 @@ class track:
 
         # remove expired tracks
         if frame - self.lastFrame > track.maxLifeTime:
+            print "[%s]: (%d) expired" % (self.name,self.updates)
             self.reset()
             return 0x00000000
 
@@ -155,14 +281,13 @@ class track:
                 cos_delta = 1.0
 
             # reject all tracks out of direction
-            if self.updates < 3 or dist < 2.0 or abs(cos_delta) > track.minCosDelta:
+            if self.updates < 3 or dist <= 1.0 or abs(cos_delta) > track.minCosDelta:
                 #print "delta+: %4.2f" % delta
                 found   = self.id
                 self.re = rn
                 self.vv = np.array(vn)
                 self.cx = cxn
                 self.cy = cyn
-                #self.ang = ang_n
                 self.updates += 1
 
                 # does the track expand into any direction?
@@ -175,27 +300,29 @@ class track:
                 if maxx > self.maxx or minx < self.minx:
                     self.progressx = dx
                 else:
+                    # TURN-X if the area does not expand any more in x direction
                     self.turnedX   = True
                     self.progressx = 0
 
                 if maxy > self.maxy or miny < self.miny:
                     self.progressy = dy
                 else:
+                    # TURN-Y if the area does not expand any more in y direction
                     self.turnedY   = True
                     self.progressy = 0
 
 
                 # track leaves area in x direction
-                if rn[0]+rn[2]+dx > track.maxX or rn[0]+dx < 0:
-                    print "[%s](%d) X out! left:%03d right:%03d" %  \
-                    (self.name, self.updates,rn[0]+dx,rn[0]+rn[2]+dx)
+                if maxx+dx > track.maxX or minx+dx < 0:
+                    print "[%s](%d) X out! %02d,%02d left:%03d right:%03d" %  \
+                    (self.name, self.updates,self.cx,self.cy,minx+dx,maxx+dx)
                     self.reset()
                     return self.id
 
                 # track leaves area in y direction
-                if rn[1]+rn[3]+dy > track.maxY or rn[1]+dy < 0:
-                    print "[%s](%d) Y out! top:%03d bottom:%03d" %  \
-                    (self.name, self.updates,rn[1]+dy,rn[1]+rn[3]+dy)
+                if maxy+dy > track.maxY or miny+dy < 0:
+                    print "[%s](%d) Y out! %02d,%02d bottom:%03d top:%03d" %  \
+                    (self.name, self.updates,self.cx,self.cy,miny+dy,maxy+dy)
                     self.reset()
                     return self.id
 
@@ -208,20 +335,22 @@ class track:
                 if(len(self.tr) > 64):
                     del self.tr[0]
 
+                self.estimate()
+
                 # track is crossing target line in X direction
-                if self.updates > 5 and self.turnedX == False and self.crossedX == False:
+                if self.updates > 4 and self.turnedX == False and self.crossedX == False:
                    crossedXPositve  =  vn[0] < 0 and rn[0]+rn[2]  >= track.xCross
                    crossedXNegative =  vn[0] > 0 and rn[0]        <= track.xCross
                    #if crossedXPositve or crossedXNegative:
                    if crossedXNegative:
-                       print "[%s](%d) !!!!!!!!! CROSSED !!!!!!!" % (self.name,self.updates)
+                       print "[%s](%d) %d/%d <<<<<<<<<<<<<< CROSSED <<<<<<<<<<<<<<<<<<" % (self.name,self.updates,self.cx,self.cy)
                        self.crossedX = True
                        self.crossed()
 
             else:
                 print "[%s] delta-: %4.2f (%4.2f)" % (self.name,cos_delta, degrees(acos(cos_delta)))
-                print "x:%3d->%3d, y:%3d->%3d dist: %4.2f" % (self.vv[0],vn[0], self.vv[1],vn[1],dist)
-                self.reset()
+                print "     x:%3d->%3d, y:%3d->%3d dist: %4.2f" % (self.vv[0],vn[0], self.vv[1],vn[1],dist)
+                #self.reset()
                 ii = 0
         else:
             #if self.updates < 2:
@@ -230,7 +359,7 @@ class track:
 
         return found 
 
-    def showTrack(self, vis, color=(220,0,0)):
+    def showTrack(self, vis, frame=0, color=(220,0,0)):
         if self.updates > 3:
             ci = ord(self.name) % 3
             if ci == 0:
@@ -249,7 +378,8 @@ class track:
             pts=np.int32(self.tr[-25:]) * 16
             #pts=np.roll(pts,1,axis=1)
             cv2.polylines(vis, [pts], False, color)
-            txt = "[%s] %d" % ( self.name, self.updates)
+            age = self.lastFrame - frame
+            txt = "[%s] %d/%d %d" % ( self.name, self.cx,self.cy,age)
             cv2.putText(vis,txt,(x,y),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,2)
             #cv2.putText(vis,self.name,(y,x),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,1)
             if self.crossedX:
@@ -265,24 +395,35 @@ class track:
             ye = int(ym+dy)
             cv2.arrowedLine(vis,(xm,ym),(xe,ye),color,2)
 
-    def printTrack(self):
+    def printTrack(self, frame=0):
         if self.progressx <> 0 or self.progressy <> 0:
             sys.stdout.write("[%s]:" %(self.name))
             for x,y in self.tr[-4:]:
                 sys.stdout.write("  %02d,%02d -> " %(x,y))
-            print "(#%3d vx:%02d vy:%02d)" % (self.updates,int(self.vv[0]),int(self.vv[1]))
+            print "(#%2d vx:%02d vy:%02d) age:%d" % (self.updates,int(-self.vv[0]),int(-self.vv[1]),frame-self.lastFrame)
 
 if __name__ == '__main__':
 
     t = track()
     t1 = track()
     print "mask: %08x" % t.id
-    t.new_track([8,8,14,4],[0.0,-4.0])
-    t1.new_track([1,1,4,4],[3.0,4.0])
-    t.update_track([0,0,5,5],[3.0,4.0])
+    t.new_track(1,[8,8,14,4],[0.0,-4.0])
+    t1.new_track(1,[1,1,4,4],[3.0,4.0])
+    t.update(2,[0,0,5,5],[3.0,4.0])
     #t.update(0x50, 3,3,5,5,3.0,4.0)
     #t.update(0xAA, 0,0,5,5,3.0,4.0)
     #t.update(0xAA, 1,1,5,4,2.0,4.0)
     #t.printAll()
     #t.reset(0x3f)
     #t.printAll()
+    tracker = Tracker()
+    tracker.setup_sizes(10,10)
+    aa = []
+    aa.append([[1,1,2,2],[1,1]])
+    aa.append([[2,2,2,2],[1,1]])
+    aa.append([[3,3,2,2],[1,1]])
+    tracker.update_tracks(1, aa)
+    sleep(2)
+    tracker.terminated = True
+    tracker.join()
+

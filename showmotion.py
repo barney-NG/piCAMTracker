@@ -8,18 +8,24 @@ import MotionAnalyser
 
 def main(show=True):
     with picamera.PiCamera() as camera:
-        stream = picamera.PiCameraCircularIO(camera, seconds=10)
-        resx = 1024
-        resy = 576
+        stream = picamera.PiCameraCircularIO(camera, seconds=5)
+        #resx = 1024
+        #resy = 576
+        resx = 1280
+        resy = 720
         cl = np.zeros((resy,resx,3), np.uint8)
         #cl[resy/2,:,:] = 0xff  #horizantal line
         cl[:,resx/2,:]  = 0xff  #vertical line
         camera.resolution = (resx,resy)
         #camera.annotate_text = "RaspberryPi3 Camera"
         if show:
-            camera.framerate  = 25
+            camera.framerate  = 30
         else:
-            camera.framerate  = 90
+            camera.framerate  = 30  #- V1/V2 ~20ms/frame max
+            #camera.framerate  = 49  #- V1/V2 ~20ms/frame max
+            #camera.framerate  = 68
+            #camera.sensor_mode  = 5 #V1
+            camera.sensor_mode  = 6 #V2
         print("warm-up 2 seconds...")
         sleep(2)
         print("...start")
