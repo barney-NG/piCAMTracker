@@ -5,6 +5,7 @@ from time import sleep
 import sys
 import cv2
 from math import atan2,hypot,degrees,acos,pi,sqrt
+from collections import deque
 from time import clock
 
 MAX_TRACKS = 16
@@ -23,36 +24,32 @@ def by_distance(t,p):
 def by_updates(t):
     return t.updates
 
-class Tracker(threading.Thread):
+class OTracker():
     def __init__(self):
-        super(Tracker,self).__init__()
         self.track_pool = []
+        self.terminated = False
         for i in range(0,MAX_TRACKS):
             self.track_pool.append(track())
 
-        #- thread initialisation stuff
-        self.event = threading.Event()
-        self.terminated = False
-        self.daemon = True
-        self.event.clear()
-        self.start()
-
     def setup_sizes(self, rows, cols):
-        track.maxX = rows
-        track.maxY = cols
+        track.maxX = cols
+        track.maxY = rows
 
-    def update_tracks(self, frame, motion):
-        self.frame  = frame
-        self.motion = motion[:]
-        self.event.set()
+    def stop(self):
+        self.terminated = True
+
+    def join(self):
+        pass
 
     def run(self):
         while not self.terminated:
-            if self.event.wait(1):
-               self.update_track_pool(self.motion)
-               self.event.clear()
+            frame,motion = self.q.get()
+            self.update_track_pool(frame,motion)
+            self.q.task_done()
 
-    def update_track_pool(self, motion):
+        #self.q.join()
+
+    def update_tracks(self, frame, motion):
         # walk through all changes
         self.updated = False
         has_been_tracked = 0x00000000
@@ -71,7 +68,7 @@ class Tracker(threading.Thread):
 
                 print "   [%s]: (%2d) %3d" % (track.name, track.updates,  abs(track.cx - cx) + abs(track.cy - cy))
 
-                tracked = track.update(self.frame,rn,vn)
+                tracked = track.update(frame,rn,vn)
                 if tracked:
                     has_been_tracked |= tracked
                     print "[%s] updated" % track.name, cx,cy
@@ -82,7 +79,7 @@ class Tracker(threading.Thread):
                 for track in self.track_pool:
                     if track.updates == 0:
                         print "[%s] new" % track.name, cx,cy
-                        track.new_track(self.frame,rn,vn)
+                        track.new_track(frame,rn,vn)
                         self.updated = True
                         break
 
@@ -90,12 +87,102 @@ class Tracker(threading.Thread):
         for track in self.track_pool:
             if track.updates > 3:
                 if not track.id & has_been_tracked:
-                    track.predict(self.frame)
+                    track.predict(frame)
 
         # remove aged tracks
-        if self.frame % 5:
+        if frame % 5:
             for track in self.track_pool:
-                track.clean(self.frame)
+                track.clean(frame)
+
+    def showTracks(self, frame, vis):
+        for track in self.track_pool:
+            track.showTrack(vis,frame)
+
+class Tracker(threading.Thread):
+    def __init__(self):
+        super(Tracker,self).__init__()
+        self.track_pool = []
+        for i in range(0,MAX_TRACKS):
+            self.track_pool.append(track())
+
+        #- thread initialisation stuff
+        self.event = threading.Event()
+        self.event.clear()
+        self.q = deque()
+        #self.q.daemon = True
+        self.terminated = False
+        self.daemon = True
+        self.start()
+
+    def setup_sizes(self, rows, cols):
+        track.maxX = cols
+        track.maxY = rows
+
+    def update_tracks(self, frame, motion):
+        self.q.append([frame,motion])
+        self.event.set()
+
+    def stop(self):
+        self.terminated = True
+        self.q.append([0, [[[0,0,0,0],[0,0]]]])
+
+    def run(self):
+        while not self.terminated:
+            try:
+                frame,motion = self.q.popleft()
+                self.update_track_pool(frame,motion)
+            except IndexError:
+                self.event.clear()
+                self.event.wait(1)
+
+    def update_track_pool(self, frame, motion):
+        # walk through all changes
+        self.updated = False
+        has_been_tracked = 0x00000000
+
+        for rn,vn in motion:
+            # search a track for this coordinate
+            tracked = 0x00000000
+            # >>> debug
+            cx = rn[0] + rn[2] / 2
+            cy = rn[1] + rn[3] / 2
+            print "try: ", cx,cy
+            # <<< debug
+            for track in sorted(self.track_pool, key=lambda t: by_distance(t,rn)):
+                if track.updates == 0 or has_been_tracked & track.id:
+                    continue
+
+                print "   [%s]: (%2d) %3d" % (track.name, track.updates,  abs(track.cx - cx) + abs(track.cy - cy))
+
+                tracked = track.update(frame,rn,vn)
+                if tracked:
+                    has_been_tracked |= tracked
+                    print "[%s] updated" % track.name, cx,cy
+                    self.updated = True
+                    break
+            # not yet tracked -> find a free slot
+            if not tracked:
+                for track in self.track_pool:
+                    if track.updates == 0:
+                        print "[%s] new" % track.name, cx,cy
+                        track.new_track(frame,rn,vn)
+                        self.updated = True
+                        break
+
+        #ogfgf
+        for track in self.track_pool:
+            if track.updates > 3:
+                if not track.id & has_been_tracked:
+                    track.predict(frame)
+
+        # remove aged tracks
+        if frame % 5:
+            for track in self.track_pool:
+                track.clean(frame)
+
+    def showTracks(self, frame, vis):
+        for track in self.track_pool:
+            track.showTrack(vis,frame)
 
 '''
 =========================================================================
@@ -337,15 +424,25 @@ class track:
 
                 self.estimate()
 
-                # track is crossing target line in X direction
-                if self.updates > 4 and self.turnedX == False and self.crossedX == False:
-                   crossedXPositve  =  vn[0] < 0 and rn[0]+rn[2]  >= track.xCross
-                   crossedXNegative =  vn[0] > 0 and rn[0]        <= track.xCross
+                # track is crossing target line in Y direction
+                if self.updates > 4 and self.turnedY == False and self.crossedY == False:
+                   crossedYPositve  =  vn[1] < 0 and rn[1]+rn[3]  >= track.yCross
+                   crossedYNegative =  vn[1] > 0 and rn[1]        <= track.yCross
                    #if crossedXPositve or crossedXNegative:
-                   if crossedXNegative:
+                   if crossedYNegative:
                        print "[%s](%d) %d/%d <<<<<<<<<<<<<< CROSSED <<<<<<<<<<<<<<<<<<" % (self.name,self.updates,self.cx,self.cy)
-                       self.crossedX = True
+                       self.crossedY = True
                        self.crossed()
+
+                # track is crossing target line in X direction
+                #if self.updates > 4 and self.turnedX == False and self.crossedX == False:
+                #   crossedXPositve  =  vn[0] < 0 and rn[0]+rn[2]  >= track.xCross
+                #   crossedXNegative =  vn[0] > 0 and rn[0]        <= track.xCross
+                #   #if crossedXPositve or crossedXNegative:
+                #   if crossedXNegative:
+                #       print "[%s](%d) %d/%d <<<<<<<<<<<<<< CROSSED <<<<<<<<<<<<<<<<<<" % (self.name,self.updates,self.cx,self.cy)
+                #       self.crossedX = True
+                #       self.crossed()
 
             else:
                 print "[%s] delta-: %4.2f (%4.2f)" % (self.name,cos_delta, degrees(acos(cos_delta)))
@@ -419,11 +516,10 @@ if __name__ == '__main__':
     tracker = Tracker()
     tracker.setup_sizes(10,10)
     aa = []
-    aa.append([[1,1,2,2],[1,1]])
-    aa.append([[2,2,2,2],[1,1]])
-    aa.append([[3,3,2,2],[1,1]])
-    tracker.update_tracks(1, aa)
-    sleep(2)
-    tracker.terminated = True
+    tracker.update_tracks(1, [[[5,5,2,2],[1.,1.]]])
+    tracker.update_tracks(2, [[[6,6,2,2],[1.,1.]]])
+    tracker.update_tracks(3, [[[7,7,2,2],[1.,1.]]])
+    sleep(1)
+    tracker.stop()
     tracker.join()
 
