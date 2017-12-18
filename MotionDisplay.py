@@ -28,6 +28,7 @@ class Display(threading.Thread):
         self.event      = threading.Event()
         self.x = x
         self.y = y
+        self.caption = caption
         self.notPlaced = True
         self.key = 32
         os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (x,y)
@@ -82,19 +83,21 @@ class Display(threading.Thread):
                     #image = self.vis
                     image = np.flipud(self.vis)
                     if self.screen is None:
-                        self.screen = pygame.display.set_mode(image.shape[:2],pygame.NOFRAME)
+                        self.screen = pygame.display.set_mode(image.shape[:2])
+
                     pygame.surfarray.blit_array(self.screen,image)
                     pygame.display.update()
 
                 self.event.clear()
 
-    def Orun(self):
+    def Crun(self):
         while not self.terminated:
             # wait until somebody throws an event
             if self.event.wait(1):
                 # show rotated image
                 if self.vis is not None:
-                    cv2.imshow(self.caption, np.rot90(self.vis,k=-1))
+                    #cv2.imshow(self.caption, np.rot90(self.vis,k=-1))
+                    cv2.imshow(self.caption, self.vis)
                     if self.notPlaced:
                         cv2.moveWindow(self.caption,self.x,self.y)
                         self.notPlaced = False

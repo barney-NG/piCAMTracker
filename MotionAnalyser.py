@@ -9,6 +9,7 @@ from math import degrees,atan2,pi
 import MotionTracker
 import GPIOPort
 
+
 class MotionAnalyser(picamera.array.PiMotionAnalysis):
     def __init__(self,camera, tracker, display, show=False, direction=(-1,0)):
         super(MotionAnalyser, self).__init__(camera)
@@ -17,22 +18,16 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.display  = display
         self.t0      = clock()
         self.dir = direction
-        self.maxArea = 256
-        self.sadThreshold = 128
+        self.maxArea = 512
+        self.sadThreshold = 192
         self.big     = None
         self.show    = show
-        self.mmx     = None
-        self.mmy     = None
+        self.started = False
         self.xcross  = None
         self.ycross  = None
         self.frame   = 0
-        self.maxDelta = 90.0
-        self.notPlaced = True
         self.updated = False
         self.maxMovements = 100
-        self.all_tracks = []
-        for i in range(0,16):
-            self.all_tracks.append(MotionTracker.track())
 
         self.greenLEDThread = GPIOPort.gpioPort(19)
         #self.redLEDThread   = GPIOPort.gpioPort(13)
@@ -44,6 +39,9 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             self.greenLEDThread.terminated = True
             self.greenLEDThread.join()
 
+    def rot90(self, x, y):
+        return ((self.cols-1-y,x))
+
     def analyse(self, a=None):
         t1 = clock()
         dt = t1 - self.t0
@@ -51,16 +49,13 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.frame = self.camera.frame.index
 
         # initialize values not known at class initialization
-        if self.mmx is None:
+        if not self.started:
             self.tracker.setup_sizes(self.rows, self.cols-1)
-            self.mmx      = np.zeros(a.shape, np.float32)
-            self.mmy      = np.zeros(a.shape, np.float32)
-            #MotionTracker.track.estimates = np.zeros(a.shape, np.uint)
-            #MotionTracker.track.xCross = (self.cols-1) / 2
             MotionTracker.track.yCross = (self.rows) / 2
             self.xcross   = self.cols / 2
             self.ycross   = self.rows / 2
             self.maxMovements = self.rows * self.cols / 8
+            self.started = True
             return
 
         #---------------------------------------------------------------
@@ -69,7 +64,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #- identify movement in actual frame
         #if self.dir[0] < 0:
         mag = np.abs(a['x']) + np.abs(a['y'])
-        has_movement = np.logical_and(mag > 2, mag < 200)
+        has_movement = np.logical_and(mag > 1, mag < 100, a['sad'] > self.sadThreshold)
+        #has_movement = np.logical_and(has_movement, a['y'] > 0 )
 
         #- reject if more than 25% of the macro blocks are moving
         if np.count_nonzero(has_movement) > self.maxMovements:
@@ -80,30 +76,31 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         if self.show:# and self.frame % 5:
             if self.big is None:
-                #self.big = np.ones((8*(mask.shape[0]-1),8*mask.shape[1],3), np.uint8) * 220
-                self.big = np.ones((8*self.rows,8*self.cols-1,3), np.uint8) * 220
+                #self.big = np.ones((8*(self.cols-1),8*self.rows,3), np.uint8) * 220
+                self.big = np.ones((8*self.rows,8*(self.cols-1),3), np.uint8) * 220
             else:
                 self.big.fill(200)
-                #sad_big = cv2.resize(a['sad'],(self.big.shape[1],self.big.shape[0]))
-                #self.big[]
         
-        #if self.show:# and self.frame % 5:
-        if False:
+        #if False:
+        if self.show:# and self.frame % 5:
             #- thats's slow!
             coords =  np.transpose(np.nonzero(mask))
             for y,x in coords:
                 xm = x
                 ym = y
-                u  = 2 * a[y,x]['x']
-                v  = 2 * a[y,x]['y']
+                #u  = a[y,x]['x']
+                #v  = a[y,x]['y']
                 c =  max(0, 255 - int(a[y,x]['sad']))
+                #c =  255-int(mask[y,x])
                 #c = 220
+                x *= 8
+                y *= 8
                 xm *= 8
                 ym *= 8
-                xe  = xm - u
-                ye  = ym - v
-                #cv2.rectangle(self.big,(x,y),(x+8,y+8),(0,c,c),-1)
-                cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(c,0,c),1)
+                #xe  = xm - u
+                #ye  = ym - v
+                cv2.rectangle(self.big,(x,y),(x+8,y+8),(0,c,c),-1)
+                #cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(c,0,c),1)
 
 
 
@@ -160,21 +157,28 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                     #print "sparkel: sad: %3d" % ( a[y0,x0]['sad'])
                     rejects += 1
                     continue
+                #print "vx/vy %2d,%2d (%d)" % (vx,vy,sad_var)
             else:
                 #-- we are searching for regions which differ a lot from the previous frame
                 #-- ignore small changes in foregroung (weaving fields)
                 #sad    = a[y0:y1,x0:x1]['sad'].mean()
                 sad_var = a[y0:y1,x0:x1]['sad'].var()
-                if sad_var < 255:
+                if sad_var < 2*self.sadThreshold:
                     rejects += 1
                     continue
 
-                sad_weights = a[y0:y1,x0:x1]['sad'].flatten()
-                sad_weights *= sad_weights
+                #sad_weights = a[y0:y1,x0:x1]['sad'].flatten()
+                #sad_weights *= sad_weights
 
                 #-- develope composite vector from weightened vectors in region
-                vx   = np.average(a[y0:y1,x0:x1]['x'].flatten(),weights=sad_weights)
-                vy   = np.average(a[y0:y1,x0:x1]['y'].flatten(),weights=sad_weights)
+                #try:
+                #    vx   = np.average(a[y0:y1,x0:x1]['x'].flatten(),weights=sad_weights)
+                #    vy   = np.average(a[y0:y1,x0:x1]['y'].flatten(),weights=sad_weights)
+                #except ZeroDivisionError:
+                #    vx   = np.mean(a[y0:y1,x0:x1]['x'])
+                #    vy   = np.mean(a[y0:y1,x0:x1]['y'])
+                vx   = np.mean(a[y0:y1,x0:x1]['x'])
+                vy   = np.mean(a[y0:y1,x0:x1]['y'])
 
             #-- add points to list
             new_points.append([[x0,y0,w,h],[vx,vy]])
@@ -188,17 +192,18 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 #cv2.rectangle(self.big,(x0,y0),(x0+w,y0+h),(0,0,0),1)
                 xm = x0+w/2
                 ym = y0+h/2
-                if noise:
-                    c = (20,20,220)
+                if rejects > 0:
+                    c = (240,240,240)
                 else:
-                    c = (220,20,20)
+                    c = (150,150,150)
                 #cv2.putText(self.big,txt,(xm, ym),cv2.FONT_HERSHEY_SIMPLEX,0.5,c,2)
-                xe = int(xm+4*-vx)
-                ye = int(ym+4*-vy)
-                cv2.arrowedLine(self.big,(xm,ym),(xe,ye),c,2)
+                xe = int(xm-4*vx)
+                ye = int(ym-4*vy)
+                #cv2.arrowedLine(self.big,(xm,ym),(xe,ye),c,2)
+                cv2.rectangle(self.big,(x0,y0),(x0+w,y0+h),(20,20,20),1)
 
         # insert/update new movements
-        print "---%5.0fms ---" % (dt*1000.0)
+        print "---%5.0fms --- (%d)" % (dt*1000.0,rejects)
         self.tracker.update_tracks(self.frame,new_points)
 
         #if not self.show:
@@ -214,8 +219,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             xe = 8*(self.cols)
             #ye = 8*(self.rows)
             cv2.line(self.big,(0,ym),(xe,ym),(0,0,0),1)
-            str_frate = "%4.0fms (%d)" % (dt*1000.0, self.camera.framerate)
-            cv2.putText(self.big, str_frate, (3, 14), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (20,150,20), 2)
+            str_frate = "%4.0fms (%d)" % (dt*1000.0, rejects)
+            cv2.putText(self.big, str_frate, (3, 14), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (20,150,20), 1)
 
             # Show the image in the window
             # without imshow we are at 5ms (sometimes 12ms)

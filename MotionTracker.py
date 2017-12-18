@@ -11,7 +11,7 @@ from time import clock
 MAX_TRACKS = 16
 
 #- sorting functions
-def by_distance(t,p):
+def distance(t,p):
     if t.updates == 0:
         return 99999
 
@@ -23,80 +23,6 @@ def by_distance(t,p):
 #- sort tracks by number of updates
 def by_updates(t):
     return t.updates
-
-class OTracker():
-    def __init__(self):
-        self.track_pool = []
-        self.terminated = False
-        for i in range(0,MAX_TRACKS):
-            self.track_pool.append(track())
-
-    def setup_sizes(self, rows, cols):
-        track.maxX = cols
-        track.maxY = rows
-
-    def stop(self):
-        self.terminated = True
-
-    def join(self):
-        pass
-
-    def run(self):
-        while not self.terminated:
-            frame,motion = self.q.get()
-            self.update_track_pool(frame,motion)
-            self.q.task_done()
-
-        #self.q.join()
-
-    def update_tracks(self, frame, motion):
-        # walk through all changes
-        self.updated = False
-        has_been_tracked = 0x00000000
-
-        for rn,vn in motion:
-            # search a track for this coordinate
-            tracked = 0x00000000
-            # >>> debug
-            cx = rn[0] + rn[2] / 2
-            cy = rn[1] + rn[3] / 2
-            print "try: ", cx,cy
-            # <<< debug
-            for track in sorted(self.track_pool, key=lambda t: by_distance(t,rn)):
-                if track.updates == 0 or has_been_tracked & track.id:
-                    continue
-
-                print "   [%s]: (%2d) %3d" % (track.name, track.updates,  abs(track.cx - cx) + abs(track.cy - cy))
-
-                tracked = track.update(frame,rn,vn)
-                if tracked:
-                    has_been_tracked |= tracked
-                    print "[%s] updated" % track.name, cx,cy
-                    self.updated = True
-                    break
-            # not yet tracked -> find a free slot
-            if not tracked:
-                for track in self.track_pool:
-                    if track.updates == 0:
-                        print "[%s] new" % track.name, cx,cy
-                        track.new_track(frame,rn,vn)
-                        self.updated = True
-                        break
-
-        #ogfgf
-        for track in self.track_pool:
-            if track.updates > 3:
-                if not track.id & has_been_tracked:
-                    track.predict(frame)
-
-        # remove aged tracks
-        if frame % 5:
-            for track in self.track_pool:
-                track.clean(frame)
-
-    def showTracks(self, frame, vis):
-        for track in self.track_pool:
-            track.showTrack(vis,frame)
 
 class Tracker(threading.Thread):
     def __init__(self):
@@ -139,43 +65,55 @@ class Tracker(threading.Thread):
         # walk through all changes
         self.updated = False
         has_been_tracked = 0x00000000
+        min_dist = 0
 
         for rn,vn in motion:
-            # search a track for this coordinate
+            #-- search a track for this coordinate
             tracked = 0x00000000
             # >>> debug
-            cx = rn[0] + rn[2] / 2
-            cy = rn[1] + rn[3] / 2
-            print "try: ", cx,cy
+            #cx = rn[0] + rn[2] / 2
+            #cy = rn[1] + rn[3] / 2
+            #print "try: ", cx,cy
             # <<< debug
-            for track in sorted(self.track_pool, key=lambda t: by_distance(t,rn)):
-                if track.updates == 0 or has_been_tracked & track.id:
+            #-- sorting by distance really makes sence here
+            for track in sorted(self.track_pool, key=lambda t: distance(t,rn)):
+                #-- skip tracks already updated
+                if has_been_tracked & track.id:
                     continue
 
-                print "   [%s]: (%2d) %3d" % (track.name, track.updates,  abs(track.cx - cx) + abs(track.cy - cy))
+                #-- the rest of the coordinates can be ignored
+                dist = distance(track,rn)
+                if dist > track.maxDist:
+                    break
 
+                # >>> debug
+                #print "   [%s]: (%2d) %3d" % (track.name, track.updates,  dist)
+                # <<< debug
+
+                #-- check if track takes coordinates
                 tracked = track.update(frame,rn,vn)
                 if tracked:
                     has_been_tracked |= tracked
-                    print "[%s] updated" % track.name, cx,cy
+                    #print "[%s] updated" % track.name, cx,cy
                     self.updated = True
                     break
-            # not yet tracked -> find a free slot
+
+            #-- not yet tracked -> find a free slot
             if not tracked:
                 for track in self.track_pool:
                     if track.updates == 0:
-                        print "[%s] new" % track.name, cx,cy
+                        #print "[%s] new" % track.name, cx,cy
                         track.new_track(frame,rn,vn)
                         self.updated = True
                         break
 
         #ogfgf
-        for track in self.track_pool:
-            if track.updates > 3:
-                if not track.id & has_been_tracked:
-                    track.predict(frame)
+        #for track in self.track_pool:
+        #    if track.updates > 3:
+        #        if not track.id & has_been_tracked:
+        #            track.predict(frame)
 
-        # remove aged tracks
+        #-- remove aged tracks
         if frame % 5:
             for track in self.track_pool:
                 track.clean(frame)
@@ -191,8 +129,8 @@ class Tracker(threading.Thread):
 class track:
     track_names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     numtracks   = 0
-    #minCosDelta = 0.707 #cos(2*22.5)
-    minCosDelta = 0.5 #cos(2*30.0)
+    minCosDelta = 0.707 #cos(2*22.5)
+    #minCosDelta = 0.5 #cos(2*30.0)
     maxDist     = 10.0
     maxLifeTime = 10
     estimates   = None
@@ -278,10 +216,10 @@ class track:
 
         #self.reset()
         if rn[0] - vn[0] < 0 or rn[1] - vn[1] < 0:
-            print "[%s]: rejected (too low)" % self.name
+            print "[%s]: new track rejected (too low)" % self.name
             return 0
         if rn[0] + rn[2] - vn[0] > track.maxX or rn[1] + rn[3] - vn[1] > track.maxY:
-            print "[%s]: rejected (too high)" % self.name
+            print "[%s]: new track rejected (too high)" % self.name
             return 0
 
         cxn  = rn[0]+rn[2]/2 #xn+wn/2
@@ -342,6 +280,7 @@ class track:
         cxn  = rn[0]+rn[2]/2
         cyn  = rn[1]+rn[3]/2
         if self.cx == cxn and self.cy == cyn and self.vv[0] == vn[0] and self.vv[1] == vn[1]:
+            self.updates += 1
             print "[%s] double hit" % self.name
             return self.id
 
@@ -358,12 +297,16 @@ class track:
             # 2. is the new point in the right direction?
             # wait track to become mature and then check for angle
             if self.updates > 3:
-                vl = np.linalg.norm(self.vv) * np.linalg.norm(vn)
+                do = np.array([self.cx - self.tr[-2][0], self.cy - self.tr[-2][1]])
+                dn = np.array([dx ,dy])
+                #vl = np.linalg.norm(self.vv) * np.linalg.norm(vn)
+                vl = np.linalg.norm(do) * np.linalg.norm(dn)
                 # accept direction if one movement vector is zero
                 if vl == 0:
                     cos_delta = 1.0
                 else:
-                    cos_delta = np.dot(self.vv, vn) / vl
+                    #cos_delta = np.dot(self.vv, vn) / vl
+                    cos_delta = np.dot(do, dn) / vl
             else:
                 cos_delta = 1.0
 
@@ -401,15 +344,15 @@ class track:
 
                 # track leaves area in x direction
                 if maxx+dx > track.maxX or minx+dx < 0:
-                    print "[%s](%d) X out! %02d,%02d left:%03d right:%03d" %  \
-                    (self.name, self.updates,self.cx,self.cy,minx+dx,maxx+dx)
+                    #print "[%s](%d) <==> X out! %2d,%2d bott:%3d top:%3d" %  \
+                    #(self.name, self.updates,self.cx,self.cy,minx+dx,maxx+dx)
                     self.reset()
                     return self.id
 
                 # track leaves area in y direction
                 if maxy+dy > track.maxY or miny+dy < 0:
-                    print "[%s](%d) Y out! %02d,%02d bottom:%03d top:%03d" %  \
-                    (self.name, self.updates,self.cx,self.cy,miny+dy,maxy+dy)
+                    #print "[%s](%d) <==> Y out! %2d,%2d left:%3d right:%3d" %  \
+                    #(self.name, self.updates,self.cx,self.cy,miny+dy,maxy+dy)
                     self.reset()
                     return self.id
 
@@ -419,15 +362,15 @@ class track:
                 self.miny = miny
 
                 self.tr.append([cxn,cyn])
-                if(len(self.tr) > 64):
+                if(len(self.tr) > 16):
                     del self.tr[0]
 
                 self.estimate()
 
                 # track is crossing target line in Y direction
                 if self.updates > 4 and self.turnedY == False and self.crossedY == False:
-                   crossedYPositve  =  vn[1] < 0 and rn[1]+rn[3]  >= track.yCross
-                   crossedYNegative =  vn[1] > 0 and rn[1]        <= track.yCross
+                   crossedYPositve  =  vn[1] > 0 and rn[1]+rn[3]  >= track.yCross
+                   crossedYNegative =  vn[1] < 0 and rn[1]        <= track.yCross
                    #if crossedXPositve or crossedXNegative:
                    if crossedYNegative:
                        print "[%s](%d) %d/%d <<<<<<<<<<<<<< CROSSED <<<<<<<<<<<<<<<<<<" % (self.name,self.updates,self.cx,self.cy)
@@ -466,31 +409,31 @@ class track:
             if ci == 2:
                 color = (20,20,220)
             r = self.re
-            x = 16 * r[0]
-            y = 16 * r[1]
-            w = 16 * r[2]
-            h = 16 * r[3]
-            if self.progressx == 0 and self.progressy == 0:
-                color = (220,220,0)
-            pts=np.int32(self.tr[-25:]) * 16
+            x = 8 * r[0]
+            y = 8 * r[1]
+            w = 8 * r[2]
+            h = 8 * r[3]
+            #if self.progressx == 0 and self.progressy == 0:
+            #    color = (0,220, 220)
+            pts=np.int32(self.tr[-25:]) * 8
             #pts=np.roll(pts,1,axis=1)
             cv2.polylines(vis, [pts], False, color)
-            age = self.lastFrame - frame
-            txt = "[%s] %d/%d %d" % ( self.name, self.cx,self.cy,age)
-            cv2.putText(vis,txt,(x,y),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,2)
+            #age = self.lastFrame - frame
+            #txt = "[%s] %d/%d %d" % ( self.name, self.cx,self.cy,age)
+            #cv2.putText(vis,txt,(x,y),cv2.FONT_HERSHEY_SIMPLEX,0.3,color,1)
             #cv2.putText(vis,self.name,(y,x),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,1)
             if self.crossedX:
-                cv2.rectangle(vis,(x,y),(x+w,y+h),color,2)
+                cv2.rectangle(vis,(x,y),(x+w,y+h),color,4)
             else:
-                cv2.rectangle(vis,(x,y),(x+w,y+h),color,1)
+                cv2.rectangle(vis,(x,y),(x+w,y+h),color,2)
             ###
-            xm = x+w/2
-            ym = y+h/2
-            dx = -8 * self.vv[0]
-            dy = -8 * self.vv[1]
-            xe = int(xm+dx)
-            ye = int(ym+dy)
-            cv2.arrowedLine(vis,(xm,ym),(xe,ye),color,2)
+            #xm = x+w/2
+            #ym = y+h/2
+            #dx = -4 * self.vv[0]
+            #dy = -4 * self.vv[1]
+            #xe = int(xm+dx)
+            #ye = int(ym+dy)
+            #cv2.arrowedLine(vis,(xm,ym),(xe,ye),color,1)
 
     def printTrack(self, frame=0):
         if self.progressx <> 0 or self.progressy <> 0:

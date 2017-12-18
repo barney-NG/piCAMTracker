@@ -23,7 +23,7 @@ def main(show=True):
         #camera.annotate_text = "RaspberryPi3 Camera"
         if show:
             camera.framerate  = 30
-            display = Display(caption='PiMotionAnalysis',x=52,y=2,w=resy,h=resx)
+            display = Display(caption='pyCAMTracker',x=52,y=2,w=resy,h=resx)
         else:
             display = None
             #camera.framerate  = 30  #- V1/V2 ~20ms/frame max
@@ -39,7 +39,8 @@ def main(show=True):
         camera.preview.fullscreen = False
         #camera.preview.window = (50,100,resx,resy)
         camera.preview.alpha = 192
-        camera.preview.window = (100,50,resy/2,resx/2)
+        camera.preview.window = (100,80,resy/2,resx/2)
+        #camera.preview.window = (100,20,resy/2,resx/2)
         camera.preview.rotation = 90
 
         #- overlay settings
@@ -49,15 +50,16 @@ def main(show=True):
         #overlay.window = (50,100,resx,resy)
         overlay.alpha = 32
         overlay.layer = 3
-        overlay.window = (100,50,resy/2,resx/2)
+        overlay.window = (100,80,resy/2,resx/2)
+        #overlay.window = (100,20,resy/2,resx/2)
         overlay.rotation= 90
 
         #- disable auto (exposure + white balance)
-        camera.shutter_speed = camera.exposure_speed
-        camera.exposure_mode = 'off'
-        g = camera.awb_gains
-        camera.awb_mode  = 'off'
-        camera.awb_gains = g
+        #camera.shutter_speed = camera.exposure_speed
+        #camera.exposure_mode = 'off'
+        #g = camera.awb_gains
+        #camera.awb_mode  = 'off'
+        #camera.awb_gains = g
         wait = 86400
         tracker = Tracker()
         with MotionAnalyser.MotionAnalyser(camera, tracker, display, show) as output:
