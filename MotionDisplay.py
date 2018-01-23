@@ -1,27 +1,13 @@
 # vim: set et sw=4 sts=4 fileencoding=utf-8:
 import threading
 from time import sleep
+import mss
 import numpy as np
 import os
 import pygame
 import cv2
 
 class Display(threading.Thread):
-    def o__init__(self, caption="Display", x=0, y=0,w=640,h=480):
-        super(Display, self).__init__()
-        self.terminated = False
-        self.event      = threading.Event()
-        self.x = x
-        self.y = y
-        self.notPlaced = True
-        self.key = 32
-        self.vis = None
-        self.caption = caption
-
-        self.daemon = True
-        self.event.clear()
-        self.start()
-
     def __init__(self, caption="Display", x=0, y=0,w=640,h=480):
         super(Display, self).__init__()
         self.terminated = False
@@ -31,7 +17,6 @@ class Display(threading.Thread):
         self.caption = caption
         self.notPlaced = True
         self.key = 32
-        os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (x,y)
 
         # Check which frame buffer drivers are available
         # Start with fbcon since directfb hangs with composite output
@@ -51,9 +36,17 @@ class Display(threading.Thread):
         if not found:
             raise Exception('No suitable video driver found!')
 
+        os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (x,y-21)
         pygame.display.set_caption(caption)
         pygame.surfarray.use_arraytype('numpy')
         self.screen = None
+        #self.surface = pygame.Surface((w,h),pygame.HWSURFACE)
+        self.surface = pygame.Surface((w,h),pygame.SRCALPHA)
+        #self.surface.set_alpha(255)
+        self.sct = mss.mss()
+        #self.mon = {'top':x, 'left':y, 'width':w, 'height':h}
+        self.mon = {'top':x, 'left':y, 'width':w, 'height':h}
+
         #size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
         #size = (w,h)
         #self.screen = pygame.display.set_mode(size,pygame.NOFRAME)
@@ -64,6 +57,10 @@ class Display(threading.Thread):
         self.daemon = True
         self.event.clear()
         self.start()
+
+    def capture(self):
+        return np.asarray(self.sct.grab(self.mon))
+        #return pygame.surfarray.pixels3d(self.surface)
 
     def imshow(self, vis):
         if self.event.is_set():
@@ -108,5 +105,21 @@ class Display(threading.Thread):
                 self.event.clear()
 
 
-#if __name__ == '__main__':
+if __name__ == '__main__':
+    image = np.ones((480,640,3),dtype=np.uint8) * 220
+    #image = np.ones((640,480,3),dtype=np.uint8) * 220
+    display = Display('TestDisplay',50,50)
+    display.imshow(image)
+    print("%x" % display.surface.get_flags())
+    sleep(2)
+    img = display.capture()
+    print(img.shape)
+    img = np.delete(img,-1,axis=2)
+    #print(img.shape)
+    #print(img)
+    display.imshow(img)
+    sleep(3)
+
+    display.terminated = True
+    display.join()
 

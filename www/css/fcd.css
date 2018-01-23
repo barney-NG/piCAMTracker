@@ -1,0 +1,34 @@
+
+.led-red {
+	position: absolute;
+	left: 7em;
+	top: 10px;
+	margin: 3px;
+	width: 15px;
+	height: 15px;
+	background-color: #D40;
+	border-radius: 50%;
+	box-shadow: #000 0 -1px 7px 1px, inset #600 0 -1px 9px, #F00 0 2px 12px;
+}
+.led-green {
+	position: absolute;
+	left: 7em;
+	top: 10px;
+	margin: 3px;
+	width: 15px;
+	height: 15px;
+	background-color: #6C0;
+	border-radius: 50%;
+	box-shadow: #000 0 -1px 7px 1px, inset #460 0 -1px 9px, #7D0 0 2px 12px;
+}
+.led-blue {
+	position: absolute;
+	left: 9em;
+	top: 10px;
+	margin: 3px;
+	width: 15px;
+	height: 15px;
+	background-color: #4AB;
+	border-radius: 50%;
+	box-shadow: #000 0 -1px 7px 1px, inset #006 0 -1px 9px, #06F 0 2px 14px;
+}

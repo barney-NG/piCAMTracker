@@ -4,7 +4,7 @@ from time import sleep
 import RPi.GPIO as GPIO
 
 class gpioPort(threading.Thread):
-    def __init__(self, port, duration=500., is_active_low=False):
+    def __init__(self, port, duration=200., is_active_low=False):
         super(gpioPort, self).__init__()
         self.terminated = False
         self.duration   = duration
