@@ -38,3 +38,4 @@ from .MotionDisplay import Display
 from .MotionWriter import Writer
 from .CommandInterface import CommandInterface
 from .ConfigReader import Configuration
+from .ConfigReader import Configuration
