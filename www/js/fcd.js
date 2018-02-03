@@ -4,8 +4,7 @@
  		var VidCanvContext = canvas.getContext('2d');
 
 		var player = new jsmpeg(client, {canvas:canvas});
-
-
+                
 		function clearCanvas() {
 			VidCanvContext.clearRect(0, 0, canvas.width, canvas.height);
 			VidCanvContext.fillStyle = "white";
@@ -246,6 +245,7 @@
 		};
 
 		//setup websocket websound crossing alert 
+               
 		var clientSound = new ReconnectingWebSocket( 'ws://'+location.host+':8087/' );
 
 
@@ -262,6 +262,7 @@
 			// replay done status; 0: no replay, 1: replay on, but playlist done, 2: replay on
 			webRep = sndobj.rep;
 		}
+                
 
 	var audioCtx = new (window.AudioContext || window.webkitAudioContext || window.audioContext);
 

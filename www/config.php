@@ -1,5 +1,5 @@
 <?php
-	define("PROGRAM", "piCAMTRacker");
+	define("PROGRAM", "piCAMTracker");
 	define("HOST", php_uname("n"));
   	define("TITLE_STRING", PROGRAM . "@" . HOST);
 
@@ -18,6 +18,7 @@
 // These are set up by the install or piCAMTracker.conf and enforced by
 // the startup script.  It is no use to change these here.
 //
+	define("JSON_FILE", "/home/pi/piCAMTracker/www/config.json");
 	define("LOG_FILE", "/tmp/picamtracker.log");
 	define("MJPEG_FILE", "/run/picamtracker/mjpeg.jpg");
 	//define("PIKRELLCAM", "/home/pi/piCAMTracker/pikrellcam");
