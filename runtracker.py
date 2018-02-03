@@ -1,16 +1,14 @@
+#!/usr/bin/env python
 # vim: set et sw=4 sts=4 fileencoding=utf-8:
 import picamera
 import picamera.array
 import numpy as np
 import datetime as dt
+import os
 import io
 from time import sleep,clock
 from argparse import ArgumentParser
-import MotionAnalyser
-from MotionTracker import Tracker
-from MotionDisplay import Display
-from MotionWriter import Writer
-from ConfigReader import configuration as cfg
+import picamtracker
 
 
 def main(show=True):
@@ -47,14 +45,14 @@ def main(show=True):
         if show:
             preview = True
             camera.framerate  = 30
-            display = Display(caption='piCAMTracker',x=config.conf['previewX'],y=config.conf['previewY'],w=resy/2,h=resx/2)
+            display = picamtracker.Display(caption='piCAMTracker',x=config.conf['previewX'],y=config.conf['previewY'],w=resy/2,h=resx/2)
         else:
             display = None
             camera.framerate   = fps
             camera.sensor_mode = mode
 
         print("warm-up 2 seconds...")
-        sleep(2)
+        sleep(1.5)
         print("...start")
 
         if preview:
@@ -99,20 +97,26 @@ def main(show=True):
         #camera.awb_gains = g
 
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
-        tracker = Tracker(camera, config=config)
-        writer  = Writer(camera, stream=vstream, config=config)
+        tracker = picamtracker.Tracker(camera, config=config)
+        writer  = picamtracker.Writer(camera, stream=vstream, config=config)
+        cmds    = picamtracker.CommandInterface(config=config)
+        cmds.subscribe(tracker.set_maxDist, 'maxDist')
+        cmds.subscribe(config.set_storeParams, 'storeParams')
 
-        with MotionAnalyser.MotionAnalyser(camera, tracker, display, show, config) as output:
+        with picamtracker.MotionAnalyser(camera, tracker, display, show, config) as output:
             loop = 0
             camera.annotate_text_size = 24
-            camera.annotate_frame_num = True
+            #camera.annotate_frame_num = True
             camera.start_recording(vstream, 'h264', motion_output=output)
+            cmds.subscribe(output.set_maxArea, 'maxArea')
+            cmds.subscribe(output.set_minArea, 'minArea')
+            cmds.subscribe(output.set_sadThreshold, 'sadThreshold')
             try:
                 #writer.setupDecoder()
                 while True:
                     loop += 1
-                    #if loop % 20 == 0:
-                    #    camera.annotate_text = dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    if loop  & 1:
+                        camera.annotate_text = dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
                     frame,motion = tracker.getStatus()
                     if frame > 0:
@@ -125,8 +129,7 @@ def main(show=True):
                         #name = "AAA-%d.jpg" % loop
                         #camera.capture(reader, format='rgb', use_video_port=True)
 
-                        if not show:
-                            writer.takeSnapshot(frame, motion)
+                        writer.takeSnapshot(frame, motion)
                         tracker.releaseLock()
                         print("capture: %4.2fms" % (1000.0 * (clock() - t0)))
 
@@ -138,18 +141,25 @@ def main(show=True):
             except KeyboardInterrupt:
                 pass
             finally:
-                tracker.stop()
-                tracker.join()
-                writer.stop()
-                writer.join()
-                if display is not None:
-                    display.terminated = True
-                    display.join()
+
+                # stop camera and preview
                 camera.stop_recording()
                 camera.stop_preview()
                 camera.remove_overlay(overlay)
-                config.write()
+                # stop all threads
+                if display is not None:
+                    display.terminated = True
+                cmds.stop()
+                tracker.stop()
+                writer.stop()
+                # wait and join threads
                 sleep(0.5)
+                if display is not None:
+                    display.join()
+                cmds.join()
+                tracker.join()
+                writer.join()
+                #config.write()
 
 if __name__ == '__main__':
     parser = ArgumentParser(prog='piCAMTracker')
@@ -157,6 +167,7 @@ if __name__ == '__main__':
                       help   = 'show graphical debug information (slow!)')
     args = parser.parse_args()
     global config
-    config = cfg('.config.json')
+    config = picamtracker.Configuration('.config.json')
+    os.system("[ ! -d /run/picamtracker ] && sudo mkdir -p /run/picamtracker && sudo chown pi:www-data /run/picamtracker && sudo chmod 775 /run/picamtracker")
 
     main(args.show)
