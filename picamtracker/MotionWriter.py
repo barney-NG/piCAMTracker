@@ -75,7 +75,7 @@ class Writer(threading.Thread):
         self.image = np.empty((self.resx,self.resy,3), dtype=np.uint8)
         self.decoder = libh264decoder.H264Decoder()
         self.frame2decode = None
-        self.maxDiff = 10
+        self.maxDiff = 15
 
         #pygame.init()
         #self.screen = pygame.display.set_mode((1280,720))
@@ -188,7 +188,7 @@ class Writer(threading.Thread):
                     diff = framenb - index
 
                 if diff <= 0 and diff > -self.maxDiff:
-                    print("found key/sps @ %d (type:%d delta:%d)" % (index,ftype,diff))
+                    print("found key/sps frame @ %d (type:%d delta:%d)" % (index,ftype,diff))
                     record = True
             
             # decode the next sps + i-frame

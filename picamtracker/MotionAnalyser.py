@@ -326,8 +326,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 cv2.rectangle(self.big,(x0,y0),(x0+w,y0+h),(20,20,20),1)
 
         # insert/update new movements
-        num_points = len(new_points)
-        print("---%5.0fms --- (%d) (%d)" % (dt*1000.0,rejects,moving_elements))
+        #print("---%5.0fms --- (%d) (%d)" % (dt*1000.0,rejects,moving_elements))
         self.tracker.update_tracks(self.frame,new_points)
 
         #if not self.show:
@@ -343,7 +342,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             xe = int(8*(self.cols))
             #ye = 8*(self.rows)
             cv2.line(self.big,(0,ym),(xe,ym),(0,0,0),1)
-            str_frate = "%4.0fms (%d)" % (dt*1000.0, moving_elements)
+            str_frate = "%4.0fms (%d) (%d)" % (dt*1000.0, moving_elements, self.sadThreshold)
             cv2.putText(self.big, str_frate, (3, 14), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (20,150,20), 1)
 
             # Show the image in the window

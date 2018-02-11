@@ -95,7 +95,7 @@ class Tracker(threading.Thread):
         for i in range(0,MAX_TRACKS):
             self.track_pool.append(Track(self))
 
-        #- do things according configuration 
+        #- do things according configuration
         if config is not None:
             Track.xCross = config.conf['xCross']
             Track.yCross = config.conf['yCross']
@@ -339,7 +339,7 @@ class Track:
         self.crossedY  = False
 
     #--------------------------------------------------------------------
-    #--
+    #-- check if track can be resetted
     #--------------------------------------------------------------------
     def clean(self,frame):
         if self.updates > 0:
@@ -381,7 +381,7 @@ class Track:
         self.lastFrame = frame
 
         return self.id
-        
+
     #--------------------------------------------------------------------
     #-- update growing status
     #--------------------------------------------------------------------
@@ -397,7 +397,7 @@ class Track:
             self.progressx = True
         else:
             # TURN-X if the area does not expand any more in x direction
-            if not self.turnedX:
+            if self.progressx and not self.turnedX:
                 self.turnedX   = True
             self.progressx = False
 
@@ -406,7 +406,7 @@ class Track:
             self.progressy = True
         else:
             # TURN-Y if the area does not expand any more in y direction
-            if not self.turnedY:
+            if self.progressy and not self.turnedY:
                 self.turnedY   = True
                 #print("[%s](%02d) %2d Y-TURN" % (self.name,self.updates,rn[1]))
             self.progressy = False
@@ -419,31 +419,45 @@ class Track:
         self.isGrowing =  self.progressx or self.progressy
 
     #--------------------------------------------------------------------
-    #--
+    #-- raise crossing handler in parent class
     #--------------------------------------------------------------------
     def crossed(self):
         if self.parent:
             self.parent.crossed(self.lastFrame, [self.re, self.vv])
 
     #--------------------------------------------------------------------
-    #--
+    #-- main target: is the object crossing the crossing line?
+    #-- TODO: make the same for x direction
     #--------------------------------------------------------------------
     def detectCrossing(self, dx, dy, r):
         delta = 2
 
         if Track.yCross > 0:
             # track is crossing target line in Y direction
+            #  x0,y0 +--------------+
+            #        |              |
+            #        +--------------+ x1,y1
+            #  v > 0            --->|
+            #  v < 0 |<---
             #if self.updates > 4 and self.progressy == True and self.maxy-self.miny > 2*r[3] and self.crossedY == False:
             if self.updates > 4 and self.progressy == True and self.crossedY == False:
-                vy = -self.vv[1]
+                # develope indicators
+                vy = -self.vv[1] # remember the velocity has wrong direction!
                 y0 = r[1]
                 y1 = r[1] + r[3]
+
+                # for low speeds take distance as indicator
                 if abs(vy) < 0.25:
                     vy = float(dy)
 
-                crossedYPositive =  vy >  0.0 and abs(y1-Track.yCross) < delta and self.miny < Track.yCross
-                crossedYNegative =  vy <= 0.0 and abs(y0-Track.yCross) < delta and self.maxy > Track.yCross
-                
+                # this model uses a band of width == delta to detect a crossing event
+                #crossedYPositive =  vy >  0.0 and abs(y1-Track.yCross) < delta and self.miny < Track.yCross
+                #crossedYNegative =  vy <= 0.0 and abs(y0-Track.yCross) < delta and self.maxy > Track.yCross
+
+                # this model uses a simple >= limit to detect a crossing event
+                crossedYPositive =  vy > 0.0 and y1 >= Track.yCross and (self.miny+delta) < Track.yCross
+                crossedYNegative =  vy < 0.0 and y0 <= Track.yCross and (self.maxy-delta) > Track.yCross
+
                 if crossedYPositive:
                     print("[%s](%02d) y1:%2d vy:%4.2f dy:%3d CROSSED++++++++++++++++++++" % (self.name,self.updates,y1,vy, dy))
                     self.crossedY = True
@@ -456,10 +470,10 @@ class Track:
 
 
     #--------------------------------------------------------------------
-    #-- doeas the track leave the tracking area?
+    #-- does the track leave the tracking area?
     #--------------------------------------------------------------------
     def isLeaving(self, dx, dy):
-        leavex = self.maxx+dx > Track.maxX or self.minx+dx < 0 
+        leavex = self.maxx+dx > Track.maxX or self.minx+dx < 0
         leavey = self.maxy+dy > Track.maxY or self.miny+dy < 0
         return leavex or leavey
 
@@ -483,8 +497,12 @@ class Track:
         #cxn  = rn[0]+rn[2]/2.0
         #cyn  = rn[1]+rn[3]/2.0
 
+        # estimating via the object center produces very much noise. (??? I didn't think much about that)
+        # estimation is done via the upper left corner (until I have something better)
         cxn  = rn[0]
         cyn  = rn[1]
+
+        # accept slow moving objects
         if self.cx == cxn and self.cy == cyn and self.vv[0] == vn[0] and self.vv[1] == vn[1]:
             self.updates += 1
             #print "[%s] double hit" % self.name
@@ -494,12 +512,15 @@ class Track:
         # TODO: use vx/vy to improve accuracy
         dx    = cxn - self.cx
         dy    = cyn - self.cy
+        vx    = -vn[0]
+        vy    = -vn[1]
         dist  = hypot(dx,dy)
         area  = rn[2] * rn[3]
+
         if self.old_area is None:
             self.old_area = area
 
-        # reject objects which change area too much
+        # reject objects which change area too much from frame to frame
         if area > self.old_area:
             delta_area = area/self.old_area
         else:
@@ -513,7 +534,7 @@ class Track:
         # TODO: poor mans perspective
         # big nearby objects may move fast
         # far away objects may move slow
-        # max_dist = m*x + b 
+        # max_dist = m*x + b
         max_dist = max(max(rn[2],rn[3]),Track.maxDist)
 
         # 1. is the new point in range?
@@ -521,18 +542,27 @@ class Track:
             # 2. is the new point in the right direction?
             # wait track to become mature and then check for angle
             if self.updates >= 3:
+                # save first old status
                 if self.old_dir is None:
                     dxo = self.cx - self.tr[-2][0]
                     dyo = self.cy - self.tr[-2][1]
                     self.old_dist = hypot(dxo,dyo)
                     self.old_dir  = np.array([dxo,dyo])
 
-                new_dir = np.array([dx ,dy])
+                # multiply vector magnitudes
                 vlength = self.old_dist * dist
+                new_dir = np.array([dx ,dy])
                 # accept all directions if one movement vector is zero
                 if vlength <= 0.1:
                     cos_delta = 1.0
                 else:
+                    # if dx/dy are smaller than +/- 1 use vx/vy as vector
+                    # TODO: this is slow and ugly :-/
+                    if abs(dx) + abs(dy) < 2.0:
+                        new_dir = np.array([vx ,vy])
+                        dist = hypot(vx, vy)
+                        vlength = dist * self.old_dist
+                        
                     cos_delta = np.dot(self.old_dir, new_dir) / vlength
 
                 self.old_dir  = new_dir
@@ -542,11 +572,12 @@ class Track:
                 cos_delta = 1.0
 
             # >>> debug
-            #print("%s,%5d,%2d,%2d,%2d,%2d,%2d,%4.2f,%4.2f" % 
+            #print("%s,%5d,%2d,%2d,%2d,%2d,%2d,%4.2f,%4.2f" %
             #      (self.name,frame,self.updates,rn[0],rn[1],rn[2],rn[3],cos_delta,dist))
             # <<< debug
             # reject all tracks out of direction
-            if self.updates < 3 or dist <= 1.1 or abs(cos_delta) > Track.minCosDelta:
+            #if self.updates < 3 or dist <= 1.1 or abs(cos_delta) > Track.minCosDelta:
+            if self.updates < 3 or abs(cos_delta) > Track.minCosDelta:
                 #- update base data
                 found   = self.id
                 self.re = rn
@@ -578,7 +609,7 @@ class Track:
             #print "[%s] dist-: %4.2f" % (self.name,dist)
             ii = 0
 
-        return found 
+        return found
 
     #--------------------------------------------------------------------
     #--
@@ -648,4 +679,3 @@ if __name__ == '__main__':
     sleep(1)
     tracker.stop()
     tracker.join()
-

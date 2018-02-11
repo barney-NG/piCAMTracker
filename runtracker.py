@@ -52,7 +52,7 @@ def main(show=True):
             camera.sensor_mode = mode
 
         print("warm-up 2 seconds...")
-        sleep(1.5)
+        sleep(2.0)
         print("...start")
 
         if preview:
@@ -134,7 +134,7 @@ def main(show=True):
                         print("capture: %4.2fms" % (1000.0 * (clock() - t0)))
 
                     #camera.wait_recording(0.06)
-                    camera.wait_recording(0.5)
+                    camera.wait_recording(0.2)
                     #pstream.seek(0)
                     #pstream.truncate()
 
@@ -167,7 +167,7 @@ if __name__ == '__main__':
                       help   = 'show graphical debug information (slow!)')
     args = parser.parse_args()
     global config
-    config = picamtracker.Configuration('.config.json')
+    config = picamtracker.Configuration('config.json')
     os.system("[ ! -d /run/picamtracker ] && sudo mkdir -p /run/picamtracker && sudo chown pi:www-data /run/picamtracker && sudo chmod 775 /run/picamtracker")
 
     main(args.show)
