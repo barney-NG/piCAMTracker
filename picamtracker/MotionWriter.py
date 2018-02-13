@@ -76,6 +76,7 @@ class Writer(threading.Thread):
         self.decoder = libh264decoder.H264Decoder()
         self.frame2decode = None
         self.maxDiff = 15
+        self.ycross = None
 
         #pygame.init()
         #self.screen = pygame.display.set_mode((1280,720))
@@ -84,6 +85,7 @@ class Writer(threading.Thread):
         #- do things according configuration 
         if config is not None:
             self.doStreaming = config.conf['streamServer']
+            self.ycross = config.conf['yCross'] * 16
 
         #- thread initialisation stuff
         self.lock = threading.Lock()
@@ -138,10 +140,16 @@ class Writer(threading.Thread):
                     image = image.reshape((h,w,3))
                     re = motion[0]
                     vv = motion[1]
+                    mm = motion[2]
+
                     x0 = re[0]
                     y0 = re[1]
                     w  = re[2]
                     h  = re[3]
+                    xmin = mm[0] * 16
+                    ymin = mm[1] * 16
+                    xmax = mm[2] * 16
+                    ymax = mm[3] * 16
                     x1 = x0 + w
                     y1 = y0 + h
                     x0 *= 16
@@ -149,7 +157,12 @@ class Writer(threading.Thread):
                     y0 *= 16
                     y1 *= 16
 
-                    cv2.line(image,(0,int(self.resy/2)),(self.resx,int(self.resy/2)),(0,0,0),1)
+                    # center line
+                    if self.ycross:
+                        cv2.line(image,(0,int(self.ycross)),(self.resx,int(self.ycross)),(0,0,0),1)
+                    else:
+                        cv2.line(image,(0,int(self.resy/2)),(self.resx,int(self.resy/2)),(0,0,0),1)
+                    cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(200,200,200),1)
                     cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
                     txt = "%d" % (framenb/2)
                     cv2.putText(image,txt,(int(x0), int(y0)),cv2.FONT_HERSHEY_SIMPLEX,0.5,(20,220,20),1)

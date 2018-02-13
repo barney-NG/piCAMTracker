@@ -134,7 +134,7 @@ def main(show=True):
                         print("capture: %4.2fms" % (1000.0 * (clock() - t0)))
 
                     #camera.wait_recording(0.06)
-                    camera.wait_recording(0.2)
+                    camera.wait_recording(0.5)
                     #pstream.seek(0)
                     #pstream.truncate()
 

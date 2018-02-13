@@ -201,8 +201,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 ym *= 8
                 xe  = xm - 3 * u
                 ye  = ym - 3 * v
-                #cv2.rectangle(self.big,(x,y),(x+8,y+8),(0,c,c),-1)
-                cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(c,0,c),1)
+                cv2.rectangle(self.big,(x,y),(x+8,y+8),(0,c,c),-1)
+                #cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(c,0,c),1)
 
 
 
@@ -233,6 +233,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 continue
 
             #-- perimeter blocks have limited vector direction (Bill Wilson)
+            """
             if x0 == 0:
                 x0 = 1; w -=1
             if x0 + w == self.cols -1:
@@ -246,6 +247,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                  h -= 1
             if h < 1:
                 continue
+            """
 
             #-- translate rectangle to array coordinates
             x1  = x0 + w

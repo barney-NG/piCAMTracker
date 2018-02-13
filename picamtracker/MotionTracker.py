@@ -58,8 +58,9 @@ def distance(t,p):
     if t.updates == 0:
         return 99999
 
-    px = p[0] + p[2] / 2
-    py = p[1] + p[3] / 2
+    # BUG: I went to left upper corner as reference point
+    px = p[0] #+ p[2] / 2
+    py = p[1] #+ p[3] / 2
     return abs(t.cx - px) + abs(t.cy - py)
     #return np.hypot(t.cx - px, t.cy - py)
 
@@ -86,6 +87,7 @@ class Tracker(threading.Thread):
         self.frame  = 0
         self.motion = None
         self.locked = False
+        self.maxDist = 15
 
         #- set the image handler
         #Track.image_handler = image_handler
@@ -99,6 +101,7 @@ class Tracker(threading.Thread):
         if config is not None:
             Track.xCross = config.conf['xCross']
             Track.yCross = config.conf['yCross']
+            Track.maxDist = self.maxDist = config.conf['maxDist']
             Track.minCosDelta = config.conf['minCosDelta']
             self.greenLEDThread = GPIOPort.gpioPort(config.conf['greenLEDPort'])
             self.redLEDThread   = GPIOPort.gpioPort(config.conf['redLEDPort'])
@@ -237,7 +240,8 @@ class Tracker(threading.Thread):
 
                 #-- the rest of the coordinates can be ignored
                 dist = distance(track,rn)
-                if dist > Track.maxDist:
+                maxDist = max(self.maxDist,max(rn[2],rn[3]))
+                if dist > maxDist:
                     break
 
                 # >>> debug
@@ -423,7 +427,7 @@ class Track:
     #--------------------------------------------------------------------
     def crossed(self):
         if self.parent:
-            self.parent.crossed(self.lastFrame, [self.re, self.vv])
+            self.parent.crossed(self.lastFrame, [self.re, self.vv, [self.minx, self.miny, self.maxx, self.maxy]])
 
     #--------------------------------------------------------------------
     #-- main target: is the object crossing the crossing line?
@@ -437,8 +441,10 @@ class Track:
             #  x0,y0 +--------------+
             #        |              |
             #        +--------------+ x1,y1
-            #  v > 0            --->|
-            #  v < 0 |<---
+            #        
+            #  v > 0 |          --->|
+            #        |              |
+            #  v < 0 |<---          |
             #if self.updates > 4 and self.progressy == True and self.maxy-self.miny > 2*r[3] and self.crossedY == False:
             if self.updates > 4 and self.progressy == True and self.crossedY == False:
                 # develope indicators
@@ -455,8 +461,8 @@ class Track:
                 #crossedYNegative =  vy <= 0.0 and abs(y0-Track.yCross) < delta and self.maxy > Track.yCross
 
                 # this model uses a simple >= limit to detect a crossing event
-                crossedYPositive =  vy > 0.0 and y1 >= Track.yCross and (self.miny+delta) < Track.yCross
-                crossedYNegative =  vy < 0.0 and y0 <= Track.yCross and (self.maxy-delta) > Track.yCross
+                crossedYPositive =  vy > 0.1 and y1 >= Track.yCross and (y1 - delta ) < Track.yCross and self.miny < Track.yCross
+                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross  and self.maxy > Track.yCross
 
                 if crossedYPositive:
                     print("[%s](%02d) y1:%2d vy:%4.2f dy:%3d CROSSED++++++++++++++++++++" % (self.name,self.updates,y1,vy, dy))

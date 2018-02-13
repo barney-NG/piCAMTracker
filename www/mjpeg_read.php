@@ -4,7 +4,6 @@
 <?php
 
 	header("Content-Type: image/jpeg");
+        #flush();
 	readfile(MJPEG_FILE);
-	#readfile('/run/pikrellcam/mjpeg.jpg');
-
 ?>
