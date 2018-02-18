@@ -49,7 +49,7 @@ function fifo_command (cmd, val)
 var mjpeg;
 var url = window.location.search;
 var refreshtime = url.substring(url.lastIndexOf("=")+1);
-if (refreshtime == "") { refreshtime = 500; }
+if (refreshtime == "") { refreshtime = 700; }
 
 function mjpeg_read()
     {
@@ -170,8 +170,9 @@ function mjpeg_start()
 
 
 		<div role="main" class="ui-content">
+                        <!-- <?php echo '<img src="image.jpg?m=' . filemtime('image.jpg') . '"  width="100%" style="border: 1px white" alt="web server not runnig?">'; ?> -->
                         <img id="mjpeg_image" width="100%" style="border: 1px white" alt="web server not runnig?"/>
-			<!-- canvas id="videoCanvas" width="360" height="640"></canvasi -->
+			<!-- canvas id="videoCanvas" width="360" height="640"></canvas -->
 		</div><!-- /content -->
 
 	</div><!-- /page -->

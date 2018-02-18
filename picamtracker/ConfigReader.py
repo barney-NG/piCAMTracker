@@ -47,6 +47,7 @@ default_config = \
 	"minArea": 1,
 	"maxArea": 512,
 	"sadThreshold": 2048,
+	"trackLifeTime": 17,
 	"xCross": -1,
 	"yCross": 23,
 	"vMin": 1,

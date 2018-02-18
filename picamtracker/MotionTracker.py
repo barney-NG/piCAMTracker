@@ -57,12 +57,21 @@ MAX_TRACKS     = 16
 def distance(t,p):
     if t.updates == 0:
         return 99999
-
-    # BUG: I went to left upper corner as reference point
+    # BUG: upper corner as reference point is more stable than center
     px = p[0] #+ p[2] / 2
     py = p[1] #+ p[3] / 2
     return abs(t.cx - px) + abs(t.cy - py)
     #return np.hypot(t.cx - px, t.cy - py)
+
+# for same distance prefer the more mature track
+# remember: we sort from smallest to biggest
+def weighted_distance(t,p):
+    dist = float(distance(t,p))
+    if t.updates:
+        val = 10.0 * dist + 5.0 / t.updates
+    else:
+        val = dist
+    return(val)
 
 #- sort tracks by number of updates
 def by_updates(t):
@@ -88,6 +97,7 @@ class Tracker(threading.Thread):
         self.motion = None
         self.locked = False
         self.maxDist = 15
+        self.trackLifeTime = 17
 
         #- set the image handler
         #Track.image_handler = image_handler
@@ -103,6 +113,7 @@ class Tracker(threading.Thread):
             Track.yCross = config.conf['yCross']
             Track.maxDist = self.maxDist = config.conf['maxDist']
             Track.minCosDelta = config.conf['minCosDelta']
+            self.trackLifeTime = config.conf['trackLifeTime']
             self.greenLEDThread = GPIOPort.gpioPort(config.conf['greenLEDPort'])
             self.redLEDThread   = GPIOPort.gpioPort(config.conf['redLEDPort'])
 
@@ -233,7 +244,8 @@ class Tracker(threading.Thread):
             #print "try: ", cx,cy
             # <<< debug
             #-- sorting by distance really makes sence here
-            for track in sorted(self.track_pool, key=lambda t: distance(t,rn)):
+            #for track in sorted(self.track_pool, key=lambda t: distance(t,rn)):
+            for track in sorted(self.track_pool, key=lambda t: weighted_distance(t,rn)):
                 #-- skip tracks already updated
                 if has_been_tracked & track.id:
                     continue
@@ -266,9 +278,9 @@ class Tracker(threading.Thread):
                         break
 
         #-- remove aged tracks
-        if frame % 5:
-            for track in self.track_pool:
-                track.clean(frame)
+        for track in self.track_pool:
+            if track.updates and frame - track.lastFrame > self.trackLifeTime:
+                track.reset()
 
     def showTracks(self, frame, vis):
         for track in self.track_pool:
@@ -285,7 +297,7 @@ class Track:
     #minCosDelta = 0.9
     minCosDelta = 0.5 #cos(2*30.0)
     maxDist     = 20.0
-    maxLifeTime = 10
+    maxLifeTime = 17
     maxX        = 99999
     maxY        = 99999
     xCross      = -1
@@ -629,28 +641,31 @@ class Track:
                 color = (20,220,20)
             if ci == 2:
                 color = (20,20,220)
-            r = self.re
-            x = 8 * r[0]
-            y = 8 * r[1]
-            w = 8 * r[2]
-            h = 8 * r[3]
-            #pts=np.int32(self.tr[-25:]) * 8
-            #cv2.polylines(vis, [pts], False, color)
+        else:
+            color = (220,220,20)
 
-            cv2.putText(vis,self.name,(x-3,y-3),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,2)
-            if self.crossedY and self.parent.greenLEDThread.event.isSet():
-                cv2.rectangle(vis,(x,y),(x+w,y+h),color,-4)
-            else:
-                cv2.rectangle(vis,(x,y),(x+w,y+h),color,2)
-            cv2.rectangle(vis,(8*self.minx,8*self.miny),(8*self.maxx,8*self.maxy),color,1)
-            ###
-            #xm = x+w/2
-            #ym = y+h/2
-            #dx = -4 * self.vv[0]
-            #dy = -4 * self.vv[1]
-            #xe = int(xm+dx)
-            #ye = int(ym+dy)
-            #cv2.arrowedLine(vis,(xm,ym),(xe,ye),color,1)
+        r = self.re
+        x = 8 * r[0]
+        y = 8 * r[1]
+        w = 8 * r[2]
+        h = 8 * r[3]
+        #pts=np.int32(self.tr[-25:]) * 8
+        #cv2.polylines(vis, [pts], False, color)
+
+        cv2.putText(vis,self.name,(x-3,y-3),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,2)
+        if self.crossedY and self.parent.greenLEDThread.event.isSet():
+            cv2.rectangle(vis,(x,y),(x+w,y+h),color,-4)
+        else:
+            cv2.rectangle(vis,(x,y),(x+w,y+h),color,2)
+        cv2.rectangle(vis,(8*self.minx,8*self.miny),(8*self.maxx,8*self.maxy),color,1)
+        ###
+        #xm = x+w/2
+        #ym = y+h/2
+        #dx = -4 * self.vv[0]
+        #dy = -4 * self.vv[1]
+        #xe = int(xm+dx)
+        #ye = int(ym+dy)
+        #cv2.arrowedLine(vis,(xm,ym),(xe,ye),color,1)
 
     #--------------------------------------------------------------------
     #--

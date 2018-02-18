@@ -73,7 +73,10 @@ def main(show=True):
             camera.start_preview()
             camera.preview.fullscreen = False
             #camera.preview.window = (50,100,resx,resy)
-            camera.preview.alpha = 192
+            if show:
+                camera.preview.alpha = 192
+            else:
+                camera.preview.alpha = 255
             #camera.preview.window = (100,80,resy/2,resx/2)
             camera.preview.window = (px,py,resy/2,resx/2)
             camera.preview.rotation = 90
