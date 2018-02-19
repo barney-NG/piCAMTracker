@@ -671,7 +671,7 @@ class Track:
     #--
     #--------------------------------------------------------------------
     def printTrack(self, frame=0):
-        if self.progressx <> 0 or self.progressy <> 0:
+        if self.progressx != 0 or self.progressy != 0:
             sys.stdout.write("[%s]:" %(self.name))
             for x,y in self.tr[-4:]:
                 sys.stdout.write("  %02d,%02d -> " %(x,y))

@@ -19,21 +19,22 @@ class Display(threading.Thread):
 
         # Check which frame buffer drivers are available
         # Start with fbcon since directfb hangs with composite output
-        drivers = ['fbcon', 'directfb', 'svgalib']
-        found = False
-        for driver in drivers:
-            # Make sure that SDL_VIDEODRIVER is set
-            if not os.getenv('SDL_VIDEODRIVER'):
-                os.putenv('SDL_VIDEODRIVER', driver)
-            try:
-                pygame.display.init()
-            except pygame.error:
-                continue
-            found = True
-            break
-    
-        if not found:
-            raise Exception('No suitable video driver found!')
+        #drivers = ['fbcon', 'directfb', 'svgalib']
+        #found = False
+        #for driver in drivers:
+        #    # Make sure that SDL_VIDEODRIVER is set
+        #    if not os.getenv('SDL_VIDEODRIVER'):
+        #        os.putenv('SDL_VIDEODRIVER', driver)
+        #    try:
+        #        pygame.display.init()
+        #    except pygame.error:
+        #        continue
+        #    found = True
+        #    break
+        # 
+        #if not found:
+        #    raise Exception('No suitable video driver found!')
+        pygame.display.init()
 
         os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (x,y-21)
         pygame.display.set_caption(caption)
@@ -57,8 +58,8 @@ class Display(threading.Thread):
         self.start()
 
     def capture(self):
-        return np.asarray(self.sct.grab(self.mon))
-        #return pygame.surfarray.pixels3d(self.surface)
+        #return np.asarray(self.sct.grab(self.mon))
+        return pygame.surfarray.pixels3d(self.surface)
 
     def imshow(self, vis):
         if self.event.is_set():
