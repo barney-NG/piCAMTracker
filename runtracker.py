@@ -35,7 +35,9 @@ def main(show=True):
             # V2 module
             resx = 1280
             resy = 720
-            fps  = 68
+            fps  = 50  # 50 frames is maximum for the analyse function
+                       #    there are no frames in the stream
+                       # 68 would be  maximum for motion block frequency
             mode = 6
         else:
             raise ValueError('Unknown camera device')
