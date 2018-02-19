@@ -1,0 +1,4 @@
+# If started from the web page, real user needs to be pi.
+# so give www-data permission to run sudo -u pi runtracker
+
+www-data ALL=(USER) NOPASSWD: /usr/local/bin/runtracker
