@@ -16,13 +16,13 @@ Currently this is an alpha release.
 
 # Pictures
 The hardware is quite simple. A next version should use a closed box and a wireless connection to send crossing events.   
-![hardware](https://github.com/barney-NG/piCAMTracker/blob/master/images/hardware.jpg)   
+![hardware](https://github.com/barney-NG/piCAMTracker/blob/master/images/hardware.jpg){: width=720px}     
 
 The web interface can be used to control the device   
-![web interface](https://github.com/barney-NG/piCAMTracker/blob/master/images/web_interface.jpg)   
+![web interface](https://github.com/barney-NG/piCAMTracker/blob/master/images/web_interface.jpg){: width=720px}   
 
 Here is one snapshot of a catched cyclist in front of my door   
-![snapshot](https://github.com/barney-NG/piCAMTracker/blob/master/images/snapshot.jpg) 
+![snapshot](https://github.com/barney-NG/piCAMTracker/blob/master/images/snapshot.jpg){: width=720px}   
 
 The same scenario you can find on youtube:   
 [YouTube video](https://www.youtube.com/watch?v=NJWP3rVMISQ&index=1&list=PLO-A5_Zv2qJ229BwqH0RfbvN_PTuzSuLh&t=0s)
