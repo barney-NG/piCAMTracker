@@ -102,11 +102,14 @@ def main(show=True):
         #camera.awb_gains = g
 
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
-        tracker = picamtracker.Tracker(camera, config=config)
+        greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'])
+        redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'])
+        tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config)
         writer  = picamtracker.Writer(camera, stream=vstream, config=config)
         cmds    = picamtracker.CommandInterface(config=config)
         cmds.subscribe(tracker.set_maxDist, 'maxDist')
         cmds.subscribe(config.set_storeParams, 'storeParams')
+        cmds.subscribe(greenLED.check, 'testBeep')
 
         with picamtracker.MotionAnalyser(camera, tracker, display, show, config) as output:
             loop = 0
@@ -148,6 +151,8 @@ def main(show=True):
             finally:
 
                 # stop camera and preview
+                greenLED.terminated = True
+                redLED.terminated = True
                 camera.stop_recording()
                 camera.stop_preview()
                 camera.remove_overlay(overlay)
@@ -161,6 +166,8 @@ def main(show=True):
                 sleep(0.5)
                 if display is not None:
                     display.join()
+                greenLED.join()
+                redLED.join()
                 cmds.join()
                 tracker.join()
                 writer.join()

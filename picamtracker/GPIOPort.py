@@ -26,6 +26,9 @@ class gpioPort(threading.Thread):
         self.event.clear()
         self.start()
 
+    def check(self, value):
+        self.event.set()
+
     def run(self):
         while not self.terminated:
             # wait until somebody throws an event

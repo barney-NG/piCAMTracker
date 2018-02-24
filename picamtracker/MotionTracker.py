@@ -84,15 +84,15 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     #-- constructor
     #--------------------------------------------------------------------
-    def __init__(self, camera, config=None):
+    def __init__(self, camera, greenLed=None, redLed=None, config=None):
         super(Tracker,self).__init__()
         self.lock = threading.Lock()
         self.config = config
         self.camera = camera
         self.resx = camera.resolution[0]
         self.resy = camera.resolution[1]
-        self.greenLEDThread = None
-        self.redLEDThread   = None
+        self.greenLEDThread = greenLed
+        self.redLEDThread   = redLed
         self.frame  = 0
         self.motion = None
         self.locked = False
@@ -114,8 +114,6 @@ class Tracker(threading.Thread):
             Track.maxDist = self.maxDist = config.conf['maxDist']
             Track.minCosDelta = config.conf['minCosDelta']
             self.trackLifeTime = config.conf['trackLifeTime']
-            self.greenLEDThread = GPIOPort.gpioPort(config.conf['greenLEDPort'])
-            self.redLEDThread   = GPIOPort.gpioPort(config.conf['redLEDPort'])
 
         #- thread initialisation stuff
         self.event = threading.Event()
@@ -128,13 +126,13 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     #-- stop LED threads
     #--------------------------------------------------------------------
-    def __del__(self):
-        if self.greenLEDThread:
-            self.greenLEDThread.terminated = True
-            self.greenLEDThread.join()
-        if self.redLEDThread:
-            self.redLEDThread.terminated = True
-            self.redLEDThread.join()
+    #def __del__(self):
+        #if self.greenLEDThread:
+        #    self.greenLEDThread.terminated = True
+        #    self.greenLEDThread.join()
+        #if self.redLEDThread:
+        #    self.redLEDThread.terminated = True
+        #    self.redLEDThread.join()
 
     #--------------------------------------------------------------------
     #-- callback for 'maxDist' command
