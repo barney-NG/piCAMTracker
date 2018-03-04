@@ -186,7 +186,7 @@ class Writer(threading.Thread):
     #--------------------------------------------------------------------
     def takeSnapshot(self, framenb, motion):
         n = 0
-        sleep(0.1) # wait for keyframe is written in circular buffer
+        sleep(0.05) # wait for keyframe is written in circular buffer
         record = False
         i_size = 0
         # lock stream by reading it

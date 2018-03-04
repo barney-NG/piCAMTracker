@@ -42,7 +42,7 @@ import picamera.array
 import numpy as np
 import threading
 import cv2
-from time import sleep,clock
+from time import sleep,time
 from math import degrees,atan2,pi
 
 class MotionAnalyser(picamera.array.PiMotionAnalysis):
@@ -57,7 +57,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.camera  = camera
         self.tracker  = tracker
         self.display  = display
-        self.t0      = clock()
+        self.t0      = time()
         self.config  = config
         self.minArea = 1
         self.maxArea = config.conf['maxArea']
@@ -71,6 +71,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.vmin    = config.conf['vMin']
         self.vmax    = config.conf['vMax']
         self.frame   = 0
+        self.processed_frames = 0
         self.updated = False
         self.maxMovements = 100
 
@@ -143,10 +144,13 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         return rects
 
     def analyse(self, a=None):
-        t1 = clock()
+        t1 = time()
         dt = t1 - self.t0
         self.t0 = t1
         self.frame = self.camera.frame.index
+        self.processed_frames += 1
+        #print("---%5.0fms ---" % (dt*1000.0))
+        #return
 
         # initialize values not known at class initialization
         if not self.started:
@@ -228,7 +232,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
             #-- reject areas which are too big
             if w*h > self.maxArea:
-                #print( "MAXAEREA!")
+                print( "MAXAEREA!")
                 rejects += 1
                 continue
 
@@ -352,3 +356,5 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             key = self.display.imshow( self.big )
             if key == 27:
                 raise NotImplementedError
+
+        #print("proc_time: %4.2f" % (1000.0 * (time() - self.t0)))

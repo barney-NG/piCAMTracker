@@ -6,7 +6,7 @@ import numpy as np
 import datetime as dt
 import os
 import io
-from time import sleep,clock
+from time import sleep,time
 from argparse import ArgumentParser
 import picamtracker
 
@@ -29,16 +29,16 @@ def main(show=True):
             #resx = 1296 ### error mmal (change format during write)
             resx = 1280
             resy = 720
-            fps  = 49
+            fps  = 40 #49
             mode = 5
         elif revision == 'IMX219':
             # V2 module
             resx = 1280
             resy = 720
-            fps  = 50  # 50 frames is maximum for the analyse function
+            fps  = 40  # 40 frames is maximum for the analyse function
                        #    there are no frames in the stream
                        # 68 would be  maximum for motion block frequency
-            mode = 6
+            mode = 5
         else:
             raise ValueError('Unknown camera device')
 
@@ -46,7 +46,7 @@ def main(show=True):
         #camera.annotate_text = "RaspberryPi3 Camera"
         if show:
             preview = True
-            camera.framerate  = 30
+            camera.framerate  = 25
             display = picamtracker.Display(caption='piCAMTracker',x=config.conf['previewX'],y=config.conf['previewY'],w=resy/2,h=resx/2)
         else:
             display = None
@@ -113,6 +113,7 @@ def main(show=True):
 
         with picamtracker.MotionAnalyser(camera, tracker, display, show, config) as output:
             loop = 0
+            t_wait = 0.5
             camera.annotate_text_size = 24
             #camera.annotate_frame_num = True
             camera.start_recording(vstream, 'h264', motion_output=output)
@@ -124,11 +125,13 @@ def main(show=True):
                 while True:
                     loop += 1
                     if loop  & 1:
-                        camera.annotate_text = dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        fs = output.processed_frames / (loop * t_wait)
+                        camera.annotate_text = "%s (%3.1f f/s)" % (dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), fs)
+
 
                     frame,motion = tracker.getStatus()
                     if frame > 0:
-                        t0 = clock()
+                        t0 = time()
                         #camera.split_recording('after.h264')
                         #vstream.copy_to('before.h264',size=2147483648)
                         #vstream.copy_to('before.h264',size=1073741824)
@@ -139,10 +142,9 @@ def main(show=True):
 
                         writer.takeSnapshot(frame, motion)
                         tracker.releaseLock()
-                        print("capture: %4.2fms" % (1000.0 * (clock() - t0)))
+                        print("capture: %4.2fms" % (1000.0 * (time() - t0)))
 
-                    #camera.wait_recording(0.06)
-                    camera.wait_recording(0.5)
+                    camera.wait_recording(t_wait)
                     #pstream.seek(0)
                     #pstream.truncate()
 
