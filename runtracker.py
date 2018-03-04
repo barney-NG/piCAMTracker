@@ -64,12 +64,12 @@ def main(show=True):
                 ym = 16 * ycross
                 cl[ym,:,:] = 0xff  #horizantal line
             xcross = config.conf['xCross']
-            if ycross > 0:
+            if xcross > 0:
                 xm = 16 * xcross
                 cl[:,xm,:]  = 0xff  #vertical line
 
             #- preview settings
-            px = config.conf['previewX'] + config.conf['offsetX'] 
+            px = config.conf['previewX'] + config.conf['offsetX']
             py = config.conf['previewY'] + config.conf['offsetY']
 
             camera.start_preview()

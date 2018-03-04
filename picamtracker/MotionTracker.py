@@ -44,7 +44,6 @@ except NameError:
 import sys
 import threading
 from collections import deque
-from time import sleep,clock
 import numpy as np
 import cv2
 from math import atan2,hypot,degrees,acos,pi,sqrt
@@ -122,17 +121,6 @@ class Tracker(threading.Thread):
         self.terminated = False
         self.daemon = True
         self.start()
-
-    #--------------------------------------------------------------------
-    #-- stop LED threads
-    #--------------------------------------------------------------------
-    #def __del__(self):
-        #if self.greenLEDThread:
-        #    self.greenLEDThread.terminated = True
-        #    self.greenLEDThread.join()
-        #if self.redLEDThread:
-        #    self.redLEDThread.terminated = True
-        #    self.redLEDThread.join()
 
     #--------------------------------------------------------------------
     #-- callback for 'maxDist' command
@@ -407,6 +395,22 @@ class Track:
         miny = min(self.miny, rn[1])
 
         # update progress indicators
+        if maxy > self.maxy or miny < self.miny:
+            self.progressy = True
+        else:
+            # TURN-Y if the area does not expand any more in y direction
+            if self.progressy and not self.turnedY and not self.crossedY:
+                moving_area = (maxx - minx) * (maxy - miny)
+                # track needs some maturity to have a turn detected
+                if self.updates > 4 and moving_area > 2 * self.old_area:
+                    if self.parent.redLEDThread:
+                        self.parent.redLEDThread.event.set()
+                    self.turnedY = True
+                    print("[%s](%02d) %2d Y-TURN" % (self.name,self.updates,rn[1]))
+            self.progressy = False
+
+        # TODO: do the same for x direction
+        # update progress indicators
         if maxx > self.maxx or minx < self.minx:
             self.progressx = True
         else:
@@ -414,16 +418,6 @@ class Track:
             if self.progressx and not self.turnedX:
                 self.turnedX   = True
             self.progressx = False
-
-        # update progress indicators
-        if maxy > self.maxy or miny < self.miny:
-            self.progressy = True
-        else:
-            # TURN-Y if the area does not expand any more in y direction
-            if self.progressy and not self.turnedY:
-                self.turnedY   = True
-                #print("[%s](%02d) %2d Y-TURN" % (self.name,self.updates,rn[1]))
-            self.progressy = False
 
         self.maxx = maxx
         self.maxy = maxy
@@ -451,7 +445,7 @@ class Track:
             #  x0,y0 +--------------+
             #        |              |
             #        +--------------+ x1,y1
-            #        
+            #
             #  v > 0 |          --->|
             #        |              |
             #  v < 0 |<---          |
@@ -578,7 +572,7 @@ class Track:
                         new_dir = np.array([vx ,vy])
                         dist = hypot(vx, vy)
                         vlength = dist * self.old_dist
-                        
+
                     cos_delta = np.dot(self.old_dir, new_dir) / vlength
 
                 self.old_dir  = new_dir
@@ -677,6 +671,7 @@ class Track:
 
 if __name__ == '__main__':
 
+    from time import sleep
     t = Track()
     t1 = Track()
     print("mask: %08x" % t.id)
