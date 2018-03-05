@@ -38,7 +38,7 @@ def main(show=True):
             fps  = 40  # 40 frames is maximum for the analyse function
                        #    there are no frames in the stream
                        # 68 would be  maximum for motion block frequency
-            mode = 6
+            mode = 5
         else:
             raise ValueError('Unknown camera device')
 
