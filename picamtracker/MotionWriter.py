@@ -201,7 +201,7 @@ class Writer(threading.Thread):
                     diff = framenb - index
 
                 if diff <= 0 and diff > -self.maxDiff:
-                    print("found key/sps frame @ %d (type:%d delta:%d)" % (index,ftype,diff))
+                    #print("found key/sps frame @ %d (type:%d delta:%d)" % (index,ftype,diff))
                     record = True
             
             # decode the next sps + i-frame
@@ -218,5 +218,5 @@ class Writer(threading.Thread):
 
             n += 1
 
-        print("%d frames searched (found %d)" % (n,record))
+        print("%d frames searched (%d found @ %d)" % (n,record,framenb))
 

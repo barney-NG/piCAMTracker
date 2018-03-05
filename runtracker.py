@@ -38,7 +38,7 @@ def main(show=True):
             fps  = 40  # 40 frames is maximum for the analyse function
                        #    there are no frames in the stream
                        # 68 would be  maximum for motion block frequency
-            mode = 5
+            mode = 6
         else:
             raise ValueError('Unknown camera device')
 
@@ -142,11 +142,9 @@ def main(show=True):
 
                         writer.takeSnapshot(frame, motion)
                         tracker.releaseLock()
-                        print("capture: %4.2fms" % (1000.0 * (time() - t0)))
+                        #print("capture: %4.2fms" % (1000.0 * (time() - t0)))
 
                     camera.wait_recording(t_wait)
-                    #pstream.seek(0)
-                    #pstream.truncate()
 
             except KeyboardInterrupt:
                 pass

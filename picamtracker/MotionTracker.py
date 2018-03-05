@@ -406,7 +406,7 @@ class Track:
                     if self.parent.redLEDThread:
                         self.parent.redLEDThread.event.set()
                     self.turnedY = True
-                    print("[%s](%02d) %2d Y-TURN" % (self.name,self.updates,rn[1]))
+                    #print("[%s](%02d) %2d Y-TURN" % (self.name,self.updates,rn[1]))
             self.progressy = False
 
         # TODO: do the same for x direction
@@ -546,6 +546,8 @@ class Track:
         # far away objects may move slow
         # max_dist = m*x + b
         max_dist = max(max(rn[2],rn[3]),Track.maxDist)
+        #vlength = 0.0
+        #oodir = self.old_dir
 
         # 1. is the new point in range?
         if dist >= 0.0 and dist < max_dist and delta_area < 10.0:
@@ -563,15 +565,15 @@ class Track:
                 vlength = self.old_dist * dist
                 new_dir = np.array([dx ,dy])
                 # accept all directions if one movement vector is zero
-                if vlength <= 0.1:
+                if vlength <= 2.0:
                     cos_delta = 1.0
                 else:
                     # if dx/dy are smaller than +/- 1 use vx/vy as vector
                     # TODO: this is slow and ugly :-/
-                    if abs(dx) + abs(dy) < 2.0:
-                        new_dir = np.array([vx ,vy])
-                        dist = hypot(vx, vy)
-                        vlength = dist * self.old_dist
+                    #if abs(dx) + abs(dy) < 2.0:
+                    #    new_dir = np.array([vx ,vy])
+                    #    dist = hypot(vx, vy)
+                    #    vlength = dist * self.old_dist
 
                     cos_delta = np.dot(self.old_dir, new_dir) / vlength
 
@@ -611,12 +613,16 @@ class Track:
                 self.detectCrossing(dx,dy,rn)
 
             else:
-                #print("[%s] delta-: %4.2f (%4.2f) dx/dy: %4.2f/%4.2f" % (self.name,cos_delta, degrees(acos(cos_delta)),dx,dy))
+                #if oodir is not None:
+                #    dxo = oodir[0]
+                #    dyo = oodir[1]
+                #    print("[%s](%d) delta-: (%4.2f) dx/dy: %4.2f/%4.2f dxo/dyo %4.2f/%4.2f dist: %4.2f, vlength: %4.2f" %
+                #        (self.name, self.updates,degrees(acos(cos_delta)),dx,dy,dxo,dyo,dist,vlength))
                 #print "     x:%3d->%3d, y:%3d->%3d dist: %4.2f" % (self.vv[0],vn[0], self.vv[1],vn[1],dist)
                 ii = 0
         else:
-            #if self.updates < 2:
-            #print "[%s] dist-: %4.2f" % (self.name,dist)
+            #if delta_area < 10.0:
+            #    print("[%s] dist: %4.2f > %4.2f delta_area: %4.2f" % (self.name,dist,max_dist,delta_area))
             ii = 0
 
         return found
