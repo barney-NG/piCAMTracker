@@ -114,6 +114,7 @@ def main(show=True):
         with picamtracker.MotionAnalyser(camera, tracker, display, show, config) as output:
             loop = 0
             t_wait = 0.5
+            old_frames = 0
             camera.annotate_text_size = 24
             #camera.annotate_frame_num = True
             camera.start_recording(vstream, 'h264', motion_output=output)
@@ -124,9 +125,22 @@ def main(show=True):
                 #writer.setupDecoder()
                 while True:
                     loop += 1
-                    if loop  & 1:
-                        fs = output.processed_frames / (loop * t_wait)
-                        camera.annotate_text = "%s (%3.1f f/s)" % (dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), fs)
+                    # update statistics
+                    if loop & 1:
+                        add_text = ""
+                        sep = ""
+                        if tracker.noise > 0.4:
+                            add_text += " NOISY"
+                            sep = " +"
+                        if camera.analog_gain > 7:
+                            add_text = add_text + sep + " DARK"
+                        if len(add_text):
+                            add_text += "!"
+
+                        frames = output.processed_frames
+                        fs = (frames - old_frames)  / (2 * t_wait)
+                        old_frames = frames
+                        camera.annotate_text = "%s (%3.1f f/s) %s" % (dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), fs, add_text)
 
 
                     frame,motion = tracker.getStatus()
@@ -154,8 +168,9 @@ def main(show=True):
                 greenLED.terminated = True
                 redLED.terminated = True
                 camera.stop_recording()
-                camera.stop_preview()
-                camera.remove_overlay(overlay)
+                if preview:
+                    camera.stop_preview()
+                    camera.remove_overlay(overlay)
                 # stop all threads
                 if display is not None:
                     display.terminated = True

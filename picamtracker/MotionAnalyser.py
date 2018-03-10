@@ -348,7 +348,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             xe = int(8*(self.cols))
             #ye = 8*(self.rows)
             cv2.line(self.big,(0,ym),(xe,ym),(0,0,0),1)
-            str_frate = "%4.0fms (%d) (%d)" % (dt*1000.0, moving_elements, self.sadThreshold)
+            str_frate = "%4.0fms (%d) (%d) (%4.2f)" % (dt*1000.0, self.camera.analog_gain, self.sadThreshold, self.tracker.noise)
             cv2.putText(self.big, str_frate, (3, 14), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (20,150,20), 1)
 
             # Show the image in the window

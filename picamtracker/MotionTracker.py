@@ -93,6 +93,7 @@ class Tracker(threading.Thread):
         self.greenLEDThread = greenLed
         self.redLEDThread   = redLed
         self.frame  = 0
+        self.noise  = 0.0
         self.motion = None
         self.locked = False
         self.maxDist = 15
@@ -264,9 +265,15 @@ class Tracker(threading.Thread):
                         break
 
         #-- remove aged tracks
+        noise = 0
         for track in self.track_pool:
-            if track.updates and frame - track.lastFrame > self.trackLifeTime:
+            updates = track.updates
+            if updates > 0 and updates < 3:
+                noise += 1
+            if updates and frame - track.lastFrame > self.trackLifeTime:
                 track.reset()
+
+        self.noise = float(noise / MAX_TRACKS)
 
     def showTracks(self, frame, vis):
         for track in self.track_pool:
@@ -546,8 +553,8 @@ class Track:
         # far away objects may move slow
         # max_dist = m*x + b
         max_dist = max(max(rn[2],rn[3]),Track.maxDist)
-        #vlength = 0.0
-        #oodir = self.old_dir
+        vlength = 0.0
+        oodir = self.old_dir
 
         # 1. is the new point in range?
         if dist >= 0.0 and dist < max_dist and delta_area < 10.0:
@@ -613,11 +620,11 @@ class Track:
                 self.detectCrossing(dx,dy,rn)
 
             else:
-                #if oodir is not None:
-                #    dxo = oodir[0]
-                #    dyo = oodir[1]
-                #    print("[%s](%d) delta-: (%4.2f) dx/dy: %4.2f/%4.2f dxo/dyo %4.2f/%4.2f dist: %4.2f, vlength: %4.2f" %
-                #        (self.name, self.updates,degrees(acos(cos_delta)),dx,dy,dxo,dyo,dist,vlength))
+                if oodir is not None:
+                    dxo = oodir[0]
+                    dyo = oodir[1]
+                    print("[%s](%d) delta-: (%4.2f) dx/dy: %4.2f/%4.2f dxo/dyo %4.2f/%4.2f dist: %4.2f, vlength: %4.2f" %
+                        (self.name, self.updates,degrees(acos(cos_delta)),dx,dy,dxo,dyo,dist,vlength))
                 #print "     x:%3d->%3d, y:%3d->%3d dist: %4.2f" % (self.vv[0],vn[0], self.vv[1],vn[1],dist)
                 ii = 0
         else:
