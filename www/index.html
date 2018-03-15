@@ -64,6 +64,22 @@ function mjpeg_start()
     mjpeg.onerror = mjpeg_read;
     mjpeg_read();
     }
+
+// How to do with websocket
+function onMessage(evt)
+    {
+        if (evt.data instanceof ArrayBuffer) {
+            var length = evt.data.byteLength;
+            var blob = new Blob([evt.data],{type:'image/png'});
+            var url = URL.createObjectURL(blob);
+            var image = document.getElementById("image");
+            var img = new Image();
+            img.onload = function(){
+                var ctx = image.getContext("2d");
+                ctx.drawImage(img, 0, 0);
+            }
+            img.src = url;
+    }
 </script>
 <style>
 #centered {
@@ -201,7 +217,7 @@ function mjpeg_start()
 			</div>
 			<div style="min-height: 70px"></div>
 			<label for="slider-NoiseLevel">Noise Level:</label>
-			<input type="range" id="slider-NoiseLevel" value="0" min="0" max="8192" step="1024" data-highlight="true" 
+			<input type="range" id="slider-NoiseLevel" value="0" min="0" max="8192" step="1024" data-highlight="true"
                                onchange="fifo_command('sadThreshold:',$('#slider-NoiseLevel').val()) ;" />
 			<label for="slider-MinArea">Minimum Area:</label>
 			<input type="range" name="slider-MinArea" id="slider-MinArea" value="2" min="1" max="8" step="2" data-highlight="true"
