@@ -98,6 +98,8 @@ class Tracker(threading.Thread):
         self.locked = False
         self.maxDist = 15
         self.trackLifeTime = 17
+        self.debug = False
+        self.fobj = None
 
         #- set the image handler
         #Track.image_handler = image_handler
@@ -114,6 +116,7 @@ class Tracker(threading.Thread):
             Track.maxDist = self.maxDist = config.conf['maxDist']
             Track.minCosDelta = config.conf['minCosDelta']
             self.trackLifeTime = config.conf['trackLifeTime']
+            self.debug = config.conf['debug']
 
         #- thread initialisation stuff
         self.event = threading.Event()
@@ -182,9 +185,23 @@ class Tracker(threading.Thread):
         self.update_track_pool(frame, motion)
 
     #--------------------------------------------------------------------
+    #- create debug output
+    #--------------------------------------------------------------------
+    def debug_out(self, frame, motion):
+        if self.fobj is None:
+            try:
+                self.fobj = open("debug_tracker.csv", "w")
+            except:
+                raise
+        for rr,vv in motion:
+            self.fobj.write("%4d,%0d,%0d,%0d,%0d,%4.2f,%4.2f\n" % (frame,rr[0],rr[1],rr[2],rr[3],vv[0],vv[1]))
+
+    #--------------------------------------------------------------------
     #-- queue new points and feed worker
     #--------------------------------------------------------------------
     def update_tracks(self, frame, motion):
+        if self.debug:
+            self.debug_out(frame,motion)
         self.q.append([frame,motion])
         self.event.set()
 
@@ -192,11 +209,8 @@ class Tracker(threading.Thread):
     #-- stop all threading stuff
     #--------------------------------------------------------------------
     def stop(self):
-        if self.greenLEDThread:
-            self.greenLEDThread.terminated = True
-        if self.redLEDThread:
-            self.redLEDThread.terminated = True
-
+        if self.fobj:
+            self.fobj.close()
         self.terminated = True
         self.q.append([0, [[[0,0,0,0],[0,0]]]])
 

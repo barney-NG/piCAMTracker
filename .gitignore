@@ -1,4 +1,7 @@
+*.csv
 *.pyc
 *.pyo
 *.swp
 media/
+www/media
+www/archive

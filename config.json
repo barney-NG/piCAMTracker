@@ -1,4 +1,5 @@
 {
+ "debug": False, 
  "greenLEDPort": 19, 
  "maxArea": 512, 
  "maxDist": 5, 
