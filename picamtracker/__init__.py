@@ -32,10 +32,12 @@ from __future__ import (
     absolute_import,
     )
 
-from .MotionAnalyser import MotionAnalyser
+try:
+    from .MotionAnalyser import MotionAnalyser
+    from .MotionDisplay import Display
+    from .MotionWriter import Writer
+except ImportError:
+    pass
 from .MotionTracker import Tracker
-from .MotionDisplay import Display
-from .MotionWriter import Writer
 from .CommandInterface import CommandInterface
-from .ConfigReader import Configuration
 from .ConfigReader import Configuration

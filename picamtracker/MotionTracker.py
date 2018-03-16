@@ -47,7 +47,7 @@ from collections import deque
 import numpy as np
 import cv2
 from math import atan2,hypot,degrees,acos,pi,sqrt
-from picamtracker import GPIOPort
+#from picamtracker import GPIOPort
 
 #- globals
 MAX_TRACKS     = 16
@@ -672,7 +672,8 @@ class Track:
         #cv2.polylines(vis, [pts], False, color)
 
         cv2.putText(vis,self.name,(x-3,y-3),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,2)
-        if self.crossedY and self.parent.greenLEDThread.event.isSet():
+        hold = self.parent.greenLEDThread and self.parent.greenLEDThread.event.isSet()
+        if self.crossedY and hold:
             cv2.rectangle(vis,(x,y),(x+w,y+h),color,-4)
         else:
             cv2.rectangle(vis,(x,y),(x+w,y+h),color,2)

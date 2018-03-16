@@ -3,8 +3,8 @@
 from time import sleep,time
 from argparse import ArgumentParser
 import numpy as np
-import picamtracker
-#import curses
+from picamtracker import MotionTracker,Configuration
+import cv2
 
 class faked_camera:
     def __init__(self, resx=1280, resy=720):
@@ -15,22 +15,21 @@ class faked_camera:
     def request_key_frame():
         return
 
-def main(show=False):
+def main(fobj=None):
     global config
     #win.nodelay(True)
 
     resx = 1280
     resy = 720
+    caption = 'piCAMTracker'
     camera = faked_camera(resx=resx, resy=resy)
     image = np.ones((resy/2,resx/2,3), np.uint8) * 220
-    display = picamtracker.Display(caption='piCAMTracker',x=config.conf['previewX'],y=config.conf['previewY'],w=resy/2,h=resx/2)
-    greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'])
-    redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'])
-    tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config)
-    
-    fobj = open("debug_tracker.csv","r")
+    tracker = MotionTracker.Tracker(camera, greenLed=None, redLed=None, config=config)
+
+    #fobj = open(deb_file,"r")
 
     old_frame = 0
+    wtime = 0x00
     new_points = []
     for line in fobj:
         line = line.rstrip()
@@ -43,13 +42,14 @@ def main(show=False):
             new_points.append([[int(a[1]),int(a[2]),int(a[3]),int(a[4])],[float(a[5]),float(a[6])]])
             print("<%s>" % line)
         else:
-            tracker.update_tracks(old_frame, new_points)
+            tracker.Supdate_tracks(old_frame, new_points)
             tracker.showTracks(old_frame, image)
-            display.imshow(image)
-            try:
-                input("")
-            except SyntaxError:
-                pass
+            cv2.imshow(caption,image)
+            ch = cv2.waitKey(wtime) & 0xFF
+            if ch == ord('s'):
+                wtime ^= 1
+            if ch == 27:
+                break
             image.fill(200)
             old_frame = frame
             del new_points[:]
@@ -57,20 +57,18 @@ def main(show=False):
             print("<%s>" % line)
 
     fobj.close()
-    greenLED.terminated = True
-    redLED.terminated = True
     tracker.stop()
-    greenLED.join()
-    redLED.join()
     tracker.join()
 
 if __name__ == '__main__':
-    parser = ArgumentParser(prog='piCAMTracker')
-    parser.add_argument('-s', '--show', action='store_true',
-                      help   = 'show graphical debug information (slow!)')
+    parser = ArgumentParser(prog='debugtracker.py')
+    parser.add_argument('input', type=file,
+                        help   = 'input file to be debugged')
+
     args = parser.parse_args()
     global config
-    config = picamtracker.Configuration('config.json')
+    config = Configuration('config.json')
+    config.conf['debug'] = False
 
     #curses.wrapper(main)
-    main(args.show)
+    main(args.input)
