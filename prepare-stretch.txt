@@ -1,0 +1,75 @@
+1.) sudo raspi-config
+System:
+  -- boot to cli
+    - auto login — as current user
+    Interfaces:
+    - camera - enabled   
+    - ssh enabled
+    Performance:
+    - GPU Memory 128
+
+    Keyboard,Wifi,…
+
+
+2.) apt-get
+ sudo apt-get update
+ sudo rpi-update
+ sudo apt-get upgrade
+ sudo apt-get install libboost-dev
+
+3.) Download and compile opencv! (I don’t find another possibility :-(
+see: http://pklab.net/?id=392&lang=EN
+sudo apt-get remove libopencv*
+sudo apt-get autoremove
+sudo apt-get install build-essential cmake cmake-curses-gui pkg-config
+sudo apt-get install php7.0 php7.0-common php7.0-fpm gpac nginx libav-tools bc sshpass mpack imagemagick apache2-utils libasound2 libasound2-dev \
+ libmp3lame0 libmp3lame-dev git python-picamera
+sudo apt-get install \
+ libjpeg-dev \
+ libtiff5-dev \
+ libjasper-dev \
+ libpng12-dev \
+ libavcodec-dev \
+ libavformat-dev \
+ libswscale-dev \
+ libeigen3-dev \
+ libxvidcore-dev \
+ libx264-dev \
+ libv4l-dev \
+ v4l-utils \
+ libatlas-base-dev \
+ gfortran \
+ libgtk2.0-dev \
+ pkg-config \
+ python2.7-dev \
+ python2-numpy \
+ python3-dev \
+ python3-numpy
+
+wget -O - https://github.com/opencv/opencv/archive/3.2.0.zip  | tar xzf -
+wget -O - https://github.com/opencv/opencv_contrib/archive/3.2.0.zip | tar xzf -
+
+cd opencv-3.2.0
+mkdir build
+cd build
+
+cmake -D CMAKE_BUILD_TYPE=RELEASE \
+	-D CMAKE_INSTALL_PREFIX=/usr/local \
+	-D BUILD_WITH_DEBUG_INFO=OFF \
+	-D BUILD_DOCS=OFF \
+	-D BUILD_EXAMPLES=OFF \
+        -D OPENCV_ENABLE_NONFREE=ON \
+	-D BUILD_TESTS=OFF \
+	-D BUILD_opencv_ts=OFF \
+	-D BUILD_PERF_TESTS=OFF \
+	-D INSTALL_C_EXAMPLES=ON \
+	-D INSTALL_PYTHON_EXAMPLES=ON \
+	-D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-3.2.0/modules \
+        -D WITH_OPENCL=ON \
+	-D ENABLE_NEON=ON \
+	-D WITH_LIBV4L=ON \
+       ../
+
+make -j4
+sudo make install
+sudo ldconfig

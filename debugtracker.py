@@ -31,7 +31,6 @@ def show_input(img, pts):
 
 def main(fobj=None):
     global config
-    #win.nodelay(True)
 
     resx = 1280
     resy = 720
@@ -40,8 +39,6 @@ def main(fobj=None):
     image = np.ones((resy/2,resx/2,3), np.uint8) * 220
     tracker = MotionTracker.Tracker(camera, greenLed=None, redLed=None, config=config)
     tracker.setup_sizes(resy/16, resx/16)
-
-    #fobj = open(deb_file,"r")
 
     old_frame = 0
     wtime = 0x00

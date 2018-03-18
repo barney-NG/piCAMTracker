@@ -461,7 +461,7 @@ class Track:
     #-- TODO: make the same for x direction
     #--------------------------------------------------------------------
     def detectCrossing(self, dx, dy, r):
-        delta = 2
+        delta = 3
 
         if Track.yCross > 0:
             # track is crossing target line in Y direction
