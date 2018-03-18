@@ -83,26 +83,32 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         i = 0
         for xo,yo,wo,ho in rects:
             # full intersection (new isin old)
-            if xn >= xo and wn <= wo and yn >= yo and hn <= ho:
+            if xn >= xo and xn+wn <= xo+wo and yn >= yo and yn+hn <= yo+ho:
                 return rects
             # full intersection (old isin new)
-            if xo > xn and wo < wn and yo > yn and ho < hn:
+            if xo > xn and xo+wo < xn+wn and yo > yn and yo+ho < yn+hn:
                 rects[i] = [xn,yn,wn,hn]
                 return rects
             # partly intersection (always join new to old)
-            # extend the new rect by one in each direction
-            xnn  = max(xn-1,0)
-            ynn  = max(yn-1,0)
-            wnn  = min(wn+1,self.cols)
-            hnn  = min(hn+1,self.rows)
+            # extend the new rect by two in each direction
+            xnn  = max(xn-3,0)
+            ynn  = max(yn-3,0)
+            wnn  = min(wn+3,self.cols)
+            hnn  = min(hn+3,self.rows)
 
+            # find x range
             xmin = min(xo,xnn)
             xmax = max(xo+wo,xnn+wnn)
+            # does x intersect?
             xint = (xmax - xmin) <= (wo + wnn)
+            # find y range
             ymin = min(yo,ynn)
             ymax = max(yo+ho,ynn+hnn)
+            # does y intersect?
             yint = (ymax - ymin) <= (ho + hnn)
             if (xint and yint):
+                # intersection if x and y intersect
+                # make union of the 'original' boxes
                 xmin = min(xo,xn)
                 xmax = max(xo+wo,xn+wn)
                 ymin = min(yo,yn)
@@ -329,7 +335,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 #xe = int(xm-4*vx)
                 #ye = int(ym-4*vy)
                 #cv2.arrowedLine(self.big,(xm,ym),(xe,ye),c,2)
-                cv2.rectangle(self.big,(x0,y0),(x0+w,y0+h),(20,20,20),1)
+                #cv2.rectangle(self.big,(x0,y0),(x0+w,y0+h),(200,00,250),2)
 
         # insert/update new movements
         #print("---%5.0fms --- (%d) (%d)" % (dt*1000.0,rejects,moving_elements))

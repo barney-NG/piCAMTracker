@@ -1,5 +1,5 @@
 {
- "debug": False, 
+ "debug": false, 
  "greenLEDPort": 19, 
  "maxArea": 512, 
  "maxDist": 5, 
@@ -20,7 +20,7 @@
  "sadThreshold": 0, 
  "streamServer": true, 
  "trackLifeTime": 17,
- "vMax": 100, 
+ "vMax": 200, 
  "vMin": 1, 
  "videoLength": 5, 
  "cmdFIFO": "/home/pi/piCAMTracker/www/FIFO",

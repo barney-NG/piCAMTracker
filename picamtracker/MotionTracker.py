@@ -57,8 +57,8 @@ def distance(t,p):
     if t.updates == 0:
         return 99999
     # BUG: upper corner as reference point is more stable than center
-    px = p[0] #+ p[2] / 2
-    py = p[1] #+ p[3] / 2
+    px = p[0] + p[2] / 2.0
+    py = p[1] + p[3] / 2.0
     return abs(t.cx - px) + abs(t.cy - py)
     #return np.hypot(t.cx - px, t.cy - py)
 
@@ -66,10 +66,9 @@ def distance(t,p):
 # remember: we sort from smallest to biggest
 def weighted_distance(t,p):
     dist = float(distance(t,p))
-    if t.updates:
-        val = 10.0 * dist + 5.0 / t.updates
-    else:
-        val = dist
+    val = 0.0
+    if dist > 0.0:
+        val = 100.0 * (dist - t.updates / 100.0)
     return(val)
 
 #- sort tracks by number of updates
@@ -100,9 +99,8 @@ class Tracker(threading.Thread):
         self.trackLifeTime = 17
         self.debug = False
         self.fobj = None
-
-        #- set the image handler
-        #Track.image_handler = image_handler
+        self.cols = 0
+        self.rows = 0
 
         #- initialize a fixed number of threads (less garbarge collection)
         self.track_pool = []
@@ -137,8 +135,9 @@ class Tracker(threading.Thread):
     #-- called by picamera after sizes are known
     #--------------------------------------------------------------------
     def setup_sizes(self, rows, cols):
-        Track.maxX = cols
-        Track.maxY = rows
+        Track.maxX = self.cols = cols
+        Track.maxY = self.rows = rows
+        print(rows,cols)
 
     #--------------------------------------------------------------------
     #-- release lock
@@ -181,7 +180,7 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     #-- without thread (don't start the thread otherwise index error raised!)
     #--------------------------------------------------------------------
-    def Supdate_tracks(self, frame, motion):
+    def deb_update_tracks(self, frame, motion):
         self.update_track_pool(frame, motion)
 
     #--------------------------------------------------------------------
@@ -258,7 +257,7 @@ class Tracker(threading.Thread):
                     break
 
                 # >>> debug
-                #print "   [%s]: (%2d) %3d" % (track.name, track.updates,  dist)
+                #print("   [%s]: (%2d) %3d  %d,%d" % (track.name,track.updates,dist,rn[0],rn[1]))
                 # <<< debug
 
                 #-- check if track takes coordinates
@@ -284,6 +283,9 @@ class Tracker(threading.Thread):
             updates = track.updates
             if updates > 0 and updates < 3:
                 noise += 1
+                if frame - track.lastFrame > 2:
+                    track.reset()
+                    continue
             if updates and frame - track.lastFrame > self.trackLifeTime:
                 track.reset()
 
@@ -389,11 +391,11 @@ class Track:
             #print "[%s]: new track rejected (too high)" % self.name
             return 0
 
-        #cxn  = rn[0]+rn[2]/2 #xn+wn/2
-        #cyn  = rn[1]+rn[3]/2 #yn+hn/2
+        cxn  = rn[0]+rn[2]/2 #xn+wn/2
+        cyn  = rn[1]+rn[3]/2 #yn+hn/2
 
-        cxn  = rn[0]
-        cyn  = rn[1]
+        #cxn  = rn[0]
+        #cyn  = rn[1]
 
         self.re  = rn
         self.vv  = np.array(vn)
@@ -525,17 +527,19 @@ class Track:
         self.lastFrame = frame
 
         # PiMotionAnalysis.analyse may be called more than once per frame -> double hit?
-        #cxn  = rn[0]+rn[2]/2.0
-        #cyn  = rn[1]+rn[3]/2.0
+        cxn  = rn[0]+rn[2]/2.0
+        cyn  = rn[1]+rn[3]/2.0
 
         # estimating via the object center produces very much noise. (??? I didn't think much about that)
         # estimation is done via the upper left corner (until I have something better)
-        cxn  = rn[0]
-        cyn  = rn[1]
+
+        #cxn  = rn[0]
+        #cyn  = rn[1]
 
         # accept slow moving objects
-        if self.cx == cxn and self.cy == cyn and self.vv[0] == vn[0] and self.vv[1] == vn[1]:
+        if self.cx == cxn and self.cy == cyn and self.re[2] == rn[2] and self.re[3] == rn[3]:
             self.updates += 1
+            self.updateGrowingStatus(rn)
             #print "[%s] double hit" % self.name
             return self.id
 
@@ -577,8 +581,8 @@ class Track:
             if self.updates >= 3:
                 # save first old status
                 if self.old_dir is None:
-                    dxo = self.cx - self.tr[-2][0]
-                    dyo = self.cy - self.tr[-2][1]
+                    dxo = self.cx - self.tr[-1][0]
+                    dyo = self.cy - self.tr[-1][1]
                     self.old_dist = hypot(dxo,dyo)
                     self.old_dir  = np.array([dxo,dyo])
 
@@ -619,7 +623,7 @@ class Track:
                 self.cy = cyn
                 self.updates += 1
                 self.tr.append([cxn,cyn])
-                if(len(self.tr) > 16):
+                if(len(self.tr) > 24):
                     del self.tr[0]
 
                 #- is the coverered area still growing?
@@ -637,8 +641,8 @@ class Track:
                 if oodir is not None:
                     dxo = oodir[0]
                     dyo = oodir[1]
-                    print("[%s](%d) delta-: (%4.2f) dx/dy: %4.2f/%4.2f dxo/dyo %4.2f/%4.2f dist: %4.2f, vlength: %4.2f" %
-                        (self.name, self.updates,degrees(acos(cos_delta)),dx,dy,dxo,dyo,dist,vlength))
+                    #print("[%s](%d) delta-: (%4.2f) dx/dy: %4.2f/%4.2f dxo/dyo %4.2f/%4.2f dist: %4.2f, vlength: %4.2f" %
+                    #    (self.name, self.updates,degrees(acos(cos_delta)),dx,dy,dxo,dyo,dist,vlength))
                 #print "     x:%3d->%3d, y:%3d->%3d dist: %4.2f" % (self.vv[0],vn[0], self.vv[1],vn[1],dist)
                 ii = 0
         else:
@@ -668,10 +672,12 @@ class Track:
         y = 8 * r[1]
         w = 8 * r[2]
         h = 8 * r[3]
-        #pts=np.int32(self.tr[-25:]) * 8
-        #cv2.polylines(vis, [pts], False, color)
 
-        cv2.putText(vis,self.name,(x-3,y-3),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,2)
+        pts=np.int32(self.tr[-25:]) * 8
+        cv2.polylines(vis, [pts], False, color)
+
+        text = "%s(%d)" % (self.name, self.updates)
+        cv2.putText(vis,text,(x-3,y-3),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,2)
         hold = self.parent.greenLEDThread and self.parent.greenLEDThread.event.isSet()
         if self.crossedY and hold:
             cv2.rectangle(vis,(x,y),(x+w,y+h),color,-4)
@@ -679,13 +685,14 @@ class Track:
             cv2.rectangle(vis,(x,y),(x+w,y+h),color,2)
         cv2.rectangle(vis,(8*self.minx,8*self.miny),(8*self.maxx,8*self.maxy),color,1)
         ###
-        #xm = x+w/2
-        #ym = y+h/2
-        #dx = -4 * self.vv[0]
-        #dy = -4 * self.vv[1]
-        #xe = int(xm+dx)
-        #ye = int(ym+dy)
-        #cv2.arrowedLine(vis,(xm,ym),(xe,ye),color,1)
+        xm = int(x+w/2)
+        ym = int(y+h/2)
+        dx = -4 * self.vv[0]
+        dy = -4 * self.vv[1]
+        xe = int(xm+dx)
+        ye = int(ym+dy)
+        cv2.arrowedLine(vis,(xm,ym),(xe,ye),color,1)
+        cv2.circle(vis,(xm,ym),3,color,1)
 
     #--------------------------------------------------------------------
     #--

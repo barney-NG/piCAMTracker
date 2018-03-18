@@ -36,6 +36,7 @@ try:
     from .MotionAnalyser import MotionAnalyser
     from .MotionDisplay import Display
     from .MotionWriter import Writer
+    from .GPIOPort import gpioPort
 except ImportError:
     pass
 from .MotionTracker import Tracker

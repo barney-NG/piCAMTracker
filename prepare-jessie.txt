@@ -39,6 +39,8 @@ sudo apt-get install \
  v4l-utils \
  libatlas-base-dev \
  gfortran \
+ libgtk2.0-dev \
+ pkg-config \
  python2.7-dev \
  python2-numpy \
  python3-dev \
