@@ -137,7 +137,6 @@ class Tracker(threading.Thread):
     def setup_sizes(self, rows, cols):
         Track.maxX = self.cols = cols
         Track.maxY = self.rows = rows
-        print(rows,cols)
 
     #--------------------------------------------------------------------
     #-- release lock
