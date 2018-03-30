@@ -47,7 +47,9 @@ def main(show=True):
         if show:
             preview = True
             camera.framerate  = 25
-            display = picamtracker.Display(caption='piCAMTracker',x=config.conf['previewX'],y=config.conf['previewY'],w=resy/2,h=resx/2)
+            x_disp = config.conf['previewX'] + config.conf['offsetX']
+            y_disp = config.conf['previewY'] + config.conf['offsetY']
+            display = picamtracker.Display(caption='piCAMTracker',x=x_disp,y=y_disp,w=resy/2,h=resx/2)
         else:
             display = None
             camera.framerate   = fps
@@ -69,8 +71,8 @@ def main(show=True):
                 cl[:,xm,:]  = 0xff  #vertical line
 
             #- preview settings
-            px = config.conf['previewX'] + config.conf['offsetX']
-            py = config.conf['previewY'] + config.conf['offsetY']
+            px = config.conf['previewX']
+            py = config.conf['previewY']
 
             camera.start_preview()
             camera.preview.fullscreen = False

@@ -36,7 +36,7 @@ class Display(threading.Thread):
         #    raise Exception('No suitable video driver found!')
         pygame.display.init()
 
-        os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (x,y-21)
+        os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (x,y)
         pygame.display.set_caption(caption)
         pygame.surfarray.use_arraytype('numpy')
         self.screen = None
