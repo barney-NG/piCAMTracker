@@ -46,10 +46,10 @@ sudo apt-get install \
  python3-dev \
  python3-numpy
 
-wget -O - https://github.com/opencv/opencv/archive/3.2.0.zip  | tar xzf -
-wget -O - https://github.com/opencv/opencv_contrib/archive/3.2.0.zip | tar xzf -
+wget -O - https://github.com/opencv/opencv/archive/3.4.1.zip  | tar xzf -
+wget -O - https://github.com/opencv/opencv_contrib/archive/3.4.1.zip | tar xzf -
 
-cd opencv-3.2.0
+cd opencv-3.4.1
 mkdir build
 cd build
 
@@ -58,13 +58,14 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
 	-D BUILD_WITH_DEBUG_INFO=OFF \
 	-D BUILD_DOCS=OFF \
 	-D BUILD_EXAMPLES=OFF \
+	-D BUILD_JAVA=OFF \
         -D OPENCV_ENABLE_NONFREE=ON \
 	-D BUILD_TESTS=OFF \
 	-D BUILD_opencv_ts=OFF \
 	-D BUILD_PERF_TESTS=OFF \
 	-D INSTALL_C_EXAMPLES=ON \
 	-D INSTALL_PYTHON_EXAMPLES=ON \
-	-D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-3.2.0/modules \
+	-D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-3.4.1/modules \
         -D WITH_OPENCL=ON \
 	-D ENABLE_NEON=ON \
 	-D WITH_LIBV4L=ON \
