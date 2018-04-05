@@ -16,6 +16,7 @@ System:
  sudo rpi-update
  sudo apt-get upgrade
  sudo apt-get install libboost-dev
+ sudo apt-get install libboost-python1.62.0
 
 3.) Download and compile opencv! (I don’t find another possibility :-(
 see: http://pklab.net/?id=392&lang=EN
