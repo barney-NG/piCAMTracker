@@ -32,13 +32,10 @@ from __future__ import (
     absolute_import,
     )
 
-try:
-    from .MotionAnalyser import MotionAnalyser
-    from .MotionDisplay import Display
-    from .MotionWriter import Writer
-    from .GPIOPort import gpioPort
-except ImportError:
-    pass
+from .MotionAnalyser import MotionAnalyser
+from .MotionDisplay import Display
+from .MotionWriter import Writer
+from .GPIOPort import gpioPort
 from .MotionTracker import Tracker
 from .CommandInterface import CommandInterface
 from .ConfigReader import Configuration
