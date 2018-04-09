@@ -29,16 +29,16 @@ def main(show=True):
             #resx = 1296 ### error mmal (change format during write)
             resx = 1280
             resy = 720
-            fps  = 40 #49
+            fps  = 49
             mode = 5
         elif revision == 'IMX219':
             # V2 module
             resx = 1280
             resy = 720
-            fps  = 40  # 40 frames is maximum for the analyse function
+            fps  = 49  # 40 frames is maximum for the analyse function
                        #    there are no frames in the stream
                        # 68 would be  maximum for motion block frequency
-            mode = 5
+            mode = 6
         else:
             raise ValueError('Unknown camera device')
 
