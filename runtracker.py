@@ -35,10 +35,15 @@ def main(show=True):
             # V2 module
             resx = 1280
             resy = 720
-            fps  = 49  # 40 frames is maximum for the analyse function
-                       #    there are no frames in the stream
+            fps  = 62  # In mode 6 we do not have the full FOV
+                       # but the maximum possible framrate is quite good
+                       # you need good light to run this mode !
                        # 68 would be  maximum for motion block frequency
             mode = 6
+            #resx = 1632
+            #resy = 960
+            #fps = 37
+            #mode = 4
         else:
             raise ValueError('Unknown camera device')
 
