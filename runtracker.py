@@ -109,8 +109,10 @@ def main(show=True):
         #camera.awb_gains = g
 
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
-        greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'])
-        redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'])
+        greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
+            is_active_low=config.conf['ledActiveLow'])
+        redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'],
+            is_active_low=config.conf['ledActiveLow'])
         tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config)
         writer  = picamtracker.Writer(camera, stream=vstream, config=config)
         cmds    = picamtracker.CommandInterface(config=config)
@@ -124,7 +126,7 @@ def main(show=True):
             old_frames = 0
             camera.annotate_text_size = 24
             #camera.annotate_frame_num = True
-            camera.start_recording(vstream, 'h264', motion_output=output)
+            camera.start_recording(output=vstream, format='h264', level='4', motion_output=output)
             cmds.subscribe(output.set_maxArea, 'maxArea')
             cmds.subscribe(output.set_minArea, 'minArea')
             cmds.subscribe(output.set_sadThreshold, 'sadThreshold')

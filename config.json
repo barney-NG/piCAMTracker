@@ -1,6 +1,7 @@
 {
  "debug": false, 
  "greenLEDPort": 19, 
+ "ledActiveLow": False, 
  "maxArea": 512, 
  "maxDist": 5, 
  "maxTracks": 16, 
