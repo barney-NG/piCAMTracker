@@ -19,6 +19,8 @@ Currently this is an alpha release.
 * The web interface supports the most rudimentary stuff to control the camera.
 * no picture/video saving so far.   
 * we have a printed cover available. (see wiki section)
+* you can download the the V0.2 image [here](https://drive.google.com/file/d/1-x-_ZPPROQZFUDD8pWnHlK2-9w4h0k6A/view?usp=sharing)
+  pi-password: Olav01
 
 # Pictures
 see wiki section
