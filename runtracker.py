@@ -28,9 +28,13 @@ def main(show=True):
             # V1 module
             #resx = 1296 ### error mmal (change format during write)
             resx = 1280
-            resy = 720
-            fps  = 40 #49
-            mode = 5
+            resy = 960
+            fps  = 42
+            mode = 4
+            #resx = 1280
+            #resy = 720
+            #fps  = 48 #49
+            #mode = 5
         elif revision == 'IMX219':
             # V2 module
             resx = 1280
@@ -52,8 +56,8 @@ def main(show=True):
             display = picamtracker.Display(caption='piCAMTracker',x=x_disp,y=y_disp,w=resy/2,h=resx/2)
         else:
             display = None
-            camera.framerate   = fps
             camera.sensor_mode = mode
+            camera.framerate   = fps
 
         print("warm-up 2 seconds...")
         sleep(2.0)
