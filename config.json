@@ -2,7 +2,7 @@
  "cmdFIFO": "/home/pi/piCAMTracker/www/FIFO", 
  "debug": false, 
  "greenLEDPort": 19, 
- "ledActiveLow": False, 
+ "ledActiveLow": false, 
  "maxArea": 512, 
  "maxDist": 5, 
  "maxTracks": 16, 

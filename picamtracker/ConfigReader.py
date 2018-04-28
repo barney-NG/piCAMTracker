@@ -81,10 +81,12 @@ class Configuration:
 
     def read(self, config_file):
         try:
-            self.conf = json.load(open(config_file))
+            self.conf = json.load(open(config_file,'r'))
             self.configFileName = config_file
-        except:
+        except IOError:
             pass
+        except:
+            raise
 
     def set_storeParams(self,value):
         self.write()
