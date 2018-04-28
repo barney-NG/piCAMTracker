@@ -39,10 +39,15 @@ def main(show=True):
             # V2 module
             resx = 1280
             resy = 720
-            fps  = 40  # 40 frames is maximum for the analyse function
-                       #    there are no frames in the stream
+            fps  = 62  # In mode 6 we do not have the full FOV
+                       # but the maximum possible framrate is quite good
+                       # you need good light to run this mode !
                        # 68 would be  maximum for motion block frequency
-            mode = 5
+            mode = 6
+            #resx = 1632
+            #resy = 960
+            #fps = 37
+            #mode = 4
         else:
             raise ValueError('Unknown camera device')
 
@@ -108,8 +113,10 @@ def main(show=True):
         #camera.awb_gains = g
 
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
-        greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'])
-        redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'])
+        greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
+            is_active_low=config.conf['ledActiveLow'])
+        redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'],
+            is_active_low=config.conf['ledActiveLow'])
         tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config)
         writer  = picamtracker.Writer(camera, stream=vstream, config=config)
         cmds    = picamtracker.CommandInterface(config=config)
@@ -123,7 +130,7 @@ def main(show=True):
             old_frames = 0
             camera.annotate_text_size = 24
             #camera.annotate_frame_num = True
-            camera.start_recording(vstream, 'h264', motion_output=output)
+            camera.start_recording(output=vstream, format='h264', level='4', motion_output=output)
             cmds.subscribe(output.set_maxArea, 'maxArea')
             cmds.subscribe(output.set_minArea, 'minArea')
             cmds.subscribe(output.set_sadThreshold, 'sadThreshold')
