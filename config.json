@@ -12,7 +12,7 @@
  "offsetX": -2, 
  "offsetY": -22, 
  "preview": true, 
- "previewH": 360, 
+ "previewH": 480, 
  "previewR": 0, 
  "previewW": 640, 
  "previewX": 10, 
@@ -25,6 +25,7 @@
  "vMax": 200, 
  "vMin": 1, 
  "videoLength": 5, 
+ "viewAngle": 270, 
  "xCross": -1, 
  "yCross": 29
 }

@@ -77,6 +77,14 @@ class Writer(threading.Thread):
         self.frame2decode = None
         self.maxDiff = 15
         self.ycross = None
+        self.k = 0
+        if config.conf['viewAngle'] == 90:
+	    self.k = -1
+        if config.conf['viewAngle'] == 180:
+	    self.k = 2
+        if config.conf['viewAngle'] == 270:
+	    self.k = 1
+
 
         #pygame.init()
         #self.screen = pygame.display.set_mode((1280,720))
@@ -172,7 +180,7 @@ class Writer(threading.Thread):
                     ye = int(ym - 4*vv[1])
                     cv2.arrowedLine(image,(xm,ym),(xe,ye),(20,220,20),1)
                     #image = cv2.resize(image,None,fx=0.5,fy=0.5,interpolation=cv2.INTER_LINEAR)
-                    image = np.rot90(image,k=-1)
+                    image = np.rot90(image,self.k)
                     cv2.imwrite(self.imgpath, image, [cv2.IMWRITE_JPEG_QUALITY, 90])
                     #pg.image.save(surface, self.imgpath)
 

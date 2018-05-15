@@ -26,15 +26,11 @@ def main(show=True):
         revision = camera._revision.upper()
         if revision == 'OV5647':
             # V1 module
-            #resx = 1296 ### error mmal (change format during write)
+            # 1280x720 has a bug. (wrong center value)
             resx = 1280
             resy = 960
             fps  = 42
             mode = 4
-            #resx = 1280
-            #resy = 720
-            #fps  = 48 #49
-            #mode = 5
         elif revision == 'IMX219':
             # V2 module
             resx = 1280
@@ -44,10 +40,6 @@ def main(show=True):
                        # you need good light to run this mode !
                        # 68 would be  maximum for motion block frequency
             mode = 6
-            #resx = 1632
-            #resy = 960
-            #fps = 37
-            #mode = 4
         else:
             raise ValueError('Unknown camera device')
 
@@ -90,20 +82,19 @@ def main(show=True):
                 camera.preview.alpha = 192
             else:
                 camera.preview.alpha = 255
-            #camera.preview.window = (100,80,resy/2,resx/2)
+
+            rotation = config.conf['viewAngle']
             camera.preview.window = (px,py,resy/2,resx/2)
-            camera.preview.rotation = 90
+            camera.preview.rotation = rotation
 
             #- overlay settings
             overlay = camera.add_overlay(source=np.getbuffer(cl),
                                          size=(resx,resy),format='rgb')
             overlay.fullscreen = False
-            #overlay.window = (50,100,resx,resy)
             overlay.alpha = 32
             overlay.layer = 3
-            #overlay.window = (100,80,resy/2,resx/2)
             overlay.window = (px,py,resy/2,resx/2)
-            overlay.rotation= 90
+            overlay.rotation= rotation
 
         #- disable auto (exposure + white balance)
         #camera.shutter_speed = camera.exposure_speed
