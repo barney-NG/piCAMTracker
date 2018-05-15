@@ -6,9 +6,29 @@ import numpy as np
 import datetime as dt
 import os
 import io
+import re
 from time import sleep,time
 from argparse import ArgumentParser
 import picamtracker
+
+def get_raspi_revision():
+    rev_file = '/sys/firmware/devicetree/base/model'
+    info = { 'pi': '', 'model': '', 'rev': ''}
+    raspi = model = revision = ''
+    try:
+        fd = os.open(rev_file, os.O_RDONLY)
+        line = os.read(fd,256)
+        os.close(fd)
+        m = re.match('Raspberry Pi (\d+) Model (\w[\+]?) Rev ([\d\.]+)', line)
+        if m:
+            info['pi'] = m.group(1)
+            info['model'] = m.group(2)
+            info['rev'] = m.group(3)
+    except:
+        pass
+
+    return info
+
 
 
 def main(show=True):
@@ -19,6 +39,7 @@ def main(show=True):
     except:
         raise
 
+    print(get_raspi_revision())
 
     #- open picamera device
     with picamera.PiCamera() as camera:
