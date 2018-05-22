@@ -24,7 +24,7 @@ Currently this is an alpha release.
   pi-password: Olav01
 
 # Pictures
-see wiki section
+see [wiki](https://github.com/barney-NG/piCAMTracker/wiki) section
 
 # TODO
 * More testing in real conditions is needed.

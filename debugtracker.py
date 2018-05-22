@@ -3,7 +3,9 @@
 from time import sleep,time
 from argparse import ArgumentParser
 import numpy as np
-from picamtracker import MotionTracker,Configuration
+#from picamtracker import MotionTracker,Configuration
+import picamtracker.MotionTracker
+import picamtracker.Configuration
 import cv2
 
 class faked_camera:
