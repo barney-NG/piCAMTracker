@@ -19,7 +19,7 @@ def get_raspi_revision():
         fd = os.open(rev_file, os.O_RDONLY)
         line = os.read(fd,256)
         os.close(fd)
-        m = re.match('Raspberry Pi (\d+) Model (\w[\+]?) Rev ([\d\.]+)', line)
+        m = re.match('Raspberry Pi (\d+) Model (\w(?: Plus)?) Rev ([\d\.]+)', line)
         if m:
             info['pi'] = m.group(1)
             info['model'] = m.group(2)
@@ -56,7 +56,7 @@ def main(show=True):
             # V2 module
             resx = 1280
             resy = 720
-            fps  = 62  # In mode 6 we do not have the full FOV
+            fps  = 60  # In mode 6 we do not have the full FOV
                        # but the maximum possible framrate is quite good
                        # you need good light to run this mode !
                        # 68 would be  maximum for motion block frequency
@@ -98,7 +98,6 @@ def main(show=True):
 
             camera.start_preview()
             camera.preview.fullscreen = False
-            #camera.preview.window = (50,100,resx,resy)
             if show:
                 camera.preview.alpha = 192
             else:
@@ -130,8 +129,8 @@ def main(show=True):
         redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'],
             is_active_low=config.conf['ledActiveLow'])
         tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config)
-        writer  = picamtracker.Writer(camera, stream=vstream, config=config)
-        cmds    = picamtracker.CommandInterface(config=config)
+        writer = picamtracker.Writer(camera, stream=vstream, config=config)
+        cmds = picamtracker.CommandInterface(config=config)
         cmds.subscribe(tracker.set_maxDist, 'maxDist')
         cmds.subscribe(config.set_storeParams, 'storeParams')
         cmds.subscribe(greenLED.check, 'testBeep')
@@ -150,7 +149,7 @@ def main(show=True):
                 #writer.setupDecoder()
                 while True:
                     loop += 1
-                    # update statistics
+                    # update statistics every second
                     if loop & 1:
                         add_text = ""
                         sep = ""
