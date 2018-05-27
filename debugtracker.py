@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 import numpy as np
 #from picamtracker import MotionTracker,Configuration
 import picamtracker.MotionTracker
-import picamtracker.Configuration
+import picamtracker.ConfigReader
 import cv2
 
 class faked_camera:
@@ -39,7 +39,7 @@ def main(fobj=None):
     caption = 'piCAMTracker'
     camera = faked_camera(resx=resx, resy=resy)
     image = np.ones((resy/2,resx/2,3), np.uint8) * 220
-    tracker = MotionTracker.Tracker(camera, greenLed=None, redLed=None, config=config)
+    tracker = picamtracker.MotionTracker.Tracker(camera, greenLed=None, redLed=None, config=config)
     tracker.setup_sizes(resy/16, resx/16)
 
     old_frame = 0
@@ -82,7 +82,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     global config
-    config = Configuration('config.json')
+    config = picamtracker.ConfigReader.Configuration('config.json')
     config.conf['debug'] = False
 
     #curses.wrapper(main)
