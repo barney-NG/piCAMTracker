@@ -45,6 +45,7 @@ default_config = \
     "greenLEDPort": 19,
     "redLEDPort": 13,
     "ledActiveLow": False,
+    "signalLength": 200.,
     "quitAppByGPIO": False,
     "minArea": 1,
     "maxArea": 512,

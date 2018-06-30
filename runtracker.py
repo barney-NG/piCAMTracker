@@ -125,7 +125,8 @@ def main(show=True):
 
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
         greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
-            is_active_low=config.conf['ledActiveLow'])
+            is_active_low=config.conf['ledActiveLow'],
+            duration=config.conf['signalLength'])
         redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'],
             is_active_low=config.conf['ledActiveLow'])
         tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config)
