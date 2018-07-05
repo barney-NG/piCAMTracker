@@ -2,6 +2,7 @@
 *.pyc
 *.pyo
 *.swp
+*.data
 media/
 www/media
 www/archive

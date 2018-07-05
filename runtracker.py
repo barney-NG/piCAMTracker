@@ -31,13 +31,16 @@ def get_raspi_revision():
 
 
 
-def main(show=True):
+def main(show=True, debug=False):
     global config
     preview = True
     try:
         preview = config.conf['preview']
     except:
         raise
+
+    if debug:
+        config.conf['debug'] = True
 
     print(get_raspi_revision())
 
@@ -142,7 +145,7 @@ def main(show=True):
             old_frames = 0
             camera.annotate_text_size = 24
             #camera.annotate_frame_num = True
-            camera.start_recording(output=vstream, format='h264', level='4', motion_output=output)
+            camera.start_recording(output=vstream, format='h264', level='4.2', motion_output=output)
             cmds.subscribe(output.set_maxArea, 'maxArea')
             cmds.subscribe(output.set_minArea, 'minArea')
             cmds.subscribe(output.set_sadThreshold, 'sadThreshold')
@@ -216,10 +219,12 @@ def main(show=True):
 if __name__ == '__main__':
     parser = ArgumentParser(prog='piCAMTracker')
     parser.add_argument('-s', '--show', action='store_true',
-                      help   = 'show graphical debug information (slow!)')
+                      help   = 'show internal graphical information (slow!)')
+    parser.add_argument( '-d', '--debug', action='store_true',
+                      help = 'write debug information for later investigation')
     args = parser.parse_args()
     global config
     config = picamtracker.Configuration('config.json')
     os.system("[ ! -d /run/picamtracker ] && sudo mkdir -p /run/picamtracker && sudo chown pi:www-data /run/picamtracker && sudo chmod 775 /run/picamtracker")
 
-    main(args.show)
+    main(args.show, args.debug)

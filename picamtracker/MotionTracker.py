@@ -198,8 +198,6 @@ class Tracker(threading.Thread):
     #-- queue new points and feed worker
     #--------------------------------------------------------------------
     def update_tracks(self, frame, motion):
-        if self.debug:
-            self.debug_out(frame,motion)
         self.q.append([frame,motion])
         self.event.set()
 

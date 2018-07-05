@@ -74,10 +74,20 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.processed_frames = 0
         self.updated = False
         self.maxMovements = 100
+        self.debug = config.conf['debug']
+        self.fobj = None
 
+    def debug_out(self, array):
+        """
+        write out the the macro blocks for later investigation
+        """
+        if self.fobj is None:
+            try:
+                self.fobj = open("debug_motion.data", "wb")
+            except:
+                raise
 
-    def rot90(self, x, y):
-        return ((self.cols-1-y,x))
+        self.fobj.write(array)
 
     def intersects(self,rects,xn,yn,wn,hn):
         i = 0
@@ -126,7 +136,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             self.maxArea = value
 
     def set_minArea(self,value):
-        if value < 1: 
+        if value < 1:
             value = 1
         self.minArea = value
 
@@ -138,7 +148,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         rects = []
         for cnt in contours:
             x,y,w,h = cv2.boundingRect(cnt)
- 
+
             if w*h > self.maxArea:
                 continue
 
@@ -155,6 +165,9 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.t0 = t1
         self.frame = self.camera.frame.index
         self.processed_frames += 1
+        if self.debug:
+            self.debug_out(a)
+
         #print("---%5.0fms ---" % (dt*1000.0))
         #return
 
@@ -173,7 +186,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         mag = np.abs(a['x']) + np.abs(a['y'])
         has_movement = np.logical_and(mag > self.vmin, mag < self.vmax, a['sad'] > self.sadThreshold)
         #rejects = np.count_nonzero(mag >= self.vmax)
-        
+
         #- we can reduce half of the area and movement in just one direction
         #has_movement = np.logical_and(has_movement, a['y'] < 0 )
 
@@ -191,7 +204,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 self.big = np.ones((8*self.rows,8*(self.cols-1),3), np.uint8) * 220
             else:
                 self.big.fill(200)
-        
+
         #if False:
         if self.show:# and self.frame % 5:
             #- thats's slow!
@@ -237,8 +250,9 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             #x0,y0,w,h = cv2.boundingRect(cnt)
 
             #-- reject areas which are too big
-            if w*h > self.maxArea:
-                print( "MAXAEREA!")
+            area = w*h
+            if area > self.maxArea:
+                print( "MAXAEREA! (%d)" % area)
                 rejects += 1
                 continue
 
@@ -359,8 +373,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
             # Show the image in the window
             # without imshow we are at 5ms (sometimes 12ms)
-            key = self.display.imshow( self.big )
-            if key == 27:
-                raise NotImplementedError
+            if self.display:
+              self.display.imshow( self.big )
 
         #print("proc_time: %4.2f" % (1000.0 * (time() - self.t0)))
