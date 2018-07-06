@@ -146,6 +146,8 @@ def main(show=True, debug=False):
             camera.annotate_text_size = 24
             #camera.annotate_frame_num = True
             camera.start_recording(output=vstream, format='h264', level='4.2', motion_output=output)
+            cmds.subscribe(output.set_vMax, 'vMax')
+            cmds.subscribe(output.set_vMin, 'vMin')
             cmds.subscribe(output.set_maxArea, 'maxArea')
             cmds.subscribe(output.set_minArea, 'minArea')
             cmds.subscribe(output.set_sadThreshold, 'sadThreshold')

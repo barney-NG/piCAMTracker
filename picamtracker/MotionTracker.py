@@ -93,6 +93,7 @@ class Tracker(threading.Thread):
         self.redLEDThread   = redLed
         self.frame  = 0
         self.noise  = 0.0
+	self.active_tracks = 0
         self.motion = None
         self.locked = False
         self.maxDist = 15
@@ -104,7 +105,8 @@ class Tracker(threading.Thread):
 
         #- initialize a fixed number of threads (less garbarge collection)
         self.track_pool = []
-        for i in range(0,MAX_TRACKS):
+        #for i in range(0,MAX_TRACKS):
+        for i in range(0,config.conf['maxTracks']):
             self.track_pool.append(Track(self))
 
         #- do things according configuration
@@ -130,6 +132,8 @@ class Tracker(threading.Thread):
     def set_maxDist(self, value):
         if value > 0 and value < 25:
             Track.maxDist = value
+            if self.config:
+                self.config.conf['maxDist'] = value
 
     #--------------------------------------------------------------------
     #-- called by picamera after sizes are known
@@ -276,17 +280,21 @@ class Tracker(threading.Thread):
 
         #-- remove aged tracks
         noise = 0
+	active = 0
         for track in self.track_pool:
             updates = track.updates
-            if updates > 0 and updates < 3:
-                noise += 1
-                if frame - track.lastFrame > 2:
-                    track.reset()
-                    continue
+            if updates > 0:
+	        active += 1
+	        if updates < 3:
+                    noise += 1
+                    if frame - track.lastFrame > 2:
+                        track.reset()
+                        continue
             if updates and frame - track.lastFrame > self.trackLifeTime:
                 track.reset()
 
         self.noise = float(noise / MAX_TRACKS)
+	self.active_tracks = active
 
     def showTracks(self, frame, vis):
         for track in self.track_pool:
@@ -470,7 +478,7 @@ class Track:
             #        |              |
             #  v < 0 |<---          |
             #if self.updates > 4 and self.progressy == True and self.maxy-self.miny > 2*r[3] and self.crossedY == False:
-            if self.updates > 4 and self.progressy == True and self.crossedY == False:
+            if self.updates > 10 and self.progressy == True and self.crossedY == False:
                 # develope indicators
                 vy = -self.vv[1] # remember the velocity has wrong direction!
                 y0 = r[1]
@@ -688,7 +696,7 @@ class Track:
         dy = -4 * self.vv[1]
         xe = int(xm+dx)
         ye = int(ym+dy)
-        cv2.arrowedLine(vis,(xm,ym),(xe,ye),color,1)
+        cv2.arrowedLine(vis,(xm,ym),(xe,ye),color,3)
         cv2.circle(vis,(xm,ym),3,color,1)
 
     #--------------------------------------------------------------------

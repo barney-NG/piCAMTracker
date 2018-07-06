@@ -101,6 +101,7 @@ class Configuration:
 
         try:
             json.dump(self.conf, open(fn,'w'), indent=1, sort_keys=True)
+            print("config written")
         except:
             raise
 

@@ -131,18 +131,37 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         rects.append([xn,yn,wn,hn])
         return rects
 
+    def set_vMax(self,value):
+        if value > self.vmin:
+            self.vmax = value
+            if self.config:
+                self.config.conf['vMax'] = value
+
+    def set_vMin(self,value):
+        if value < 1:
+            value = 1
+        self.vmin = value
+        if self.config:
+            self.config.conf['vMin'] = value
+
     def set_maxArea(self,value):
         if value > self.minArea:
             self.maxArea = value
+            if self.config:
+                self.config.conf['maxArea'] = value
 
     def set_minArea(self,value):
         if value < 1:
             value = 1
         self.minArea = value
+        if self.config:
+            self.config.conf['minArea'] = value
 
     def set_sadThreshold(self,value):
         if value >=0 and value < 16384:
             self.sadThreshold = value
+            if self.config:
+                self.config.conf['sadThreshold'] = value
 
     def removeIntersections(self,contours):
         rects = []
@@ -314,16 +333,16 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                     rejects += 1
                     continue
 
-                sad_weights = a[y0:y1,x0:x1]['sad'].flatten()
-                sad_weights *= sad_weights
+                ##sad_weights = a[y0:y1,x0:x1]['sad'].flatten()
+                ##sad_weights *= sad_weights
 
                 #-- develope composite vector from weightened vectors in region
-                try:
-                    vx = np.average(a[y0:y1,x0:x1]['x'].flatten(),weights=sad_weights)
-                    vy = np.average(a[y0:y1,x0:x1]['y'].flatten(),weights=sad_weights)
-                except ZeroDivisionError:
-                    vx = np.mean(a[y0:y1,x0:x1]['x'])
-                    vy = np.mean(a[y0:y1,x0:x1]['y'])
+                ##try:
+                ##    vx = np.average(a[y0:y1,x0:x1]['x'].flatten(),weights=sad_weights)
+                ##    vy = np.average(a[y0:y1,x0:x1]['y'].flatten(),weights=sad_weights)
+                ##except ZeroDivisionError:
+                vx = np.mean(a[y0:y1,x0:x1]['x'])
+                vy = np.mean(a[y0:y1,x0:x1]['y'])
                 #vx = np.mean(a[y0:y1,x0:x1]['x'])
                 #vy = np.mean(a[y0:y1,x0:x1]['y'])
                 num_large += 1
@@ -368,7 +387,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             xe = int(8*(self.cols))
             #ye = 8*(self.rows)
             cv2.line(self.big,(0,ym),(xe,ym),(0,0,0),1)
-            str_frate = "%4.0fms (%d) (%d) (%4.2f)" % (dt*1000.0, self.camera.analog_gain, self.sadThreshold, self.tracker.noise)
+            str_frate = "%4.0fms (%d) (%d) (%0d)" % (dt*1000.0, self.camera.analog_gain, self.sadThreshold, self.tracker.active_tracks)
             cv2.putText(self.big, str_frate, (3, 14), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (20,150,20), 1)
 
             # Show the image in the window

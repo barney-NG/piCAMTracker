@@ -12,6 +12,8 @@ read_config.onreadystatechange = function() {
     if(this.readyState == 4 && this.status == 200) {
         var cfg = JSON.parse(this.responseText);
         console.log("CFG: " + JSON.stringify(cfg));
+        $('#slider-vMin').val(cfg.vMin).slider('refresh');
+        $('#slider-vMax').val(cfg.vMax).slider('refresh');
         $('#slider-MinArea').val(cfg.minArea).slider('refresh');
         $('#slider-MaxArea').val(cfg.maxArea).slider('refresh');
         $('#slider-NoiseLevel').val(cfg.sadThreshold).slider('refresh');
@@ -216,6 +218,12 @@ function mjpeg_start()
                                    onclick="fifo_command('storeParams:',1) ;" />
 			</div>
 			<div style="min-height: 70px"></div>
+			<label for="slider-vMin">Minimum Speed:</label>
+			<input type="range" id="slider-vMin" value="1" min="1" max="25" step="5" data-highlight="true"
+                               onchange="fifo_command('vMin:',$('#slider-vMin').val()) ;" />
+			<label for="slider-vMax">Maximum Speed:</label>
+			<input type="range" id="slider-vMax" value="50" min="50" max="200" step="50" data-highlight="true"
+                               onchange="fifo_command('vMax:',$('#slider-vMax').val()) ;" />
 			<label for="slider-NoiseLevel">Noise Level:</label>
 			<input type="range" id="slider-NoiseLevel" value="0" min="0" max="8192" step="1024" data-highlight="true"
                                onchange="fifo_command('sadThreshold:',$('#slider-NoiseLevel').val()) ;" />

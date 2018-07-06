@@ -226,5 +226,6 @@ class Writer(threading.Thread):
 
             n += 1
 
-        print("%d frames searched (%d found @ %d)" % (n,record,framenb))
+	if record == 0:
+          print("%d frames searched (%d found @ %d)" % (n,record,framenb))
 
