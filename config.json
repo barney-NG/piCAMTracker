@@ -20,7 +20,7 @@
  "quitAppByGPIO": false, 
  "redLEDPort": 13, 
  "sadThreshold": 0, 
- "signalLength": 500.0, 
+ "signalLength": 300.0, 
  "streamServer": true, 
  "trackLifeTime": 17, 
  "vMax": 200, 
