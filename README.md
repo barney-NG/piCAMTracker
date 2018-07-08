@@ -14,9 +14,11 @@ Currently this is an alpha release.
 * The object detection is working quiet well in different light conditions. It still needs some improvements.
 * The first outdoor tests went very well. The fisheye setup with the V1 camera seems to be the best setup for our purposes. (F3F model air racing)
  * V1 camera from Waveshare (module G); 1280x960 pixels, 42 f/s; full FOV; 160MB GPU memory
-   * The V1 in mode 5 (1280x720p, 49 f/s) does not center the frames horizontally
- * V2 camera with standard lens; 1280x720p, 62 f/s (68 should be possible); partial FOV; 160MB GPU memory.
+   * Mode 5 (1280x720p, 49 f/s) does not center the frames horizontally
+ * V2 camera with standard lens; 1632x896, 40 f/s; full FOV; 160MB GPU memory.
+   * 1280x720p, 62 f/s (FOV is very small)
  * In general the V2 camera needs more light than the V1 with the fisheye
+* In stormy conditions you need to fix the camera very well. Otherwise a lot of wrong positives are genenrated.
 * The new Raspberry Pi 3 Model B Plus is working. (Speed is not improved)
 * The web interface supports the most rudimentary stuff to control the camera.
 * no picture/video saving so far.   
@@ -25,12 +27,12 @@ Currently this is an alpha release.
   pi-password: Olav01
 * The v0.3 image runs the B and the B Plus
 
-# Pictures
+# Documentation
 see [wiki](https://github.com/barney-NG/piCAMTracker/wiki) section
 
 # TODO
 * More testing in real conditions is needed.
 * create a full automatic setup with embedded Wifi access point. (just power on the device)
-* Save the stream and develope a debugging facility to improve the detection.
+* Save the stream and develope a debugging facility to improve the detection. (started)
 * Make libh264decoder Python 3 able and update the source repository
-* if possible avoid to decode h264  (I saw others using a splitter on the preview port)
+* if possible avoid to decode h264  (started)

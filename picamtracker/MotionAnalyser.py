@@ -90,84 +90,74 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.fobj.write(array)
 
     def intersects(self,rects,xn,yn,wn,hn):
+        """
+	find rects which intersect a new one
+	"""
         i = 0
+	extend = 3
+	joined=[]
+	append = True
+	#print("new: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xn,yn,xn+wn,yn+hn))
         for xo,yo,wo,ho in rects:
+	    #print("old: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xo,yo,xo+wo,yo+ho))
             # full intersection (new isin old)
             if xn >= xo and xn+wn <= xo+wo and yn >= yo and yn+hn <= yo+ho:
+	        #print("new in old")
                 return rects
             # full intersection (old isin new)
-            if xo > xn and xo+wo < xn+wn and yo > yn and yo+ho < yn+hn:
-                rects[i] = [xn,yn,wn,hn]
-                return rects
+            if xo > xn and xo+wo <= xn+wn and yo > yn and yo+ho <= yn+hn:
+	        #print("old in new")
+		continue
             # partly intersection (always join new to old)
             # extend the new rect by two in each direction
-            xnn  = max(xn-3,0)
-            ynn  = max(yn-3,0)
-            wnn  = min(wn+3,self.cols)
-            hnn  = min(hn+3,self.rows)
+            x1nn  = max(xn-extend,0)
+            y1nn  = max(yn-extend,0)
+            x2nn  = min(xn+wn+extend,self.cols)
+            y2nn  = min(yn+hn+extend,self.rows)
+            if xo > x1nn and xo+wo <= x2nn and yo > y1nn and yo+ho <= y2nn:
+	        #print("old in extended new")
+                xint = yint = True
+            else:
+                # find x range
+                xmin = min(xo,x1nn)
+                xmax = max(xo+wo,x2nn)
+                # does x intersect?
+                xint = (xmax - xmin) <= (wo + wn + 2*extend)
+                # find y range
+                ymin = min(yo,y1nn)
+                ymax = max(yo+ho,y2nn)
+                # does y intersect?
+                yint = (ymax - ymin) <= (ho + hn + 2*extend)
 
-            # find x range
-            xmin = min(xo,xnn)
-            xmax = max(xo+wo,xnn+wnn)
-            # does x intersect?
-            xint = (xmax - xmin) <= (wo + wnn)
-            # find y range
-            ymin = min(yo,ynn)
-            ymax = max(yo+ho,ynn+hnn)
-            # does y intersect?
-            yint = (ymax - ymin) <= (ho + hnn)
             if (xint and yint):
+	        #print("join")
                 # intersection if x and y intersect
                 # make union of the 'original' boxes
                 xmin = min(xo,xn)
                 xmax = max(xo+wo,xn+wn)
                 ymin = min(yo,yn)
                 ymax = max(yo+ho,yn+hn)
-                rects[i] = [xmin,ymin,xmax-xmin,ymax-ymin]
-                return rects
-            i += 1
+                joined.append([xmin,ymin,xmax-xmin,ymax-ymin])
+		append = False
+		continue
+            
+	    #- old rect is not covered by new rect -> keep it
+            joined.append([xo,yo,wo,ho])
 
         # no intersection -> add
-        rects.append([xn,yn,wn,hn])
-        return rects
-
-    def set_vMax(self,value):
-        if value > self.vmin:
-            self.vmax = value
-            if self.config:
-                self.config.conf['vMax'] = value
-
-    def set_vMin(self,value):
-        if value < 1:
-            value = 1
-        self.vmin = value
-        if self.config:
-            self.config.conf['vMin'] = value
-
-    def set_maxArea(self,value):
-        if value > self.minArea:
-            self.maxArea = value
-            if self.config:
-                self.config.conf['maxArea'] = value
-
-    def set_minArea(self,value):
-        if value < 1:
-            value = 1
-        self.minArea = value
-        if self.config:
-            self.config.conf['minArea'] = value
-
-    def set_sadThreshold(self,value):
-        if value >=0 and value < 16384:
-            self.sadThreshold = value
-            if self.config:
-                self.config.conf['sadThreshold'] = value
+	if append:
+            joined.append([xn,yn,wn,hn])
+        return joined
 
     def removeIntersections(self,contours):
+        """
+	collect nearby rectangles into bigger ones
+	"""
         rects = []
         for cnt in contours:
             x,y,w,h = cv2.boundingRect(cnt)
 
+	    #-- remove rectangeles which are too big
             if w*h > self.maxArea:
                 continue
 
@@ -178,7 +168,57 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         return rects
 
+    def set_vMax(self,value):
+        """
+	callback setting vMax 
+	"""
+        if value > self.vmin:
+            self.vmax = value
+            if self.config:
+                self.config.conf['vMax'] = value
+
+    def set_vMin(self,value):
+        """
+	callback setting vMin
+	"""
+        if value < 1:
+            value = 1
+        self.vmin = value
+        if self.config:
+            self.config.conf['vMin'] = value
+
+    def set_maxArea(self,value):
+        """
+	callback setting max area
+	"""
+        if value > self.minArea:
+            self.maxArea = value
+            if self.config:
+                self.config.conf['maxArea'] = value
+
+    def set_minArea(self,value):
+        """
+	callback setting min area
+	"""
+        if value < 1:
+            value = 1
+        self.minArea = value
+        if self.config:
+            self.config.conf['minArea'] = value
+
+    def set_sadThreshold(self,value):
+        """
+	callback setting SAD threshold
+	"""
+        if value >=0 and value < 16384:
+            self.sadThreshold = value
+            if self.config:
+                self.config.conf['sadThreshold'] = value
+
     def analyse(self, a=None):
+        """
+	motion analyse method
+	"""
         t1 = time()
         dt = t1 - self.t0
         self.t0 = t1
@@ -244,7 +284,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 xe  = xm - 3 * u
                 ye  = ym - 3 * v
                 cv2.rectangle(self.big,(x,y),(x+8,y+8),(0,c,c),-1)
-                #cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(c,0,c),1)
+		#-- nice arrows
+                cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(c,0,c),1)
 
 
 
@@ -389,6 +430,13 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             cv2.line(self.big,(0,ym),(xe,ym),(0,0,0),1)
             str_frate = "%4.0fms (%d) (%d) (%0d)" % (dt*1000.0, self.camera.analog_gain, self.sadThreshold, self.tracker.active_tracks)
             cv2.putText(self.big, str_frate, (3, 14), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (20,150,20), 1)
+            for cnt in contours:
+                x,y,w,h = cv2.boundingRect(cnt)
+                cv2.rectangle(self.big,(8*x,8*y),(8*(x+w),8*(y+h)),(255,255,255),1)
+                rect_txt = "%d,%d,%d,%d" % (x,y,x+w,y+h)
+                cv2.putText(self.big, rect_txt, (8*x,8*y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
+            for x,y,w,h in rects:
+                cv2.rectangle(self.big,(8*x,8*y),(8*(x+w),8*(y+h)),(0,0,0),1)
 
             # Show the image in the window
             # without imshow we are at 5ms (sometimes 12ms)

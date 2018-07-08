@@ -57,18 +57,15 @@ def main(show=True, debug=False):
             mode = 4
         elif revision == 'IMX219':
             # V2 module
-            resx = 1280
-            resy = 720
-            fps  = 60  # In mode 6 we do not have the full FOV
-                       # but the maximum possible framrate is quite good
-                       # you need good light to run this mode !
-                       # 68 would be  maximum for motion block frequency
-            mode = 6
+            resx = 1632
+            resy = 896
+            fps  = 40 
+            mode = 5
         else:
             raise ValueError('Unknown camera device')
 
         camera.resolution = (resx,resy)
-        #camera.annotate_text = "RaspberryPi3 Camera"
+
         if show:
             preview = True
             camera.framerate  = 25

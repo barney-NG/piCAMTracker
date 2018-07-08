@@ -46,6 +46,16 @@ def show_input(img, motion):
     cv2.line(img,(x0,y0),(x1,y1),(0,0,0),1)
     cv2.line(img,(x0,y1),(x1,y0),(0,0,0),1)
 
+def cv_getNumber():
+    str=''
+    while True:
+        ch = cv2.waitKey(0) & 0xFF
+        if ch >= 48 and ch <= 57:
+            str = str + chr(ch)
+        else:
+            break
+    return int(str)
+
 def main(fobj=None):
     global config
 
@@ -74,6 +84,7 @@ def main(fobj=None):
       if len(buf) == chunk_size:
         chunks_read += 1
 	camera.frame.index = chunks_read
+	camera.analog_gain = chunks_read
         a = np.frombuffer(buf, dtype=motion_dtype).reshape((rows,cols))
         analyser.analyse(a)
 	frame,motion = tracker.getStatus()
@@ -85,10 +96,22 @@ def main(fobj=None):
         ch = cv2.waitKey(wtime) & 0xFF
         if ch == ord('s'):
             wtime ^= 1
+        if ch == ord('g'):
+            target_frame = cv_getNumber()
+            print("goto frame: %d" % target_frame)
+	    try:
+	        fobj.seek(0,0)
+	        fobj.seek(target_frame*chunk_size,0)
+		camera.frame.index = chunks_read = target_frame
+	    except:
+	        print("frame not reachable")
+
         if ch == 27:
             break
         image.fill(200)
+	print(chunks_read)
       else:
+        print("end")
         break
       
 
@@ -96,6 +119,8 @@ def main(fobj=None):
     fobj.close()
     tracker.stop()
     tracker.join()
+    if display is not None:
+        display.terminated = True
 
 if __name__ == '__main__':
     global config

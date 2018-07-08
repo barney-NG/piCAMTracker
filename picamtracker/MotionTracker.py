@@ -578,9 +578,13 @@ class Track:
         max_dist = max(max(rn[2],rn[3]),Track.maxDist)
         vlength = 0.0
         oodir = self.old_dir
+        # >>> debug
+        #print("%s[%d] xn/yn: %2d/%2d, vx/vy: %2d/%2d dist: %4.2f, deltaA: %4.2f" %
+        #      (self.name,self.updates,rn[0],rn[1],vx,vy,dist,delta_area))
+        # <<< debug
 
         # 1. is the new point in range?
-        if dist >= 0.0 and dist < max_dist and delta_area < 10.0:
+        if dist >= 0.0 and dist < max_dist and delta_area <= 15.0:
             # 2. is the new point in the right direction?
             # wait track to become mature and then check for angle
             if self.updates >= 3:
@@ -589,11 +593,12 @@ class Track:
                     dxo = self.cx - self.tr[-1][0]
                     dyo = self.cy - self.tr[-1][1]
                     self.old_dist = hypot(dxo,dyo)
-                    self.old_dir  = np.array([dxo,dyo])
+                    self.old_dir  = np.array([dyo,dxo])
 
                 # multiply vector magnitudes
                 vlength = self.old_dist * dist
-                new_dir = np.array([dx ,dy])
+                #new_dir = np.array([vy ,vx])
+                new_dir = np.array([dy ,dx])
                 # accept all directions if one movement vector is zero
                 if vlength <= 2.0:
                     cos_delta = 1.0
@@ -601,7 +606,7 @@ class Track:
                     # if dx/dy are smaller than +/- 1 use vx/vy as vector
                     # TODO: this is slow and ugly :-/
                     #if abs(dx) + abs(dy) < 2.0:
-                    #    new_dir = np.array([vx ,vy])
+                    #    new_dir = np.array([vy ,vx])
                     #    dist = hypot(vx, vy)
                     #    vlength = dist * self.old_dist
 
@@ -642,13 +647,19 @@ class Track:
                 # crossing status
                 self.detectCrossing(dx,dy,rn)
 
+                # >>> debug
+                #print("%s[%d] append %2d/%2d" %
+                #      (self.name,self.updates-1,rn[0],rn[1]))
+                # <<< debug
             else:
-                if oodir is not None:
-                    dxo = oodir[0]
-                    dyo = oodir[1]
-                    #print("[%s](%d) delta-: (%4.2f) dx/dy: %4.2f/%4.2f dxo/dyo %4.2f/%4.2f dist: %4.2f, vlength: %4.2f" %
-                    #    (self.name, self.updates,degrees(acos(cos_delta)),dx,dy,dxo,dyo,dist,vlength))
+                # >>> debug
+                #if oodir is not None:
+                #    dxo = oodir[0]
+                #    dyo = oodir[1]
+                #    print("[%s](%d) delta-: (%4.2f) dx/dy: %4.2f/%4.2f dxo/dyo %4.2f/%4.2f dist: %4.2f, vlength: %4.2f" %
+                #        (self.name, self.updates,degrees(acos(cos_delta)),dx,dy,dxo,dyo,dist,vlength))
                 #print "     x:%3d->%3d, y:%3d->%3d dist: %4.2f" % (self.vv[0],vn[0], self.vv[1],vn[1],dist)
+                # <<< debug
                 ii = 0
         else:
             #if delta_area < 10.0:
@@ -661,6 +672,7 @@ class Track:
     #--
     #--------------------------------------------------------------------
     def showTrack(self, vis, frame=0, color=(220,0,0)):
+        tsize = 2
         if self.updates > 3:
             ci = ord(self.name) % 3
             if ci == 0:
@@ -670,7 +682,8 @@ class Track:
             if ci == 2:
                 color = (20,20,220)
         else:
-            color = (220,220,20)
+            color = (80,80,80)
+            tsize = 1
 
         r = self.re
         x = 8 * r[0]
@@ -682,7 +695,7 @@ class Track:
         cv2.polylines(vis, [pts], False, color)
 
         text = "%s(%d)" % (self.name, self.updates)
-        cv2.putText(vis,text,(x-3,y-3),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,2)
+        cv2.putText(vis,text,(x-3,y-3),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,tsize)
         hold = self.parent.greenLEDThread and self.parent.greenLEDThread.event.isSet()
         if self.crossedY and hold:
             cv2.rectangle(vis,(x,y),(x+w,y+h),color,-4)
