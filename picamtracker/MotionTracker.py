@@ -77,7 +77,7 @@ def by_updates(t):
 
 class Tracker(threading.Thread):
     """
-    Assign points to tracks
+    Track manager: assigns macro blocks to tracks
     """
     #--------------------------------------------------------------------
     #-- constructor
@@ -93,10 +93,10 @@ class Tracker(threading.Thread):
         self.redLEDThread   = redLed
         self.frame  = 0
         self.noise  = 0.0
-	self.active_tracks = 0
+        self.active_tracks = 0
         self.motion = None
         self.locked = False
-        self.maxDist = 15
+        self.maxDist = 5
         self.trackLifeTime = 17
         self.debug = False
         self.fobj = None
@@ -280,31 +280,34 @@ class Tracker(threading.Thread):
 
         #-- remove aged tracks
         noise = 0
-	active = 0
+        active = 0
         for track in self.track_pool:
             updates = track.updates
             if updates > 0:
-	        active += 1
-	        if updates < 3:
-                    noise += 1
-                    if frame - track.lastFrame > 2:
-                        track.reset()
-                        continue
+                active += 1
+            if updates < 3:
+                noise += 1
+            if frame - track.lastFrame > 2:
+                track.reset()
+                continue
             if updates and frame - track.lastFrame > self.trackLifeTime:
                 track.reset()
 
         self.noise = float(noise / MAX_TRACKS)
-	self.active_tracks = active
+        self.active_tracks = active
 
     def showTracks(self, frame, vis):
+        """
+        show graphical interpretation of all tracks
+        """
         for track in self.track_pool:
             track.showTrack(vis,frame)
 
 
 class Track:
-    '''
-    track data container
-    '''
+    """
+    data container for tracks
+    """
     track_names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     numtracks   = 0
     #minCosDelta = 0.707 #cos(2*22.5)
@@ -322,19 +325,19 @@ class Track:
     #--------------------------------------------------------------------
     def __init__(self, parent=None):
         # track identification
-        index     = Track.numtracks % 32
+        index = Track.numtracks % 32
         Track.numtracks += 1
-        self.id   = 1 << index
+        self.id = 1 << index
         self.name = Track.track_names[index]
         self.parent = parent
         # reset track data
         self.updates = 9999
         self.reset()
 
-    #--------------------------------------------------------------------
-    #-- reuse this object to to avoid too much garbage collection
-    #--------------------------------------------------------------------
     def reset(self):
+        """
+        reset/reuse this object to to avoid too much garbage collection
+        """
         if self.updates < 1:
             return
 
@@ -368,10 +371,10 @@ class Track:
         self.crossedX  = False
         self.crossedY  = False
 
-    #--------------------------------------------------------------------
-    #-- check if track can be resetted
-    #--------------------------------------------------------------------
     def clean(self,frame):
+        """
+        check if track can be resetted
+        """
         if self.updates > 0:
             # TODO: keep this status alive for a couple of frames
             #if self.updates > 20 and self.progressx == 0 and self.progressy == 0:
@@ -383,10 +386,10 @@ class Track:
                 #print "[%s] (%d) clean" % (self.name, self.updates)
                 self.reset()
 
-    #--------------------------------------------------------------------
-    #-- start a new track
-    #--------------------------------------------------------------------
     def new_track(self,frame,rn,vn):
+        """
+        start a new track
+        """
 
         #self.reset()
         if rn[0] - vn[0] < 0 or rn[1] - vn[1] < 0:
@@ -480,7 +483,9 @@ class Track:
             #if self.updates > 4 and self.progressy == True and self.maxy-self.miny > 2*r[3] and self.crossedY == False:
             if self.updates > 10 and self.progressy == True and self.crossedY == False:
                 # develope indicators
+                vx = -self.vv[0]
                 vy = -self.vv[1] # remember the velocity has wrong direction!
+                x0 = r[0]
                 y0 = r[1]
                 y1 = r[1] + r[3]
 
@@ -497,12 +502,12 @@ class Track:
                 crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross  and self.maxy > Track.yCross
 
                 if crossedYPositive:
-                    print("[%s](%02d) y1:%2d vy:%4.2f dy:%3d CROSSED++++++++++++++++++++" % (self.name,self.updates,y1,vy, dy))
+                    print("[%s](%02d) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d CROSSED++++++++++++++++++++" % (self.name,self.updates,y1,x0,vy,vx,dy,dx))
                     self.crossedY = True
                     self.crossed()
 
                 if crossedYNegative:
-                    print("[%s](%02d) y0:%2d vy:%4.2f dy:%3d CROSSED--------------------" % (self.name,self.updates,y0,vy, dy))
+                    print("[%s](%02d) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d CROSSED--------------------" % (self.name,self.updates,y0,x0,vy,vx,dy,dx))
                     self.crossedY = True
                     self.crossed()
 

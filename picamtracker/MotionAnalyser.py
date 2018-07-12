@@ -48,29 +48,28 @@ from math import degrees,atan2,pi
 class MotionAnalyser(picamera.array.PiMotionAnalysis):
     """
     Real time analysis of the picamera *motion_output* parameter
-
     Reduce the motion_block array by couple of characteristics:
 
     """
     def __init__(self,camera, tracker, display, show=False, config=None):
         super(MotionAnalyser, self).__init__(camera)
-        self.camera  = camera
-        self.tracker  = tracker
-        self.display  = display
-        self.t0      = time()
-        self.config  = config
+        self.camera = camera
+        self.tracker = tracker
+        self.display = display
+        self.t0  = time()
+        self.config = config
         self.minArea = 1
         self.maxArea = config.conf['maxArea']
         # 32768 is absolute maximum ; 8192 is maximum
         self.sadThreshold = config.conf['sadThreshold']
-        self.big     = None
-        self.show    = show
+        self.big = None
+        self.show = show
         self.started = False
-        self.xcross  = config.conf['xCross']
-        self.ycross  = config.conf['yCross']
-        self.vmin    = config.conf['vMin']
-        self.vmax    = config.conf['vMax']
-        self.frame   = 0
+        self.xcross = config.conf['xCross']
+        self.ycross = config.conf['yCross']
+        self.vmin = config.conf['vMin']
+        self.vmax = config.conf['vMax']
+        self.frame = 0
         self.processed_frames = 0
         self.updated = False
         self.maxMovements = 100
@@ -83,6 +82,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         """
         if self.fobj is None:
             try:
+                # TODO: make the file name variable
                 self.fobj = open("debug_motion.data", "wb")
             except:
                 raise
@@ -91,31 +91,36 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
     def intersects(self,rects,xn,yn,wn,hn):
         """
-	find rects which intersect a new one
-	"""
+        find rects which intersect a new one
+        """
         i = 0
-	extend = 3
-	joined=[]
-	append = True
-	#print("new: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xn,yn,xn+wn,yn+hn))
+        extend = 3
+        append = True
+        #print("new: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xn,yn,xn+wn,yn+hn))
+        #- Loop through all existing rects
         for xo,yo,wo,ho in rects:
-	    #print("old: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xo,yo,xo+wo,yo+ho))
+            #print("old: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xo,yo,xo+wo,yo+ho))
             # full intersection (new isin old)
             if xn >= xo and xn+wn <= xo+wo and yn >= yo and yn+hn <= yo+ho:
-	        #print("new in old")
+                #print("new in old")
                 return rects
             # full intersection (old isin new)
             if xo > xn and xo+wo <= xn+wn and yo > yn and yo+ho <= yn+hn:
-	        #print("old in new")
-		continue
+                #print("old in new")
+                rects.pop(i)
+                i += 1
+                append = False
+                continue
+
             # partly intersection (always join new to old)
             # extend the new rect by two in each direction
             x1nn  = max(xn-extend,0)
             y1nn  = max(yn-extend,0)
             x2nn  = min(xn+wn+extend,self.cols)
             y2nn  = min(yn+hn+extend,self.rows)
+
             if xo > x1nn and xo+wo <= x2nn and yo > y1nn and yo+ho <= y2nn:
-	        #print("old in extended new")
+                #print("old in extended new")
                 xint = yint = True
             else:
                 # find x range
@@ -130,29 +135,29 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 yint = (ymax - ymin) <= (ho + hn + 2*extend)
 
             if (xint and yint):
-	        #print("join")
+                #print("join")
                 # intersection if x and y intersect
                 # make union of the 'original' boxes
                 xmin = min(xo,xn)
                 xmax = max(xo+wo,xn+wn)
                 ymin = min(yo,yn)
                 ymax = max(yo+ho,yn+hn)
-                joined.append([xmin,ymin,xmax-xmin,ymax-ymin])
-		append = False
-		continue
-            
-	    #- old rect is not covered by new rect -> keep it
-            joined.append([xo,yo,wo,ho])
+                rects[i] = [xmin,ymin,xmax-xmin,ymax-ymin]
+                append = False
 
-        # no intersection -> add
-	if append:
-            joined.append([xn,yn,wn,hn])
-        return joined
+            #- continue searching for intersections
+            i += 1
+
+        # no intersection found -> add
+        if append:
+            rects.append([xn,yn,wn,hn])
+
+        return rects
 
     def removeIntersections(self,contours):
         """
-	collect nearby rectangles into bigger ones
-	"""
+        collect nearby rectangles into bigger ones
+        """
         rects = []
         for cnt in contours:
             x,y,w,h = cv2.boundingRect(cnt)
@@ -170,8 +175,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
     def set_vMax(self,value):
         """
-	callback setting vMax 
-	"""
+        callback setting vMax
+        """
         if value > self.vmin:
             self.vmax = value
             if self.config:
@@ -179,8 +184,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
     def set_vMin(self,value):
         """
-	callback setting vMin
-	"""
+        callback setting vMin
+        """
         if value < 1:
             value = 1
         self.vmin = value
@@ -189,8 +194,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
     def set_maxArea(self,value):
         """
-	callback setting max area
-	"""
+        callback setting max area
+        """
         if value > self.minArea:
             self.maxArea = value
             if self.config:
@@ -198,8 +203,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
     def set_minArea(self,value):
         """
-	callback setting min area
-	"""
+        callback setting min area
+        """
         if value < 1:
             value = 1
         self.minArea = value
@@ -208,8 +213,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
     def set_sadThreshold(self,value):
         """
-	callback setting SAD threshold
-	"""
+        callback setting SAD threshold
+        """
         if value >=0 and value < 16384:
             self.sadThreshold = value
             if self.config:
@@ -217,8 +222,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
     def analyse(self, a=None):
         """
-	motion analyse method
-	"""
+        motion analyse method
+        """
         t1 = time()
         dt = t1 - self.t0
         self.t0 = t1
