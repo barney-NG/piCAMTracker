@@ -59,10 +59,16 @@ def main(show=True, debug=False):
             # V2 module
             resx = 1632
             resy = 896
-            fps  = 40 
+            fps  = 40
             mode = 5
         else:
             raise ValueError('Unknown camera device')
+
+        if config.conf['yCross'] > 0 and config.conf['yCross'] != (resy/32):
+            print("WARNING: Y crossing bar is not in the center of the screen!")
+
+        if config.conf['xCross'] > 0 and config.conf['xCross'] != (resx/32):
+            print("WARNING: X crossing bar is not in the center of the screen!")
 
         camera.resolution = (resx,resy)
 
@@ -148,6 +154,8 @@ def main(show=True, debug=False):
             cmds.subscribe(output.set_maxArea, 'maxArea')
             cmds.subscribe(output.set_minArea, 'minArea')
             cmds.subscribe(output.set_sadThreshold, 'sadThreshold')
+            cmds.subscribe(output.set_debug, 'debug')
+
             try:
                 #writer.setupDecoder()
                 while True:

@@ -173,6 +173,18 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         return rects
 
+    def set_debug(self, value):
+        """
+        callback to start/stop debugging
+        """
+        if value:
+            self.debug = True
+        else:
+            self.debug = False
+            if self.fobj:
+                self.fobj.close()
+                self.fobj = None
+
     def set_vMax(self,value):
         """
         callback setting vMax

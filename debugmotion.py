@@ -59,8 +59,8 @@ def cv_getNumber():
 def main(fobj=None):
     global config
 
-    width  = 1280
-    height = 720
+    width  = 1632
+    height = 896
     cols = ((width + 15) // 16) + 1
     rows = (height + 15) // 16
     chunk_size = cols*rows*4
