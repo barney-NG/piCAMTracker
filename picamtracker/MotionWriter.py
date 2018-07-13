@@ -1,6 +1,6 @@
 # vim: set et sw=4 sts=4 fileencoding=utf-8:
 #
-# Python Motion Writer module of the pyCAMTracker package
+# Python Motion Writer module of the piCAMTracker package
 # Copyright (c) 2017-2018 Axel Barnitzke <barney@xkontor.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -90,7 +90,7 @@ class Writer(threading.Thread):
         #self.screen = pygame.display.set_mode((1280,720))
 
 
-        #- do things according configuration 
+        #- do things according configuration
         if config is not None:
             self.doStreaming = config.conf['streamServer']
             self.ycross = config.conf['yCross'] * 16
@@ -211,7 +211,7 @@ class Writer(threading.Thread):
                 if diff <= 0 and diff > -self.maxDiff:
                     #print("found key/sps frame @ %d (type:%d delta:%d)" % (index,ftype,diff))
                     record = True
-            
+
             # decode the next sps + i-frame
             if record:
                 save_pos = self.stream.tell()
@@ -228,4 +228,3 @@ class Writer(threading.Thread):
 
 	if record == 0:
           print("%d frames searched (%d found @ %d)" % (n,record,framenb))
-
