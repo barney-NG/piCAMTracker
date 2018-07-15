@@ -18,17 +18,18 @@ read_config.onreadystatechange = function() {
         $('#slider-MaxArea').val(cfg.maxArea).slider('refresh');
         $('#slider-NoiseLevel').val(cfg.sadThreshold).slider('refresh');
         $('#slider-MaxMotionDistance').val(cfg.maxDist).slider('refresh');
-	// link status (green) on
-	document.getElementById("ledG1").style.visibility = "visible";
-	document.getElementById("ledG2").style.visibility = "visible";
-	document.getElementById("ledG3").style.visibility = "visible";
-	// link status (red) off
+        // link status (green) on
+        document.getElementById("ledG1").style.visibility = "visible";
+        document.getElementById("ledG2").style.visibility = "visible";
+        document.getElementById("ledG3").style.visibility = "visible";
+        // link status (red) off
         document.getElementById("ledR1").style.visibility = "hidden";
         document.getElementById("ledR2").style.visibility = "hidden";
         document.getElementById("ledR3").style.visibility = "hidden";
     }
 
 }
+
 read_config.open("GET","config.json",true);
 var sys_cmd = create_XMLHttpRequest();
 function pikrellcam(start_stop)
@@ -36,7 +37,6 @@ function pikrellcam(start_stop)
         sys_cmd.open("PUT", "sys_command.php?cmd=pikrellcam_" + start_stop, true);
         sys_cmd.send();
         }
-
 
 var fifo_cmd = create_XMLHttpRequest();
 
@@ -46,7 +46,6 @@ function fifo_command (cmd, val)
         fifo_cmd.open("PUT", "fifo_command.php?cmd=" + text, true);
         fifo_cmd.send();
         }
-
 
 var mjpeg;
 var url = window.location.search;
