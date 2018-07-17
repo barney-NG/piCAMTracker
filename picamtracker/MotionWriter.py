@@ -70,7 +70,9 @@ class Writer(threading.Thread):
         self.lastFrame = 0
         self.resx = camera.resolution[0]
         self.resy = camera.resolution[1]
-        self.imgpath = '/run/picamtracker/mjpeg.jpg'
+        self.imgtemplate = '/run/picamtracker/mjpeg%03d.jpg'
+        self.imgctrl_file = '/run/picamtracker/act_image.name'
+
         #self.display = Display('Debug',10,10)
         self.image = np.empty((self.resx,self.resy,3), dtype=np.uint8)
         self.decoder = libh264decoder.H264Decoder()
@@ -78,12 +80,14 @@ class Writer(threading.Thread):
         self.maxDiff = 15
         self.ycross = None
         self.k = 0
+        self.nimages = config.conf['maxSnapshots']
+        self.nbimage = 0
         if config.conf['viewAngle'] == 90:
-	    self.k = -1
+            self.k = -1
         if config.conf['viewAngle'] == 180:
-	    self.k = 2
+            self.k = 2
         if config.conf['viewAngle'] == 270:
-	    self.k = 1
+            self.k = 1
 
 
         #pygame.init()
@@ -181,7 +185,19 @@ class Writer(threading.Thread):
                     cv2.arrowedLine(image,(xm,ym),(xe,ye),(20,220,20),1)
                     #image = cv2.resize(image,None,fx=0.5,fy=0.5,interpolation=cv2.INTER_LINEAR)
                     image = np.rot90(image,self.k)
-                    cv2.imwrite(self.imgpath, image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                    imagepath = self.imgtemplate % self.nbimage
+                    if self.nbimage > self.nimages:
+                        self.nbimage = 0
+                    else:
+                        self.nbimage += 1
+                    cv2.imwrite(imagepath, image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                    try:
+                        fs = open(self.imgctrl_file, "w")
+                        fs.write(imagepath)
+                        fs.close()
+                    except:
+                        print("cannot write %s" % self.imgctrl_file)
+                        pass
                     #pg.image.save(surface, self.imgpath)
 
             except IndexError:

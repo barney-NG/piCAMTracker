@@ -8,6 +8,7 @@ function create_XMLHttpRequest()
         }
 
 var read_config = create_XMLHttpRequest();
+
 read_config.onreadystatechange = function() {
     if(this.readyState == 4 && this.status == 200) {
         var cfg = JSON.parse(this.responseText);
@@ -26,6 +27,15 @@ read_config.onreadystatechange = function() {
         document.getElementById("ledR1").style.visibility = "hidden";
         document.getElementById("ledR2").style.visibility = "hidden";
         document.getElementById("ledR3").style.visibility = "hidden";
+    } else {
+      // link status (green) of
+      document.getElementById("ledG1").style.visibility = "hidden";
+      document.getElementById("ledG2").style.visibility = "hidden";
+      document.getElementById("ledG3").style.visibility = "hidden";
+      // link status (red) on
+      document.getElementById("ledR1").style.visibility = "visible";
+      document.getElementById("ledR2").style.visibility = "visible";
+      document.getElementById("ledR3").style.visibility = "visible";
     }
 
 }
@@ -231,17 +241,17 @@ function mjpeg_start()
   <script>
     // TEST ONLY
   	// show websocket link status; initial value is red, i.e. hide green led
-  	document.getElementById("ledG1").style.visibility = "hidden";
-  	document.getElementById("ledG2").style.visibility = "hidden";
-  	document.getElementById("ledG3").style.visibility = "hidden";
+  	//document.getElementById("ledG1").style.visibility = "hidden";
+  	//document.getElementById("ledG2").style.visibility = "hidden";
+  	//document.getElementById("ledG3").style.visibility = "hidden";
   	// replay/record-LED (blue) initially off
   	document.getElementById("ledB1").style.visibility = "hidden";
   	document.getElementById("ledB2").style.visibility = "hidden";
   	document.getElementById("ledB3").style.visibility = "hidden";
   	// replay/record-LED (blue) initially off
-    document.getElementById("ledR1").style.visibility = "visible";
-    document.getElementById("ledR2").style.visibility = "visible";
-    document.getElementById("ledR3").style.visibility = "visible";
+    //document.getElementById("ledR1").style.visibility = "visible";
+    //document.getElementById("ledR2").style.visibility = "visible";
+    //document.getElementById("ledR3").style.visibility = "visible";
   </script>
 </body>
 </html>
