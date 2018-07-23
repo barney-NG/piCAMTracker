@@ -3,9 +3,10 @@
  "debug": false, 
  "greenLEDPort": 19, 
  "ledActiveLow": false, 
- "maxArea": 1024, 
+ "maxArea": 2400, 
+ "maxSnapshots": 100, 
  "maxDist": 5, 
- "maxTracks": 16, 
+ "maxTracks": 24, 
  "minArea": 1, 
  "minCosDelta": 0.5, 
  "minDist": 0, 
@@ -28,5 +29,5 @@
  "videoLength": 5, 
  "viewAngle": 270, 
  "xCross": -1, 
- "yCross": 29
+ "yCross": 30
 }

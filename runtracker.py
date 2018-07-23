@@ -8,8 +8,30 @@ import os
 import io
 import re
 from time import sleep,time
+import sys
+import subprocess
 from argparse import ArgumentParser
 import picamtracker
+
+
+#-- start an arbitrary shell (Python-2.7 subprocess.Popen)
+def shell(cmd, *argv):
+    err = "Error for command: %s" % (cmd)
+
+    command = [cmd]
+    for item in argv:
+      command.append(item)
+
+    try:
+        p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        out,err = p.communicate()
+        if(len(err)):
+            print >> sys.stderr, err
+    except:
+        print >> sys.stderr, err
+        out = ''
+
+    return out.strip()
 
 def get_raspi_revision():
     rev_file = '/sys/firmware/devicetree/base/model'
@@ -65,7 +87,7 @@ def main(show=True, debug=False):
             raise ValueError('Unknown camera device')
 
         if config.conf['yCross'] > 0 and config.conf['yCross'] != (resy/32):
-            print("WARNING: Y crossing bar is not in the center of the screen!")
+            print("WARNING: Y crossing %d expected but %d given!" % (resy/32, config.conf['yCross']))
 
         if config.conf['xCross'] > 0 and config.conf['xCross'] != (resx/32):
             print("WARNING: X crossing bar is not in the center of the screen!")
@@ -147,7 +169,6 @@ def main(show=True, debug=False):
             t_wait = 0.5
             old_frames = 0
             camera.annotate_text_size = 24
-            #camera.annotate_frame_num = True
             camera.start_recording(output=vstream, format='h264', level='4.2', motion_output=output)
             cmds.subscribe(output.set_vMax, 'vMax')
             cmds.subscribe(output.set_vMin, 'vMin')
@@ -193,6 +214,9 @@ def main(show=True, debug=False):
                         tracker.releaseLock()
                         #print("capture: %4.2fms" % (1000.0 * (time() - t0)))
 
+                    # check temperature every 30 seconds
+                    # check for USB stick every 60 seconds
+
                     camera.wait_recording(t_wait)
 
             except KeyboardInterrupt:
@@ -233,5 +257,8 @@ if __name__ == '__main__':
     global config
     config = picamtracker.Configuration('config.json')
     os.system("[ ! -d /run/picamtracker ] && sudo mkdir -p /run/picamtracker && sudo chown pi:www-data /run/picamtracker && sudo chmod 775 /run/picamtracker")
+    out = shell('/usr/bin/vcgencmd', 'measure_temp')
+    print("Actual core %s" % out)
+    
 
     main(args.show, args.debug)

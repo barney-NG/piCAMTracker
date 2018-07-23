@@ -37,5 +37,6 @@ if [[ $? -ne 0 ]]; then
   mount_usb $LABEL $TYPE $device
 else
   set -- $(grep $device /etc/mtab)
-  echo $2
+  #- \040 is converted to ' ' -- all other special characters will fail :-/
+  echo ${2//\\040/ }
 fi

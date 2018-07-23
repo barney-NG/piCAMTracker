@@ -285,15 +285,15 @@ class Tracker(threading.Thread):
             updates = track.updates
             if updates > 0:
                 active += 1
-            if updates < 3:
-                noise += 1
+                if updates < 3:
+                    noise += 1
             if frame - track.lastFrame > 2:
                 track.reset()
                 continue
             if updates and frame - track.lastFrame > self.trackLifeTime:
                 track.reset()
 
-        self.noise = float(noise / MAX_TRACKS)
+        self.noise = float(noise / len(self.track_pool))
         self.active_tracks = active
 
     def showTracks(self, frame, vis):
@@ -356,6 +356,7 @@ class Track:
         self.maxy = 0
         self.minx = 99999
         self.miny = 99999
+        self.maturity = 10
         self.progressx  = 0
         self.progressy  = 0
         self.lastFrame = 0
@@ -481,7 +482,7 @@ class Track:
             #        |              |
             #  v < 0 |<---          |
             #if self.updates > 4 and self.progressy == True and self.maxy-self.miny > 2*r[3] and self.crossedY == False:
-            if self.updates > 10 and self.progressy == True and self.crossedY == False:
+            if self.updates > self.maturity and self.progressy == True and self.crossedY == False:
                 # develope indicators
                 vx = -self.vv[0]
                 vy = -self.vv[1] # remember the velocity has wrong direction!
@@ -490,7 +491,7 @@ class Track:
                 y1 = r[1] + r[3]
 
                 # for low speeds take distance as indicator
-                if abs(vy) < 0.25:
+                if abs(vy) < 0.1:
                     vy = float(dy)
 
                 # this model uses a band of width == delta to detect a crossing event

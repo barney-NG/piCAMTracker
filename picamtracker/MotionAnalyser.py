@@ -96,6 +96,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         i = 0
         extend = 3
         append = True
+        #print("=====")
         #print("new: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xn,yn,xn+wn,yn+hn))
         #- Loop through all existing rects
         for xo,yo,wo,ho in rects:
@@ -106,10 +107,10 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 return rects
             # full intersection (old isin new)
             if xo > xn and xo+wo <= xn+wn and yo > yn and yo+ho <= yn+hn:
-                #print("old in new")
+                #print("old in new delete old")
                 rects.pop(i)
                 i += 1
-                append = False
+                #append = False
                 continue
 
             # partly intersection (always join new to old)
@@ -135,7 +136,6 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 yint = (ymax - ymin) <= (ho + hn + 2*extend)
 
             if (xint and yint):
-                #print("join")
                 # intersection if x and y intersect
                 # make union of the 'original' boxes
                 xmin = min(xo,xn)
@@ -143,6 +143,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 ymin = min(yo,yn)
                 ymax = max(yo+ho,yn+hn)
                 rects[i] = [xmin,ymin,xmax-xmin,ymax-ymin]
+                #print("joi: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xmin,ymin,xmax,ymax))
                 append = False
 
             #- continue searching for intersections
@@ -150,6 +151,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         # no intersection found -> add
         if append:
+            #print("app: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xn,yn,xn+wn,yn+hn))
             rects.append([xn,yn,wn,hn])
 
         return rects
@@ -158,13 +160,14 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         """
         collect nearby rectangles into bigger ones
         """
-        rects = []
-        for cnt in contours:
-            x,y,w,h = cv2.boundingRect(cnt)
+        def bySize(c):
+            x,y,w,h = cv2.boundingRect(c)
+            return w*h
 
-	    #-- remove rectangeles which are too big
-            if w*h > self.maxArea:
-                continue
+        rects = []
+        #for cnt in contours:
+        for cnt in sorted(contours, key=bySize, reverse=True):
+            x,y,w,h = cv2.boundingRect(cnt)
 
             if len(rects) > 0:
                 rects = self.intersects(rects,x,y,w,h)
@@ -250,7 +253,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         # initialize values not known at class initialization
         if not self.started:
             self.tracker.setup_sizes(self.rows, self.cols-1)
-            self.maxMovements = self.rows * self.cols / 8
+            self.maxMovements = self.rows * self.cols * 0.33
             self.started = True
             return
 
@@ -266,9 +269,10 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #- we can reduce half of the area and movement in just one direction
         #has_movement = np.logical_and(has_movement, a['y'] < 0 )
 
-        #- reject if more than 25% of the macro blocks are moving
+        #- reject if more than 33% of the macro blocks are moving
         moving_elements =  np.count_nonzero(has_movement)
         if moving_elements > self.maxMovements:
+            print("MAXMOVEMENT! (%d)" % moving_elements)
             return
 
         #- mask out movement
@@ -302,10 +306,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 ye  = ym - 3 * v
                 cv2.rectangle(self.big,(x,y),(x+8,y+8),(0,c,c),-1)
 		#-- nice arrows
-                cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(c,0,c),1)
-
-
-
+                #cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(c,0,c),1)
 
         #---------------------------------------------------------------
         #-- MARK MOVING REGIONS
@@ -329,7 +330,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             #-- reject areas which are too big
             area = w*h
             if area > self.maxArea:
-                print( "MAXAEREA! (%d)" % area)
+                print( "MAXAEREA! (%d %d/%d)" % (area,w,h))
                 rejects += 1
                 continue
 
@@ -445,7 +446,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             xe = int(8*(self.cols))
             #ye = 8*(self.rows)
             cv2.line(self.big,(0,ym),(xe,ym),(0,0,0),1)
-            str_frate = "%4.0fms (%d) (%d) (%0d)" % (dt*1000.0, self.camera.analog_gain, self.sadThreshold, self.tracker.active_tracks)
+            str_frate = "%4.0fms (%d) (%4.2f) (%0d)" % (dt*1000.0, self.camera.analog_gain, self.tracker.noise, self.tracker.active_tracks)
             cv2.putText(self.big, str_frate, (3, 14), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (20,150,20), 1)
             for cnt in contours:
                 x,y,w,h = cv2.boundingRect(cnt)
