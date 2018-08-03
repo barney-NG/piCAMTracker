@@ -21,6 +21,7 @@
 		var maxareaValue = $( '#slider-MaxArea' ).val();
 		var minmotionValue = $( '#slider-MinMotionDistance' ).val();
 		var maxmotionValue = $( '#slider-MaxMotionDistance' ).val();
+		var maturityValue = $( '#slider-DetectionMaturity' ).val();
 		var maxangleValue = $( '#slider-MaxTrackingAngle' ).val();
 		var maxtracesValue = $( '#slider-MaxTraces' ).val();
 		var lifetimeValue = $( '#slider-TraceLifetime' ).val();
@@ -43,6 +44,7 @@
 			maxareaValue = varobj.maxa;
 			minmotionValue = varobj.minm;
 			maxmotionValue = varobj.maxm;
+			maturityValue = varobj.maturity;
 			maxangleValue = varobj.mangle;
 			maxtracesValue = varobj.maxt;
 			lifetimeValue = varobj.trcl;
@@ -126,6 +128,7 @@
 				$('#slider-MaxArea').val(maxareaValue).slider('refresh');
 				$('#slider-MinMotionDistance').val(minmotionValue).slider('refresh');
 				$('#slider-MaxMotionDistance').val(maxmotionValue).slider('refresh');
+				$('#slider-DetectionMaturity').val(maturityValue).slider('refresh');
 				$('#slider-MaxTrackingAngle').val(maxangleValue).slider('refresh');
 				$('#slider-MaxTraces').val(maxtracesValue).slider('refresh');
 				$('#slider-TraceLifetime').val(lifetimeValue).slider('refresh');
@@ -218,6 +221,12 @@
 			maxmotionValue = $( '#slider-MaxMotionDistance' ).val();
 			clientRC.send("N" + maxmotionValue);
 			console.log('New Maximum Motion Distance is', maxmotionValue);
+		};
+		function maturityCmd() {
+			playSound1();
+			maturityValue = $( '#slider-DetectionMaturity' ).val();
+			clientRC.send("N" + maturityValue);
+			console.log('New Detection Maturity is', maturityValue);
 		};
 		function maxangleCmd() {
 			playSound1();

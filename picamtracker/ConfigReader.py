@@ -52,6 +52,7 @@ default_config = \
     "maxSnapshots": 100,
     "sadThreshold": 0,
     "trackLifeTime": 17,
+    "trackMatrity": 8,
     "xCross": -1,
     "yCross": 23,
     "vMin": 1,

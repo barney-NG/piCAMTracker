@@ -161,6 +161,7 @@ def main(show=True, debug=False):
         writer = picamtracker.Writer(camera, stream=vstream, config=config)
         cmds = picamtracker.CommandInterface(config=config)
         cmds.subscribe(tracker.set_maxDist, 'maxDist')
+        cmds.subscribe(tracker.set_trackMaturity, 'trackMaturity')
         cmds.subscribe(config.set_storeParams, 'storeParams')
         cmds.subscribe(greenLED.check, 'testBeep')
 

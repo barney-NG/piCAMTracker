@@ -98,6 +98,7 @@ class Tracker(threading.Thread):
         self.locked = False
         self.maxDist = 5
         self.trackLifeTime = 17
+        self.trackMaturity = 10
         self.debug = False
         self.fobj = None
         self.cols = 0
@@ -116,6 +117,7 @@ class Tracker(threading.Thread):
             Track.maxDist = self.maxDist = config.conf['maxDist']
             Track.minCosDelta = config.conf['minCosDelta']
             self.trackLifeTime = config.conf['trackLifeTime']
+            self.trackMaturity = config.conf['trackMaturity']
             self.debug = config.conf['debug']
 
         #- thread initialisation stuff
@@ -125,6 +127,15 @@ class Tracker(threading.Thread):
         self.terminated = False
         self.daemon = True
         self.start()
+
+    #--------------------------------------------------------------------
+    #-- callback for 'trackMaturity' command
+    #--------------------------------------------------------------------
+    def set_trackMaturity(self, value):
+        if value > 0 and value < 25:
+            Track.trackMaturity = value
+            if self.config:
+                self.config.conf['trackMaturity'] = value
 
     #--------------------------------------------------------------------
     #-- callback for 'maxDist' command
@@ -356,7 +367,7 @@ class Track:
         self.maxy = 0
         self.minx = 99999
         self.miny = 99999
-        self.maturity = 10
+        self.maturity = self.parent.trackMaturity
         self.progressx  = 0
         self.progressy  = 0
         self.lastFrame = 0

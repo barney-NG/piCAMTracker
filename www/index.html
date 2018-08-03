@@ -19,6 +19,7 @@ read_config.onreadystatechange = function() {
         $('#slider-MaxArea').val(cfg.maxArea).slider('refresh');
         $('#slider-NoiseLevel').val(cfg.sadThreshold).slider('refresh');
         $('#slider-MaxMotionDistance').val(cfg.maxDist).slider('refresh');
+        $('#slider-DetectionMaturity').val(cfg.trackMaturity).slider('refresh');
         // link status (green) on
         document.getElementById("ledG1").style.visibility = "visible";
         document.getElementById("ledG2").style.visibility = "visible";
@@ -226,11 +227,14 @@ function mjpeg_start()
 			<input type="range" name="slider-MinArea" id="slider-MinArea" value="2" min="1" max="8" step="2" data-highlight="true"
                                onchange="fifo_command('minArea:',$('#slider-MinArea').val()) ;" />
 			<label for="slider-MaxArea">Maximum Area:</label>
-			<input type="range" name="slider-MaxArea" id="slider-MaxArea" value="1250" min="250" max="2000" step="250" data-highlight="true"
+			<input type="range" name="slider-MaxArea" id="slider-MaxArea" value="1250" min="250" max="3000" step="250" data-highlight="true"
                                onchange="fifo_command('maxArea:',$('#slider-MaxArea').val()) ;" />
 			<label for="slider-MaxMotionDistance">Maximum Motion Distance:</label>
 			<input type="range" name="slider-MaxMotionDistance" id="slider-MaxMotionDistance" value="4" min="1" max="8" step="2" data-highlight="true"
                                onchange="fifo_command('maxDist:',$('#slider-MaxMotionDistance').val()) ;" />
+			<label for="slider-DetectionMaturity">Detection Maturity:</label>
+			<input type="range" name="slider-DetectionMaturity" id="slider-DetectionMaturity" value="8" min="4" max="20" step="2" data-highlight="true"
+                               onchange="fifo_command('trackMaturity:',$('#slider-DetectionMaturity').val()) ;" />
 		</div><!-- /content -->
 	</div><!-- /page -->
 
