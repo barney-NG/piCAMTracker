@@ -36,7 +36,6 @@ def shell(cmd, *argv):
 def get_raspi_revision():
     rev_file = '/sys/firmware/devicetree/base/model'
     info = { 'pi': '', 'model': '', 'rev': ''}
-    raspi = model = revision = ''
     try:
         fd = os.open(rev_file, os.O_RDONLY)
         line = os.read(fd,256)
@@ -70,6 +69,7 @@ def main(show=True, debug=False):
     with picamera.PiCamera() as camera:
         #- determine camera module
         revision = camera._revision.upper()
+        print("camera chip: %s" % revision)
         if revision == 'OV5647':
             # V1 module
             # 1280x720 has a bug. (wrong center value)
@@ -86,6 +86,7 @@ def main(show=True, debug=False):
         else:
             raise ValueError('Unknown camera device')
 
+        #- check if the crossing line is in the center (this is not needed.)
         if config.conf['yCross'] > 0 and config.conf['yCross'] != (resy/32):
             print("WARNING: Y crossing %d expected but %d given!" % (resy/32, config.conf['yCross']))
 
@@ -106,7 +107,12 @@ def main(show=True, debug=False):
             camera.framerate   = fps
 
         print("warm-up 2 seconds...")
-        sleep(2.0)
+        greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
+            is_active_low=config.conf['ledActiveLow'],
+            duration=config.conf['signalLength'], start_blinks=3)
+        redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'],
+            is_active_low=config.conf['ledActiveLow'])
+        sleep(1.0)
         print("...start")
 
         if preview:
@@ -152,11 +158,6 @@ def main(show=True, debug=False):
         #camera.awb_gains = g
 
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
-        greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
-            is_active_low=config.conf['ledActiveLow'],
-            duration=config.conf['signalLength'])
-        redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'],
-            is_active_low=config.conf['ledActiveLow'])
         tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config)
         writer = picamtracker.Writer(camera, stream=vstream, config=config)
         cmds = picamtracker.CommandInterface(config=config)

@@ -4,7 +4,7 @@ from time import sleep
 import RPi.GPIO as GPIO
 
 class gpioPort(threading.Thread):
-    def __init__(self, port, duration=200., is_active_low=False):
+    def __init__(self, port, duration=200., is_active_low=False, start_blinks=0):
         super(gpioPort, self).__init__()
         self.terminated = False
         self.duration   = duration
@@ -20,12 +20,22 @@ class gpioPort(threading.Thread):
             self.activate   = GPIO.LOW
             self.deactivate = GPIO.HIGH
 
+        if start_blinks > 0:
+            self.blink(start_blinks)
+
         GPIO.output(self.port,self.deactivate)
 
         self.daemon = True
         self.event.clear()
         self.start()
 
+    def blink(self, numbers):
+        for i in range(0,numbers):
+            GPIO.output(self.port,self.activate)
+            sleep(self.duration/1000.0)
+            GPIO.output(self.port,self.deactivate)
+            sleep(self.duration/1000.0)
+      
     def check(self, value):
         self.event.set()
 
