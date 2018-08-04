@@ -74,7 +74,7 @@ class Writer(threading.Thread):
         self.imgctrl_file = '/run/picamtracker/act_image.name'
 
         #self.display = Display('Debug',10,10)
-        self.image = np.empty((self.resx,self.resy,3), dtype=np.uint8)
+        self.image = np.ones((self.resx,self.resy,3), dtype=np.uint8) * 220
         self.decoder = libh264decoder.H264Decoder()
         self.frame2decode = None
         self.maxDiff = 15
@@ -146,6 +146,7 @@ class Writer(threading.Thread):
                         image = np.fromstring(frame, dtype=np.uint8)
                     else:
                         image = self.image
+                        image.fill(220)
                         w = self.resx
                         h = self.resy
 

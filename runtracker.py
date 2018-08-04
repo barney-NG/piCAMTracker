@@ -13,6 +13,8 @@ import subprocess
 from argparse import ArgumentParser
 import picamtracker
 
+max_temp = 75.0
+temp = 20.0
 
 #-- start an arbitrary shell (Python-2.7 subprocess.Popen)
 def shell(cmd, *argv):
@@ -51,6 +53,18 @@ def get_raspi_revision():
     return info
 
 
+def get_temp():
+    temp_file='/run/picamtracker/temp'
+    temp = 20.0
+    try:
+        fd = os.open(temp_file, os.O_RDONLY)
+        temp_string = os.read(fd,256)
+        os.close(fd)
+        temp = float(temp_string)
+    except:
+        pass
+
+    return temp
 
 def main(show=True, debug=False):
     global config
@@ -182,7 +196,11 @@ def main(show=True, debug=False):
             try:
                 #writer.setupDecoder()
                 while True:
+                    global temp
                     loop += 1
+                    # check temperature every minute
+                    if loop % 120 == 0:
+                        temp = get_temp()
                     # update statistics every second
                     if loop & 1:
                         add_text = ""
@@ -192,8 +210,10 @@ def main(show=True, debug=False):
                             sep = " +"
                         if camera.analog_gain > 7:
                             add_text = add_text + sep + " DARK"
+                        if temp > max_temp:
+                            add_text = add_text + sep + " HOT (%4.1f)" % temp
                         if len(add_text):
-                            add_text += "!"
+                            add_text += " !"
 
                         frames = output.processed_frames
                         fs = (frames - old_frames)  / (2 * t_wait)
@@ -259,6 +279,7 @@ if __name__ == '__main__':
     global config
     config = picamtracker.Configuration('config.json')
     os.system("[ ! -d /run/picamtracker ] && sudo mkdir -p /run/picamtracker && sudo chown pi:www-data /run/picamtracker && sudo chmod 775 /run/picamtracker")
+    os.system("etc/temp_monitor.sh&")
     out = shell('/usr/bin/vcgencmd', 'measure_temp')
     print("Actual core %s" % out)
     

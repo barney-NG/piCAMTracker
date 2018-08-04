@@ -91,6 +91,7 @@ class Tracker(threading.Thread):
         self.resy = camera.resolution[1]
         self.greenLEDThread = greenLed
         self.redLEDThread   = redLed
+        self.updates  = 0
         self.frame  = 0
         self.noise  = 0.0
         self.active_tracks = 0
@@ -176,7 +177,7 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     #-- callback for crossing event
     #--------------------------------------------------------------------
-    def crossed(self, frame, motion):
+    def crossed(self, updates, frame, motion):
         if self.locked:
             print("blocked")
             return False
@@ -186,6 +187,7 @@ class Tracker(threading.Thread):
             self.camera.request_key_frame()
             if self.greenLEDThread:
                 self.greenLEDThread.event.set()
+            self.updates  = updates
             self.frame  = frame
             self.motion = motion
 
@@ -474,7 +476,7 @@ class Track:
     #--------------------------------------------------------------------
     def crossed(self):
         if self.parent:
-            self.parent.crossed(self.lastFrame, [self.re, self.vv, [self.minx, self.miny, self.maxx, self.maxy]])
+            self.parent.crossed(self.updates, self.lastFrame, [self.re, self.vv, [self.minx, self.miny, self.maxx, self.maxy]])
 
     #--------------------------------------------------------------------
     #-- main target: is the object crossing the crossing line?
