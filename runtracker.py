@@ -279,7 +279,7 @@ if __name__ == '__main__':
     global config
     config = picamtracker.Configuration('config.json')
     os.system("[ ! -d /run/picamtracker ] && sudo mkdir -p /run/picamtracker && sudo chown pi:www-data /run/picamtracker && sudo chmod 775 /run/picamtracker")
-    os.system("etc/temp_monitor.sh&")
+    os.system("/home/pi/piCAMTracker/etc/background_service.sh </dev/null&")
     out = shell('/usr/bin/vcgencmd', 'measure_temp')
     print("Actual core %s" % out)
     
