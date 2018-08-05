@@ -22,9 +22,8 @@ function save_images {
    local path_to=$usb_mount_point/media/stills
    mkdir -p "$path_to" && image_to_path=$path_to
   fi
-  local nfiles=$(ls -1 $temp_dir/mjpeg*.jpg 2>/dev/null | wc -l)
-  echo "saving $nfiles images to $image_to_path..."
-  [[ $nfiles -gt 0 ]] && rsync -aq $temp_dir/mjpeg*.jpg "$image_to_path/."
+  echo "saving images to $image_to_path..."
+  rsync -aq $temp_dir/ "$image_to_path/."
 }
 
 #- exit trap

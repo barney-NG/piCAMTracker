@@ -28,7 +28,7 @@
  "vMax": 200, 
  "vMin": 1, 
  "videoLength": 5, 
- "viewAngle": 90, 
+ "viewAngle": 270, 
  "xCross": -1, 
- "yCross": 28
+ "yCross": 30
 }
