@@ -266,8 +266,9 @@ class Tracker(threading.Thread):
 
                 #-- the rest of the coordinates can be ignored
                 dist = distance(track,rn)
-                maxDist = max(self.maxDist,max(rn[2],rn[3]))
+                maxDist = max(self.maxDist,(rn[2]+rn[3]))
                 if dist > maxDist:
+                    #print("update_track: dist too big! %d > %d" % (dist, maxDist))
                     break
 
                 # >>> debug
@@ -594,7 +595,8 @@ class Track:
         # big nearby objects may move fast
         # far away objects may move slow
         # max_dist = m*x + b
-        max_dist = max(max(rn[2],rn[3]),Track.maxDist)
+        #max_dist = max(max(rn[2],rn[3]),Track.maxDist)
+        max_dist = max((rn[2]+rn[3]),Track.maxDist)
         vlength = 0.0
         oodir = self.old_dir
         # >>> debug

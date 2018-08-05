@@ -73,21 +73,37 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.processed_frames = 0
         self.updated = False
         self.maxMovements = 100
-        self.debug = config.conf['debug']
+        self.debug = False
         self.fobj = None
+        self.max_debugged_frames = 1200 # 30 secs at 40f/s
+        self.max_debugged_files = 25
+        self.debugged_frames = 0
+        self.filenb = 0
+        self.name_template = '/home/pi/piCAMTracker/debug_motion_%03d.data'
 
     def debug_out(self, array):
         """
         write out the the macro blocks for later investigation
         """
         if self.fobj is None:
+            if self.filenb > self.max_debugged_files:
+                self.filenb = 0
+            else:
+                self.filenb += 1
+            deb_filename = self.name_template % self.filenb
+            self.debugged_frames = 0
             try:
-                # TODO: make the file name variable
-                self.fobj = open("debug_motion.data", "wb")
+                self.fobj = open(deb_filename, "wb")
             except:
                 raise
 
         self.fobj.write(array)
+
+        self.debugged_frames += 1
+        if self.debugged_frames > self.max_debugged_frames:
+            self.debug = False
+            self.fobj.close()
+            self.fobj = None
 
     def intersects(self,rects,xn,yn,wn,hn):
         """
@@ -180,10 +196,12 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         """
         callback to start/stop debugging
         """
-        if value:
+        if value > 0:
             self.debug = True
+            self.max_debugged_frames = 40 * value
         else:
             self.debug = False
+            self.max_debugged_frames = 1200
             if self.fobj:
                 self.fobj.close()
                 self.fobj = None
@@ -244,6 +262,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.t0 = t1
         self.frame = self.camera.frame.index
         self.processed_frames += 1
+
         if self.debug:
             self.debug_out(a)
 
