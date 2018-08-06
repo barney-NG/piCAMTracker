@@ -32,7 +32,7 @@ Currently this is an early beta release.
 * The v0.3 image runs the B and the B Plus (v0.4 is on the way)
 
 # FAQ
-see [FAQ](https://github.com/barney-NG/piCAMTracker/FAQ) section
+see [FAQ](https://github.com/barney-NG/piCAMTracker/wiki/FAQ) section
 
 # Documentation
 see [wiki](https://github.com/barney-NG/piCAMTracker/wiki) section
