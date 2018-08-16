@@ -177,8 +177,9 @@ def main(show=True, debug=False):
         cmds = picamtracker.CommandInterface(config=config)
         cmds.subscribe(tracker.set_maxDist, 'maxDist')
         cmds.subscribe(tracker.set_trackMaturity, 'trackMaturity')
+        cmds.subscribe(tracker.testCrossing, 'testBeep')
         cmds.subscribe(config.set_storeParams, 'storeParams')
-        cmds.subscribe(greenLED.check, 'testBeep')
+        #cmds.subscribe(greenLED.check, 'testBeep')
 
         with picamtracker.MotionAnalyser(camera, tracker, display, show, config) as output:
             loop = 0

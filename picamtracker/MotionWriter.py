@@ -126,7 +126,7 @@ class Writer(threading.Thread):
     #--------------------------------------------------------------------
     def stop(self):
         self.terminated = True
-        self.q.append([[0,0,0,0],[0,0]])
+        self.q.append([[0,0,0,0],[0,0],[0,0,0,0]])
 
     #--------------------------------------------------------------------
     #-- Thread run function called from takesnapshot

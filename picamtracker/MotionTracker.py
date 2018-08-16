@@ -154,6 +154,12 @@ class Tracker(threading.Thread):
         Track.maxX = self.cols = cols
         Track.maxY = self.rows = rows
 
+    def testCrossing(self, value):
+        if value > 0:
+            motion = [[10,10,10,10],[1,1],[9,9,11,11]]
+            frame = self.camera.frame.index
+            self.crossed(99,frame,motion)
+
     #--------------------------------------------------------------------
     #-- release lock
     #--------------------------------------------------------------------
