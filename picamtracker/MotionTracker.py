@@ -361,7 +361,7 @@ class Track:
         if self.updates < 1:
             return
 
-        #print "[%s](%d) reset" % (self.name,self.updates)
+        #print("[%s](%d) reset" % (self.name,self.updates))
 
         self.updates = 0
         self.tr   = []
@@ -412,13 +412,12 @@ class Track:
         start a new track
         """
 
-        #self.reset()
-        if rn[0] - vn[0] < 0 or rn[1] - vn[1] < 0:
-            #print "[%s]: new track rejected (too low)" % self.name
-            return 0
-        if rn[0] + rn[2] - vn[0] > Track.maxX or rn[1] + rn[3] - vn[1] > Track.maxY:
-            #print "[%s]: new track rejected (too high)" % self.name
-            return 0
+        #if rn[0] + vn[0] < 0 or rn[1] + vn[1] < 0:
+        #    #print("[%s]: %d/%d %3.1f/%3.1f new track rejected (too low)" % (self.name,rn[0],rn[1],vn[0],vn[1]))
+        #    return 0
+        #if rn[0] + rn[2] + vn[0] > Track.maxX or rn[1] + rn[3] + vn[1] > Track.maxY:
+        #    #print("[%s]: %d/%d %3.1f/%3.1f new track rejected (too high)" % (self.name, rn[0]+rn[2],rn[1]+rn[3],vn[0],vn[1]))
+        #    return 0
 
         cxn  = rn[0]+rn[2]/2 #xn+wn/2
         cyn  = rn[1]+rn[3]/2 #yn+hn/2
@@ -539,7 +538,7 @@ class Track:
     def isLeaving(self, dx, dy):
         leavex = self.maxx+dx > Track.maxX or self.minx+dx < 0
         leavey = self.maxy+dy > Track.maxY or self.miny+dy < 0
-        return leavex or leavey
+        return leavex and leavey
 
     #--------------------------------------------------------------------
     #-- update track data
@@ -653,7 +652,7 @@ class Track:
             #if self.updates < 3 or dist <= 1.1 or abs(cos_delta) > Track.minCosDelta:
             if self.updates < 3 or abs(cos_delta) > Track.minCosDelta:
                 #- update base data
-                found   = self.id
+                found = self.id
                 self.re = rn
                 self.vv = np.array(vn)
                 self.cx = cxn

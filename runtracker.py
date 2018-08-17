@@ -195,7 +195,6 @@ def main(show=True, debug=False):
             cmds.subscribe(output.set_debug, 'debug')
 
             try:
-                #writer.setupDecoder()
                 while True:
                     global temp
                     loop += 1
@@ -224,7 +223,7 @@ def main(show=True, debug=False):
 
                     frame,motion = tracker.getStatus()
                     if frame > 0:
-                        t0 = time()
+                        #t0 = time()
                         #camera.split_recording('after.h264')
                         #vstream.copy_to('before.h264',size=2147483648)
                         #vstream.copy_to('before.h264',size=1073741824)
@@ -237,7 +236,6 @@ def main(show=True, debug=False):
                         tracker.releaseLock()
                         #print("capture: %4.2fms" % (1000.0 * (time() - t0)))
 
-                    # check temperature every 30 seconds
                     # check for USB stick every 60 seconds
 
                     camera.wait_recording(t_wait)
