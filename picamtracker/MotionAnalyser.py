@@ -79,7 +79,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.max_debugged_files = 25
         self.debugged_frames = 0
         self.filenb = 0
-        self.name_template = '/home/pi/piCAMTracker/debug_motion_%03d.data'
+        self.name_template = '/run/picamtracker/debug_motion_%03d.data'
 
     def debug_out(self, array):
         """
