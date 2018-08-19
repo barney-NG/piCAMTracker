@@ -27,9 +27,11 @@ Currently this is an early beta release.
 * The web interface supports the most rudimentary stuff to control the camera.
 * no video saving so far.   
 * we have a printed cover available. (see wiki section)
-* you can download the the V0.3 image [here](https://drive.google.com/file/d/1fq3jb0tYNVIxhNmgaASyJYLsajSUOv0g/view?usp=sharing)
+* you can download the V0.3 image [here](https://drive.google.com/file/d/1fq3jb0tYNVIxhNmgaASyJYLsajSUOv0g/view?usp=sharing)
+* you can download the V0.4 image [here](https://drive.google.com/file/d/1JSD_bzF0yAWboponnqq7Q_OJO1nm057K/view?usp=sharing)
   pi-password: Olav01
-* The v0.3 image runs the B and the B Plus (v0.4 is on the way)
+* The v0.3 image runs the B and the B Plus
+* The v0.4 image is created on a B Plus. (need confirmation that it also runs on a B)
 
 # FAQ
 see [FAQ](https://github.com/barney-NG/piCAMTracker/wiki/FAQ) section
