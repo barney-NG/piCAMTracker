@@ -721,7 +721,10 @@ class Track:
         cv2.polylines(vis, [pts], False, color)
 
         text = "%s(%d)" % (self.name, self.updates)
-        cv2.putText(vis,text,(x-3,y-3),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,tsize)
+        if x > 3 and y > 3:
+            cv2.putText(vis,text,(x-3,y-3),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,tsize)
+        else:
+            cv2.putText(vis,text,(x+w+3,y+h+3),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,tsize)
         hold = self.parent.greenLEDThread and self.parent.greenLEDThread.event.isSet()
         if self.crossedY and hold:
             cv2.rectangle(vis,(x,y),(x+w,y+h),color,-4)

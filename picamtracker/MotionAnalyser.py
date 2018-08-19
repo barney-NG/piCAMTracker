@@ -58,7 +58,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.display = display
         self.t0  = time()
         self.config = config
-        self.minArea = 1
+        self.minArea = config.conf['minArea']
         self.maxArea = config.conf['maxArea']
         # 32768 is absolute maximum ; 8192 is maximum
         self.sadThreshold = config.conf['sadThreshold']
@@ -101,6 +101,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         self.debugged_frames += 1
         if self.debugged_frames > self.max_debugged_frames:
+            print("MotionAnalyser:debug off")
             self.debug = False
             self.fobj.close()
             self.fobj = None
@@ -197,6 +198,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback to start/stop debugging
         """
         if value > 0:
+            print("MotionAnalyser:debug on")
             self.debug = True
             self.max_debugged_frames = 40 * value
         else:
@@ -211,6 +213,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback setting vMax
         """
         if value > self.vmin:
+            print("MotionAnalyser:vMax: %d" % value)
             self.vmax = value
             if self.config:
                 self.config.conf['vMax'] = value
@@ -221,6 +224,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         """
         if value < 1:
             value = 1
+        print("MotionAnalyser:vMin: %d" % value)
         self.vmin = value
         if self.config:
             self.config.conf['vMin'] = value
@@ -230,6 +234,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback setting max area
         """
         if value > self.minArea:
+            print("MotionAnalyser:maxArea: %d" % value)
             self.maxArea = value
             if self.config:
                 self.config.conf['maxArea'] = value
@@ -240,6 +245,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         """
         if value < 1:
             value = 1
+        print("MotionAnalyser:minArea: %d" % value)
         self.minArea = value
         if self.config:
             self.config.conf['minArea'] = value
@@ -249,6 +255,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback setting SAD threshold
         """
         if value >=0 and value < 16384:
+            print("MotionAnalyser:sadThreshold: %d" % value)
             self.sadThreshold = value
             if self.config:
                 self.config.conf['sadThreshold'] = value
@@ -340,7 +347,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         new_points = []
         noise   = False
         rejects = 0
-        num_small = num_large = 0
+        num_rects = len(rects)
         #- walk through all contours
         #for cnt in contours:
         for x0,y0,w,h in rects:
@@ -352,6 +359,12 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 print( "MAXAEREA! (%d %d/%d)" % (area,w,h))
                 rejects += 1
                 continue
+
+            #-- reject areas which are too small
+            if area < self.minArea:
+                rejects += 1
+                continue
+
 
             #-- perimeter blocks have limited vector direction (Bill Wilson)
             """
@@ -386,7 +399,6 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                     #print "sparkel: sad: %3d" % ( a[y0,x0]['sad'])
                     rejects += 1
                     #continue
-                num_small += 1
                 #print "vx/vy %2d,%2d (%d)" % (vx,vy,sad_var)
                 #-- try to close gaps TODO: check borders
                 #if vy < 0.0 and a[y0+1,x0]['sad'] > self.sadThreshold:
@@ -423,7 +435,6 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 vy = np.mean(a[y0:y1,x0:x1]['y'])
                 #vx = np.mean(a[y0:y1,x0:x1]['x'])
                 #vy = np.mean(a[y0:y1,x0:x1]['y'])
-                num_large += 1
 
             #-- add points to list
             new_points.append([[x0,y0,w,h],[vx,vy]])
@@ -480,4 +491,4 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             if self.display:
               self.display.imshow( self.big )
 
-        #print("proc_time: %4.2f" % (1000.0 * (time() - self.t0)))
+        #print("proc_time: %4.2f (%d)" % (1000.0 * (time() - self.t0), num_rects))
