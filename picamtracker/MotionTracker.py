@@ -445,7 +445,7 @@ class Track:
         minx = min(self.minx, rn[0])
         miny = min(self.miny, rn[1])
 
-        # update progress indicators
+        # update progress indicators in y direction
         if maxy > self.maxy or miny < self.miny:
             self.progressy = True
         else:
@@ -460,16 +460,22 @@ class Track:
                     #print("[%s](%02d) %2d Y-TURN" % (self.name,self.updates,rn[1]))
             self.progressy = False
 
-        # TODO: do the same for x direction
-        # update progress indicators
+        # update progress indicators in x direction
         if maxx > self.maxx or minx < self.minx:
             self.progressx = True
         else:
-            # TURN-X if the area does not expand any more in x direction
-            if self.progressx and not self.turnedX:
-                self.turnedX   = True
+            # TURN-Y if the area does not expand any more in y direction
+            if self.progressx and not self.turnedX and not self.crossedX:
+                moving_area = (maxx - minx) * (maxy - miny)
+                # track needs some maturity to have a turn detected
+                if self.updates > 4 and moving_area > 2 * self.old_area:
+                    if self.parent.redLEDThread:
+                        self.parent.redLEDThread.event.set()
+                    self.turnedX = True
+                    #print("[%s](%02d) %2d Y-TURN" % (self.name,self.updates,rn[1]))
             self.progressx = False
 
+        # update moving area
         self.maxx = maxx
         self.maxy = maxy
         self.minx = minx
@@ -531,6 +537,45 @@ class Track:
                     self.crossedY = True
                     self.crossed()
 
+        if Track.xCross > 0:
+            # track is crossing target line in X direction
+            #  x0,y0 +--------------+
+            #        |              |
+            #        +--------------+ x1,y1
+            #
+            #  v > 0 |          --->|
+            #        |              |
+            #  v < 0 |<---          |
+
+            if self.updates > self.maturity and self.progressx == True and self.crossedX == False:
+                # develope indicators
+                vx = -self.vv[0]
+                vy = -self.vv[1] # remember the velocity has wrong direction!
+                x0 = r[0]
+                y0 = r[1]
+                y1 = r[1] + r[3]
+
+                # for low speeds take distance as indicator
+                if abs(vx) < 0.1:
+                    vx = float(dy)
+
+                # this model uses a band of width == delta to detect a crossing event
+                #crossedYPositive =  vy >  0.0 and abs(y1-Track.yCross) < delta and self.miny < Track.yCross
+                #crossedYNegative =  vy <= 0.0 and abs(y0-Track.yCross) < delta and self.maxy > Track.yCross
+
+                # this model uses a simple >= limit to detect a crossing event
+                crossedXPositive =  vx > 0.1 and x1 >= Track.xCross and (x1 - delta ) < Track.xCross and self.minx < Track.xCross
+                crossedXNegative =  vx < -0.1 and x0 <= Track.xCross and (x0 + delta) > Track.xCross  and self.maxx > Track.xCross
+
+                if crossedXPositive:
+                    print("[%s](%02d) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d CROSSED++++++++++++++++++++" % (self.name,self.updates,x1,y0,vx,vy,dx,dy))
+                    self.crossedY = True
+                    self.crossed()
+
+                if crossedXNegative:
+                    print("[%s](%02d) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d CROSSED--------------------" % (self.name,self.updates,x0,y0,vx,vy,dx,dy))
+                    self.crossedY = True
+                    self.crossed()
 
     #--------------------------------------------------------------------
     #-- does the track leave the tracking area?
