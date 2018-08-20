@@ -17,6 +17,8 @@ Currently this is an early beta release.
   * The camera cannot distinguish between birds/bees and planes. All moving things are evaluated.
   * moving objects in the turn area can lead to false positives. (grass, bushes, flags, etc)
   * The fisheye setup with the V1 camera seems to be the best setup for our purposes. (F3F model air racing)
+  * To improve nearby crossing detection the camera should be mounted straight. (Not in 90 degrees as used before)
+    * Crossing is now in X direction (viewAngle: 0, xCross: 40, yCross: -1)  
 * V1 camera from Waveshare (module G); 1280x960 pixels, 42 f/s; full FOV; 256MB GPU memory
   * Mode 5 (1280x720p, 49 f/s) does not center the frames horizontally
 * V2 camera with standard lens; 1632x896, 40 f/s; full FOV; 256MB GPU memory.
