@@ -78,7 +78,8 @@ class Writer(threading.Thread):
         self.decoder = libh264decoder.H264Decoder()
         self.frame2decode = None
         self.maxDiff = 15
-        self.ycross = None
+        self.ycross = -1
+        self.xcross = -1
         self.k = 0
         self.nimages = config.conf['maxSnapshots']
         self.nbimage = 0
@@ -98,6 +99,7 @@ class Writer(threading.Thread):
         if config is not None:
             self.doStreaming = config.conf['streamServer']
             self.ycross = config.conf['yCross'] * 16
+            self.xcross = config.conf['xCross'] * 16
 
         #- thread initialisation stuff
         self.lock = threading.Lock()
@@ -171,10 +173,12 @@ class Writer(threading.Thread):
                     y1 *= 16
 
                     # center line
-                    if self.ycross:
+                    if self.ycross > 0:
                         cv2.line(image,(0,int(self.ycross)),(self.resx,int(self.ycross)),(0,0,0),1)
-                    else:
-                        cv2.line(image,(0,int(self.resy/2)),(self.resx,int(self.resy/2)),(0,0,0),1)
+
+                    if self.xcross > 0:
+                        cv2.line(image,(int(self.xcross),0),(int(self.xcross),self.resy),(0,0,0),1)
+
                     cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(200,200,200),1)
                     cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
                     txt = "%d" % (framenb/2)

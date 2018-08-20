@@ -553,7 +553,7 @@ class Track:
                 vy = -self.vv[1] # remember the velocity has wrong direction!
                 x0 = r[0]
                 y0 = r[1]
-                y1 = r[1] + r[3]
+                x1 = r[0] + r[2]
 
                 # for low speeds take distance as indicator
                 if abs(vx) < 0.1:
