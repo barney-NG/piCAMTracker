@@ -104,6 +104,7 @@ class Tracker(threading.Thread):
         self.fobj = None
         self.cols = 0
         self.rows = 0
+        self.direction = 0
 
         #- initialize a fixed number of threads (less garbarge collection)
         self.track_pool = []
@@ -178,12 +179,13 @@ class Tracker(threading.Thread):
             frame  = self.frame
             motion = self.motion
             self.frame = 0
+            self.direction = 0
         return (frame, motion)
 
     #--------------------------------------------------------------------
     #-- callback for crossing event
     #--------------------------------------------------------------------
-    def crossed(self, updates, frame, motion):
+    def crossed(self, updates, frame, motion, positive_direction=False):
         if self.locked:
             print("blocked")
             return False
@@ -196,6 +198,7 @@ class Tracker(threading.Thread):
             self.updates  = updates
             self.frame  = frame
             self.motion = motion
+            self.direction = 1 if positive_direction else -1
 
         return True
 
@@ -486,9 +489,9 @@ class Track:
     #--------------------------------------------------------------------
     #-- raise crossing handler in parent class
     #--------------------------------------------------------------------
-    def crossed(self):
+    def crossed(self, positive=False):
         if self.parent:
-            self.parent.crossed(self.updates, self.lastFrame, [self.re, self.vv, [self.minx, self.miny, self.maxx, self.maxy]])
+            self.parent.crossed(self.updates, self.lastFrame, [self.re, self.vv, [self.minx, self.miny, self.maxx, self.maxy]], positive)
 
     #--------------------------------------------------------------------
     #-- main target: is the object crossing the crossing line?
@@ -530,12 +533,12 @@ class Track:
                 if crossedYPositive:
                     print("[%s](%02d) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d CROSSED++++++++++++++++++++" % (self.name,self.updates,y1,x0,vy,vx,dy,dx))
                     self.crossedY = True
-                    self.crossed()
+                    self.crossed(positive=True)
 
                 if crossedYNegative:
                     print("[%s](%02d) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d CROSSED--------------------" % (self.name,self.updates,y0,x0,vy,vx,dy,dx))
                     self.crossedY = True
-                    self.crossed()
+                    self.crossed(positive=False)
 
         if Track.xCross > 0:
             # track is crossing target line in X direction
@@ -570,12 +573,12 @@ class Track:
                 if crossedXPositive:
                     print("[%s](%02d) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d CROSSED++++++++++++++++++++" % (self.name,self.updates,x1,y0,vx,vy,dx,dy))
                     self.crossedX = True
-                    self.crossed()
+                    self.crossed(positive=True)
 
                 if crossedXNegative:
                     print("[%s](%02d) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d CROSSED--------------------" % (self.name,self.updates,x0,y0,vx,vy,dx,dy))
                     self.crossedX = True
-                    self.crossed()
+                    self.crossed(positive=False)
 
     #--------------------------------------------------------------------
     #-- does the track leave the tracking area?
