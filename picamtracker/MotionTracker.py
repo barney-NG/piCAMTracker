@@ -569,12 +569,12 @@ class Track:
 
                 if crossedXPositive:
                     print("[%s](%02d) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d CROSSED++++++++++++++++++++" % (self.name,self.updates,x1,y0,vx,vy,dx,dy))
-                    self.crossedY = True
+                    self.crossedX = True
                     self.crossed()
 
                 if crossedXNegative:
                     print("[%s](%02d) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d CROSSED--------------------" % (self.name,self.updates,x0,y0,vx,vy,dx,dy))
-                    self.crossedY = True
+                    self.crossedX = True
                     self.crossed()
 
     #--------------------------------------------------------------------
