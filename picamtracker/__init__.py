@@ -39,3 +39,4 @@ from .GPIOPort import gpioPort
 from .MotionTracker import Tracker
 from .CommandInterface import CommandInterface
 from .ConfigReader import Configuration
+from .SerialIO import SerialCommunication
