@@ -52,13 +52,13 @@ default_config = \
     "maxSnapshots": 100,
     "sadThreshold": 0,
     "trackLifeTime": 17,
-    "trackMatrity": 8,
+    "trackMaturity": 8,
     "xCross": -1,
     "yCross": 23,
     "vMin": 1,
     "vMax": 100,
     "minDist": 0,
-    "maxDist": 15,
+    "maxDist": 6,
     "maxTracks" : 16,
     "minCosDelta" : 0.5,
     "videoLength" : 5,
@@ -72,6 +72,8 @@ default_config = \
     "offsetX": 40,
     "offsetY": 40,
     "cmdFIFO": "/home/pi/piCAMTracker/www/FIFO",
+    "serialPort": "/dev/serial0",
+    "serialConf": "9600 8N1",
     "streamServer": True
 }
 

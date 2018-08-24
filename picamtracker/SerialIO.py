@@ -65,7 +65,6 @@ class SerialCommunication(threading.Thread):
         try:
             while not self.terminated:
                 # read all that is there or wait for one byte
-                print("wait for data")
                 data = self.serial.read(self.serial.in_waiting or 1)
                 if data:
                     print("serial in: <%s>" % data)

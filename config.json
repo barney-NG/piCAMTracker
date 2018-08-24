@@ -21,6 +21,8 @@
  "quitAppByGPIO": false, 
  "redLEDPort": 13, 
  "sadThreshold": 0, 
+ "serialPort": "/dev/serial0",
+ "serialConf": "9600 8N1",
  "signalLength": 300.0, 
  "streamServer": true, 
  "trackLifeTime": 17, 
