@@ -121,7 +121,7 @@ def main(show=True, debug=False):
             camera.framerate   = fps
 
         print("warm-up 2 seconds...")
-        serialPort = picamtracker.SerialIO.SerialCommunication(port=config.conf['serialPort'],options=config.conf['serialConf'])
+        #serialPort = picamtracker.SerialIO.SerialCommunication(port=config.conf['serialPort'],options=config.conf['serialConf'])
         greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
             is_active_low=config.conf['ledActiveLow'],
             duration=config.conf['signalLength'], start_blinks=3)
@@ -246,7 +246,7 @@ def main(show=True, debug=False):
             finally:
 
                 # stop camera and preview
-                serialPort.terminated = True
+                #serialPort.terminated = True
                 greenLED.terminated = True
                 redLED.terminated = True
                 camera.stop_recording()
@@ -263,7 +263,7 @@ def main(show=True, debug=False):
                 sleep(0.5)
                 if display is not None:
                     display.join()
-                serialPort.join()
+                #serialPort.join()
                 greenLED.join()
                 redLED.join()
                 cmds.join()
