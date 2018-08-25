@@ -66,9 +66,10 @@ def get_temp():
 
     return temp
 
-def main(show=True, debug=False):
+def main(ashow=True, debug=False):
     global config
     preview = True
+    show = 1 if ashow else 0
     try:
         preview = config.conf['preview']
     except:
@@ -112,8 +113,8 @@ def main(show=True, debug=False):
         if show:
             preview = True
             camera.framerate  = 25
-            x_disp = config.conf['previewX'] + config.conf['offsetX']
-            y_disp = config.conf['previewY'] + config.conf['offsetY']
+            x_disp = config.conf['offsetX']
+            y_disp = config.conf['offsetY']
             display = picamtracker.Display(caption='piCAMTracker',x=x_disp,y=y_disp,w=resy/2,h=resx/2)
         else:
             display = None
