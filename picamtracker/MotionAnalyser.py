@@ -286,21 +286,14 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #---------------------------------------------------------------
         #-- IDENTIFY MOVEMENT
         #---------------------------------------------------------------
-        #- identify movement in actual frame
-        #if self.dir[0] < 0:
         mag = np.abs(a['x']) + np.abs(a['y'])
-        has_movement = np.logical_and(mag > self.vmin, mag < self.vmax, a['sad'] > self.sadThreshold)
-        #rejects = np.count_nonzero(mag >= self.vmax)
-
-        #- we can reduce half of the area and movement in just one direction
-        #has_movement = np.logical_and(has_movement, a['y'] < 0 )
+	has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
 
         #- reject if more than 33% of the macro blocks are moving
         moving_elements =  np.count_nonzero(has_movement)
         if moving_elements > self.maxMovements:
             print("MAXMOVEMENT! (%d)" % moving_elements)
             return
-
         #- mask out movement
         mask = has_movement.astype(np.uint8) * 255
 
@@ -311,8 +304,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             else:
                 self.big.fill(200)
 
-        #if False:
-        if self.show:# and self.frame % 5:
+        if self.show:
             #- thats's slow!
             coords =  np.transpose(np.nonzero(mask))
             for y,x in coords:
@@ -349,109 +341,40 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         noise   = False
         rejects = 0
         num_rects = len(rects)
-        #- walk through all contours
-        #for cnt in contours:
+        #- walk through all rects
         for x0,y0,w,h in rects:
-            #x0,y0,w,h = cv2.boundingRect(cnt)
-
             #-- reject areas which are too big
             area = w*h
             if area > self.maxArea:
                 print( "MAXAEREA! (%d %d/%d)" % (area,w,h))
                 rejects += 1
                 continue
-
             #-- reject areas which are too small
             if area < self.minArea:
                 rejects += 1
                 continue
-
 
             #-- translate rectangle to array coordinates
             x1  = x0 + w
             y1  = y0 + h
 
             #-- reduce vectors
-            sad_var = 0.0
             if w < 2 and h < 2:
                 #-- examine single moving vectors
                 vx = a[y0,x0]['x'].astype(np.float64)
                 vy = a[y0,x0]['y'].astype(np.float64)
-                sad_var = a[y0,x0]['sad']
-                #-- is this block a good foreground block?
-                if sad_var < self.sadThreshold:
-                    #print "sparkel: sad: %3d" % ( a[y0,x0]['sad'])
-                    rejects += 1
-                    #continue
-                #print "vx/vy %2d,%2d (%d)" % (vx,vy,sad_var)
-                #-- try to close gaps TODO: check borders
-                #if vy < 0.0 and a[y0+1,x0]['sad'] > self.sadThreshold:
-                #    print("y+")
-                #    h += 1
-                #if vy > 0.0 and a[y0-1,x0]['sad']  > self.sadThreshold:
-                #    print("y-")
-                #    y0 -= 1
-                #    h += 1
-                #if vx < 0.0 and a[y0,x0+1]['sad'] > self.sadThreshold:
-                #    print("x+")
-                #    w += 1
-                #if vx > 0.0 and a[y0,x0-1]['sad']  > self.sadThreshold:
-                #    print("y-")
-                #    x0 -= 1
-                #    w += 1
             else:
-                #-- we are searching for regions which differ a lot from the previous frame
-                #-- ignore small changes in foregroung (weaving fields)
-                sad_var = a[y0:y1,x0:x1]['sad'].var()
-                if sad_var < 2*self.sadThreshold:
-                    rejects += 1
-                    continue
-
-                ##sad_weights = a[y0:y1,x0:x1]['sad'].flatten()
-                ##sad_weights *= sad_weights
-
-                #-- develope composite vector from weightened vectors in region
-                ##try:
-                ##    vx = np.average(a[y0:y1,x0:x1]['x'].flatten(),weights=sad_weights)
-                ##    vy = np.average(a[y0:y1,x0:x1]['y'].flatten(),weights=sad_weights)
-                ##except ZeroDivisionError:
                 vx = np.mean(a[y0:y1,x0:x1]['x'])
                 vy = np.mean(a[y0:y1,x0:x1]['y'])
-                #vx = np.mean(a[y0:y1,x0:x1]['x'])
-                #vy = np.mean(a[y0:y1,x0:x1]['y'])
 
-            #-- add points to list
+	    #-- add points to list
             new_points.append([[x0,y0,w,h],[vx,vy]])
-
-
-            #if self.show:# and self.frame % 5:
-            #    x0 *= 8
-            #    y0 *= 8
-            #    w *= 8
-            #    h *= 8
-            #    #cv2.rectangle(self.big,(x0,y0),(x0+w,y0+h),(0,0,0),1)
-            #    xm = int(x0+w/2)
-            #    ym = int(y0+h/2)
-            #    if rejects > 0:
-            #        c = (240,240,240)
-            #    else:
-            #        c = (50,50,50)
-            #    #cv2.putText(self.big,txt,(xm, ym),cv2.FONT_HERSHEY_SIMPLEX,0.5,c,2)
-            #    #xe = int(xm-4*vx)
-            #    #ye = int(ym-4*vy)
-            #    #cv2.arrowedLine(self.big,(xm,ym),(xe,ye),c,2)
-            #    #cv2.rectangle(self.big,(x0,y0),(x0+w,y0+h),(200,00,250),2)
 
         # insert/update new movements
         #print("---%5.0fms --- (%d) (%d)" % (dt*1000.0,rejects,moving_elements))
         self.tracker.update_tracks(self.frame,new_points)
 
-        #if not self.show:
-        #if self.updated:
-        #    self.tracker.printTracks()
-
-        #self.tracker.printAll()
-        if self.show:# and self.frame % 5:
+        if self.show:
             self.tracker.showTracks(self.frame, self.big)
             # create header
             #xm = 8*self.xcross
