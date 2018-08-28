@@ -76,7 +76,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.debug = False
         self.fobj = None
         self.max_debugged_frames = 1200 # 30 secs at 40f/s
-        self.max_debugged_files = 25
+        self.max_debugged_files = 50
         self.debugged_frames = 0
         self.filenb = 0
         self.name_template = '/run/picamtracker/debug_motion_%03d.data'
@@ -182,7 +182,6 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             return w*h
 
         rects = []
-        #for cnt in contours:
         for cnt in sorted(contours, key=bySize, reverse=True):
             x,y,w,h = cv2.boundingRect(cnt)
 
@@ -290,39 +289,37 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 	has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
 
         #- reject if more than 33% of the macro blocks are moving
-        moving_elements =  np.count_nonzero(has_movement)
+        moving_elements = np.count_nonzero(has_movement)
         if moving_elements > self.maxMovements:
             print("MAXMOVEMENT! (%d)" % moving_elements)
             return
         #- mask out movement
         mask = has_movement.astype(np.uint8) * 255
 
-        if self.show:# and self.frame % 5:
+        if self.show:
             if self.big is None:
                 #self.big = np.ones((8*(self.cols-1),8*self.rows,3), np.uint8) * 220
                 self.big = np.ones((8*self.rows,8*(self.cols-1),3), np.uint8) * 220
             else:
                 self.big.fill(200)
 
-        if self.show:
+        if self.show & 0x0002:
             #- thats's slow!
             coords =  np.transpose(np.nonzero(mask))
             for y,x in coords:
-                xm = x
-                ym = y
                 u  = a[y,x]['x']
                 v  = a[y,x]['y']
                 m =  min(512,a[y,x]['sad'])
                 c =  255 - int(255.0/512.0 * m)
                 #c =  255-int(mask[y,x])
                 #c = 220
-                x *= 8
-                y *= 8
-                xm *= 8
-                ym *= 8
-                cv2.rectangle(self.big,(x,y),(x+8,y+8),(0,c,c),-1)
-		#-- nice arrows
+                cv2.rectangle(self.big,(x*8,y*8),((x+1)*8,(y+1)*8),(0,c,c),-1)
+                #-- nice arrows
                 if self.show & 0x0008:
+                    xm = x
+                    ym = y
+                    xm *= 8
+                    ym *= 8
                     xe  = xm - 3 * u
                     ye  = ym - 3 * v
                     cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(c,0,c),1)
@@ -371,7 +368,6 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             new_points.append([[x0,y0,w,h],[vx,vy]])
 
         # insert/update new movements
-        #print("---%5.0fms --- (%d) (%d)" % (dt*1000.0,rejects,moving_elements))
         self.tracker.update_tracks(self.frame,new_points)
 
         if self.show:
@@ -398,4 +394,4 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             if self.display:
               self.display.imshow( self.big )
 
-        #print("proc_time: %4.2f (%d)" % (1000.0 * (time() - self.t0), num_rects))
+        #print("--- %4.2fms (%d)" % (1000.0 * (time() - self.t0), num_rects))

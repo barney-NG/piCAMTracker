@@ -53,6 +53,7 @@ import pygame as pg
 import pygame.image
 import cv2
 from picamtracker import libh264decoder
+import gc
 
 class Writer(threading.Thread):
     """
@@ -83,6 +84,7 @@ class Writer(threading.Thread):
         self.k = 0
         self.nimages = config.conf['maxSnapshots']
         self.nbimage = 0
+        gc.disable()
         if config.conf['viewAngle'] == 90:
             self.k = -1
         if config.conf['viewAngle'] == 180:
@@ -205,9 +207,14 @@ class Writer(threading.Thread):
                         pass
                     #pg.image.save(surface, self.imgpath)
 
+                #- do garbage collection here!
+                c0,c1,c2 = gc.get_count()
+                t0,t1,t2 = gc.get_threshold()
+                if c0 > t0 or c1 > t1 or c2 > t2:
+                    gc.collect()
+
             except IndexError:
                 self.event.clear()
-                #- TODO: enable (do) garbage collection here!
                 self.event.wait(1)
 
     #--------------------------------------------------------------------
