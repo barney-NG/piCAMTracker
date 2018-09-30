@@ -56,13 +56,13 @@ def cv_getNumber():
             break
     return int(str)
 
-def main(fobj=None):
+def main(fobj=None,width=1280,height=960):
     global config
 
-    width  = 1632
-    height = 896
+    #width  = 1632
+    #height = 896
     #width  = 1280
-    #height = 720
+    #height = 960
     cols = ((width + 15) // 16) + 1
     rows = (height + 15) // 16
     chunk_size = cols*rows*4
@@ -77,7 +77,7 @@ def main(fobj=None):
     x_disp = config.conf['previewX'] + config.conf['offsetX']
     y_disp = config.conf['previewY'] + config.conf['offsetY']
     display = picamtracker.Display(caption='piCAMTracker::debug',x=x_disp,y=y_disp,w=height/2,h=width/2)
-    analyser = picamtracker.MotionAnalyser(camera, tracker, display, True, config)
+    analyser = picamtracker.MotionAnalyser(camera, tracker, display, 0xff, config)
     analyser.rows = rows
     analyser.cols = cols
 
@@ -126,14 +126,26 @@ def main(fobj=None):
 
 if __name__ == '__main__':
     global config
-
-    parser = argparse.ArgumentParser(prog='debugmotion.py')
-    parser.add_argument('input', type=argparse.FileType("rb"),
-                        help   = 'input file to be debugged')
-
-    args = parser.parse_args()
     config = picamtracker.ConfigReader.Configuration('config.json')
     config.conf['debug'] = False
 
+    parser = argparse.ArgumentParser(prog='debugmotion.py')
+    parser.add_argument(
+        'input', 
+        type=argparse.FileType("rb"),
+        help   = 'input file to be debugged')
+    parser.add_argument(
+        '--width', 
+        type=int,
+        help   = 'input width',
+        default=1280)
+    parser.add_argument(
+        '--height', 
+        type=int,
+        help   = 'input height',
+        default=960)
+
+    args = parser.parse_args()
+
     #curses.wrapper(main)
-    main(args.input)
+    main(args.input,args.width,args.height)
