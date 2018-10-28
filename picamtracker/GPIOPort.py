@@ -3,6 +3,21 @@ import threading
 from time import sleep
 import RPi.GPIO as GPIO
 
+def addCallback(port, fctn, falling=True):
+    """
+    add a callback function to a falling or raising edge of a port
+    """
+    # TODO: add exception handling
+    GPIO.setmode(GPIO.BCM)
+    if falling:
+        GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.add_event_detect(port, GPIO.FALLING, callback=fctn, bouncetime=500)
+    else:
+        GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.add_event_detect(port, GPIO.RISING, callback=fctn, bouncetime=500)
+    
+
+
 class gpioPort(threading.Thread):
     def __init__(self, port, duration=200., is_active_low=False, start_blinks=0):
         super(gpioPort, self).__init__()
@@ -43,7 +58,7 @@ class gpioPort(threading.Thread):
         while not self.terminated:
             # wait until somebody throws an event
             if self.event.wait(1):
-                # create rectect signal on GPIO port
+                # create rectangle signal on GPIO port
                 GPIO.output(self.port,self.activate)
                 sleep(self.duration/1000.0)
                 GPIO.output(self.port,self.deactivate)
@@ -52,6 +67,11 @@ class gpioPort(threading.Thread):
         GPIO.cleanup(self.port)
 
 if __name__ == '__main__':
+    def pressed(value):
+        print("pressed %d" % value)
+
+    addCallback(3,pressed)
+
     p1=13
     p2=19
 

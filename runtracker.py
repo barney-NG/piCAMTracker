@@ -52,7 +52,6 @@ def get_raspi_revision():
 
     return info
 
-
 def get_temp():
     temp_file='/run/picamtracker/temp'
     temp = 20.0
@@ -195,6 +194,8 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_minArea, 'minArea')
             cmds.subscribe(output.set_sadThreshold, 'sadThreshold')
             cmds.subscribe(output.set_debug, 'debug')
+            if config.conf['debugInputPort']:
+                picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)
 
             try:
                 while True:
