@@ -9,6 +9,7 @@ def addCallback(port, fctn, falling=True):
     """
     # TODO: add exception handling
     GPIO.setmode(GPIO.BCM)
+    #GPIO.setwarnings(False)
     if falling:
         GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.add_event_detect(port, GPIO.FALLING, callback=fctn, bouncetime=500)
@@ -70,13 +71,13 @@ if __name__ == '__main__':
     def pressed(value):
         print("pressed %d" % value)
 
-    addCallback(3,pressed)
+    addCallback(2,pressed)
 
-    p1=13
-    p2=19
+    p1=17
+    p2=27
 
-    port1 = gpioPort(13)
-    port2 = gpioPort(19, duration=3000)
+    port1 = gpioPort(p1)
+    port2 = gpioPort(p2, duration=3000)
     port1.event.set()
     port2.event.set()
     sleep(2)
@@ -86,4 +87,6 @@ if __name__ == '__main__':
     port2.terminated = True
     port1.join()
     port2.join()
+
+    GPIO.cleanup()
 
