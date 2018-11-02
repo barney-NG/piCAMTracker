@@ -45,6 +45,7 @@ default_config = \
     "debugInputPort": 0,
     "greenLEDPort": 17,
     "redLEDPort": 27,
+    "statusLEDPort": 23,
     "ledActiveLow": False,
     "signalLength": 300.0,
     "quitAppByGPIO": False,

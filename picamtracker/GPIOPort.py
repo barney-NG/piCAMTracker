@@ -3,6 +3,18 @@ import threading
 from time import sleep
 import RPi.GPIO as GPIO
 
+def statusLED(port, on=True):
+    """
+    enable the status led
+    """
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(port,GPIO.OUT)
+    if on:
+        GPIO.output(port,GPIO.HIGH)
+    else:
+        GPIO.output(port,GPIO.LOW)
+
+    
 def addCallback(port, fctn, falling=True):
     """
     add a callback function to a falling or raising edge of a port
@@ -72,6 +84,7 @@ if __name__ == '__main__':
         print("pressed %d" % value)
 
     addCallback(2,pressed)
+    statusLED(23,on=True)
 
     p1=17
     p2=27
@@ -88,5 +101,6 @@ if __name__ == '__main__':
     port1.join()
     port2.join()
 
+    statusLED(23,on=False)
     GPIO.cleanup()
 

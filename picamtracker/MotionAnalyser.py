@@ -193,7 +193,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         return rects
 
     def debug_button(self, source):
-        self.set_debug(10)
+        self.set_debug(15)
 
     def set_debug(self, value):
         """

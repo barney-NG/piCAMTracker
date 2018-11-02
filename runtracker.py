@@ -129,6 +129,7 @@ def main(ashow=True, debug=False):
             is_active_low=config.conf['ledActiveLow'])
         sleep(1.0)
         print("...start")
+        picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=True)
 
         if preview:
             cl = np.zeros((resy,resx,3), np.uint8)
@@ -271,6 +272,7 @@ def main(ashow=True, debug=False):
                 cmds.join()
                 tracker.join()
                 writer.join()
+                picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=False)
                 #config.write()
 
 if __name__ == '__main__':
