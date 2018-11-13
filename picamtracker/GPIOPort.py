@@ -14,6 +14,7 @@ def statusLED(port, on=True):
     else:
         GPIO.output(port,GPIO.LOW)
      
+
 def addCallback(port, fctn, falling=True):
     """
     add a callback function to a falling or raising edge of a port
@@ -27,7 +28,7 @@ def addCallback(port, fctn, falling=True):
     else:
         GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
         GPIO.add_event_detect(port, GPIO.RISING, callback=fctn, bouncetime=500)
-
+    
 
 
 class gpioPort(threading.Thread):
@@ -84,8 +85,10 @@ if __name__ == '__main__':
 
     addCallback(2,pressed)
     statusLED(23,on=True)
+
     p1=17
     p2=27
+
     port1 = gpioPort(p1)
     port2 = gpioPort(p2, duration=3000)
     port1.event.set()
@@ -100,3 +103,4 @@ if __name__ == '__main__':
 
     statusLED(23,on=False)
     GPIO.cleanup()
+

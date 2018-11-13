@@ -151,7 +151,7 @@ def main(ashow=True, debug=False):
         sleep(1.0)
         print("...start")
         picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=True)
-        
+
         if preview:
             cl = np.zeros((resy,resx,3), np.uint8)
             ycross = config.conf['yCross']
@@ -218,6 +218,7 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_debug, 'debug')
             if config.conf['debugInputPort']:
                 picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)
+
             try:
                 while True:
                     global temp
