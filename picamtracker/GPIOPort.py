@@ -14,7 +14,7 @@ def statusLED(port, on=True):
     else:
         GPIO.output(port,GPIO.LOW)
 
-     
+    
 def addCallback(port, fctn, falling=True):
     """
     add a callback function to a falling or raising edge of a port

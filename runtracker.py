@@ -52,8 +52,6 @@ def get_raspi_revision():
 
     return info
 
-
-
 def get_temp():
     temp_file='/run/picamtracker/temp'
     temp = 20.0
