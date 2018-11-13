@@ -42,19 +42,18 @@ import json
 default_config = \
 {
     "debug": False,
-    "debugInputPort": 0,
-    "greenLEDPort": 17,
-    "redLEDPort": 27,
-    "statusLEDPort": 23,
+    "greenLEDPort": 19,
+    "redLEDPort": 13,
+    "yellowLEDPort": 20,
     "ledActiveLow": False,
-    "signalLength": 300.0,
+    "signalLength": 200.,
     "quitAppByGPIO": False,
     "minArea": 1,
     "maxArea": 1024,
     "maxSnapshots": 100,
     "sadThreshold": 0,
     "trackLifeTime": 17,
-    "trackMaturity": 7,
+    "trackMaturity": 8,
     "xCross": -1,
     "yCross": 23,
     "vMin": 1,
@@ -76,7 +75,11 @@ default_config = \
     "cmdFIFO": "/home/pi/piCAMTracker/www/FIFO",
     "serialPort": "/dev/serial0",
     "serialConf": "9600 8N1",
-    "streamServer": True
+    "streamServer": True,
+    "positionLeft": False,
+    "baseA": False,
+    "modeA": 1,
+    "raceMode": False
 }
 
 class Configuration:

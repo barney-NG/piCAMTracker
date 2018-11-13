@@ -82,7 +82,7 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     #-- constructor
     #--------------------------------------------------------------------
-    def __init__(self, camera, greenLed=None, redLed=None, config=None):
+    def __init__(self, camera, greenLed=None, redLed=None, config=None, yellowLed=None, position_left=False, base_a=False, a_base_mode=0, race_mode=False):
         super(Tracker,self).__init__()
         self.lock = threading.Lock()
         self.config = config
@@ -91,6 +91,7 @@ class Tracker(threading.Thread):
         self.resy = camera.resolution[1]
         self.greenLEDThread = greenLed
         self.redLEDThread   = redLed
+        self.yellowLEDThread = yellowLed
         self.updates  = 0
         self.frame  = 0
         self.noise  = 0.0
@@ -105,7 +106,12 @@ class Tracker(threading.Thread):
         self.cols = 0
         self.rows = 0
         self.direction = 0
-
+        self.positionLeft = position_left
+        self.baseA = base_a
+        self.modeA = a_base_mode
+        self.raceMode = race_mode
+        self.onCourse = False
+        
         #- initialize a fixed number of threads (less garbarge collection)
         self.track_pool = []
         #for i in range(0,MAX_TRACKS):
@@ -193,8 +199,43 @@ class Tracker(threading.Thread):
         with self.lock:
             self.locked = True
             self.camera.request_key_frame()
-            if self.greenLEDThread:
-                self.greenLEDThread.event.set()
+            if not self.baseA:
+                # Tracker is base B
+                if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
+                    if self.greenLEDThread:
+                        self.greenLEDThread.event.set()
+                if (not self.raceMode):
+                    # Double signal in training mode
+                    if ((not self.positionLeft) and (not positive_direction)) or (self.positionLeft and positive_direction):
+                        if self.greenLEDThread:
+                            self.greenLEDThread.event.set()
+            else:
+                # Tracker is base A
+		if self.onCourse:
+                    # Standard procedure, same as base B (could be merged with above code for base B)
+                    if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
+                        if self.greenLEDThread:
+                            self.greenLEDThread.event.set()
+                else: 
+                    # Detect first out of course
+                    if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
+                        if self.modeA == 0:
+                            if self.greenLEDThread:
+                                self.greenLEDThread.event.set()
+                        elif self.modeA == 1:
+                            if self.yellowLEDThread:
+                                self.yellowLEDThread.event.set()
+                        if self.raceMode:
+                            print("Out of course")
+                    # Detect first in course
+                    if ((not self.positionLeft) and (not positive_direction)) or (self.positionLeft and positive_direction):
+                        if self.greenLEDThread:
+                            self.greenLEDThread.event.set()
+                            if self.raceMode:
+                                self.onCourse = True
+                                print("In course")
+                            else:
+                                self.onCourse = False
             self.updates  = updates
             self.frame  = frame
             self.motion = motion
@@ -773,7 +814,7 @@ class Track:
             cv2.putText(vis,text,(x-3,y-3),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,tsize)
         else:
             cv2.putText(vis,text,(x+w+3,y+h+3),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,tsize)
-        hold = self.parent.greenLEDThread and self.parent.greenLEDThread.event.isSet()
+        hold = (self.parent.greenLEDThread and self.parent.greenLEDThread.event.isSet()) or (self.parent.yellowLEDThread and self.parent.yellowLEDThread.event.isSet())
         if self.crossedY and hold:
             cv2.rectangle(vis,(x,y),(x+w,y+h),color,-4)
         else:

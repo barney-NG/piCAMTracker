@@ -192,17 +192,14 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         return rects
 
-    def debug_button(self, source):
-        self.set_debug(15)
-
     def set_debug(self, value):
         """
         callback to start/stop debugging
         """
         if value > 0:
-            print("MotionAnalyser:debug on (%d)" % value)
-            self.max_debugged_frames = 40 * value
+            print("MotionAnalyser:debug on")
             self.debug = True
+            self.max_debugged_frames = 40 * value
         else:
             self.debug = False
             self.max_debugged_frames = 1200
