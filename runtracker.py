@@ -53,6 +53,7 @@ def get_raspi_revision():
     return info
 
 
+
 def get_temp():
     temp_file='/run/picamtracker/temp'
     temp = 20.0
@@ -128,17 +129,17 @@ def main(ashow=True, debug=False):
                 print("Single button mode for base A (standard)")
             if (config.conf['modeA']==1):
                 print("Dual button mode for base A (Mike Roberts)")
-	else:
+        else:
             print("Tracker is base B")
         if config.conf['positionLeft']:
             print("Tracker on LEFT hand side")
-	else:
+        else:
             print("Tracker on RIGHT hand side")
         if config.conf['raceMode']:
             print("Race mode - only relevant signals")
-	else:
+        else:
             print("Training mode - always double signal OUT and IN")
-       	print("warm-up 2 seconds...")
+        print("warm-up 2 seconds...")
         #serialPort = picamtracker.SerialIO.SerialCommunication(port=config.conf['serialPort'],options=config.conf['serialConf'])
         greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
             is_active_low=config.conf['ledActiveLow'],
@@ -149,7 +150,8 @@ def main(ashow=True, debug=False):
             is_active_low=config.conf['ledActiveLow'])
         sleep(1.0)
         print("...start")
-
+        picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=True)
+        
         if preview:
             cl = np.zeros((resy,resx,3), np.uint8)
             ycross = config.conf['yCross']
@@ -214,7 +216,8 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_minArea, 'minArea')
             cmds.subscribe(output.set_sadThreshold, 'sadThreshold')
             cmds.subscribe(output.set_debug, 'debug')
-
+            if config.conf['debugInputPort']:
+                picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)
             try:
                 while True:
                     global temp
@@ -291,6 +294,7 @@ def main(ashow=True, debug=False):
                 cmds.join()
                 tracker.join()
                 writer.join()
+                picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=False)
                 #config.write()
 
 if __name__ == '__main__':
