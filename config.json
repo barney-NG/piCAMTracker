@@ -34,5 +34,10 @@
  "videoLength": 5, 
  "viewAngle": 270, 
  "xCross": -1, 
- "yCross": 30
+ "yCross": 30,
+ "yellowLEDPort": 20,
+ "positionLeft": false,
+ "baseA": false,
+ "modeA": 0,
+ "raceMode": false
 }

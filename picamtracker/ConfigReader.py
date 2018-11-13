@@ -46,6 +46,7 @@ default_config = \
     "greenLEDPort": 17,
     "redLEDPort": 27,
     "statusLEDPort": 23,
+    "yellowLEDPort": 20,
     "ledActiveLow": False,
     "signalLength": 300.0,
     "quitAppByGPIO": False,
@@ -76,7 +77,11 @@ default_config = \
     "cmdFIFO": "/home/pi/piCAMTracker/www/FIFO",
     "serialPort": "/dev/serial0",
     "serialConf": "9600 8N1",
-    "streamServer": True
+    "streamServer": True,
+    "positionLeft": False,
+    "baseA": False,
+    "modeA": 1,
+    "raceMode": False
 }
 
 class Configuration:
