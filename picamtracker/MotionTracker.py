@@ -1,4 +1,4 @@
-#vim: set et sw=4 sts=4 fileencoding=utf-8:
+# vim: set et sw=4 sts=4 fileencoding=utf-8:
 #
 # Python Motion Tracker module of the pyCAMTracker package
 # Copyright (c) 2017-2018 Axel Barnitzke <barney@xkontor.org>

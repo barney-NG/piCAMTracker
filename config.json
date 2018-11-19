@@ -38,7 +38,7 @@
  "yCross": 30,
  "yellowLEDPort": 20,
  "positionLeft": false,
- "baseA": true,
- "modeA": 1,
- "raceMode": true
+ "baseA": false,
+ "modeA": 0,
+ "raceMode": false
 }

@@ -142,7 +142,7 @@ def main(ashow=True, debug=False):
         #serialPort = picamtracker.SerialIO.SerialCommunication(port=config.conf['serialPort'],options=config.conf['serialConf'])
         greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
             is_active_low=config.conf['ledActiveLow'],
-            duration=config.conf['signalLength']) #, start_blinks=3)
+            duration=config.conf['signalLength']), start_blinks=3)
         redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'],
             is_active_low=config.conf['ledActiveLow'])
         yellowLED = picamtracker.GPIOPort.gpioPort(config.conf['yellowLEDPort'], 
@@ -297,7 +297,6 @@ def main(ashow=True, debug=False):
                 tracker.join()
                 writer.join()
                 picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=False)
-               
                 #config.write()
 
 if __name__ == '__main__':
