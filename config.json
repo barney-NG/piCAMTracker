@@ -1,7 +1,8 @@
 {
  "cmdFIFO": "/home/pi/piCAMTracker/www/FIFO", 
  "debug": false, 
- "debugInputPort": 2, 
+ "debugInputPort": 2,
+ "resetInputPort": 26, 
  "greenLEDPort": 17, 
  "ledActiveLow": false, 
  "maxArea": 5000, 
@@ -37,7 +38,7 @@
  "yCross": 30,
  "yellowLEDPort": 20,
  "positionLeft": false,
- "baseA": false,
- "modeA": 0,
- "raceMode": false
+ "baseA": true,
+ "modeA": 1,
+ "raceMode": true
 }

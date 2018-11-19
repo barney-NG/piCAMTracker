@@ -1,4 +1,4 @@
-# vim: set et sw=4 sts=4 fileencoding=utf-8:
+#vim: set et sw=4 sts=4 fileencoding=utf-8:
 #
 # Python Motion Tracker module of the pyCAMTracker package
 # Copyright (c) 2017-2018 Axel Barnitzke <barney@xkontor.org>
@@ -189,6 +189,13 @@ class Tracker(threading.Thread):
         return (frame, motion)
 
     #--------------------------------------------------------------------
+    #-- resetEvent occured via resetInputPort
+    #--------------------------------------------------------------------
+    def resetEvent(self, source):
+        self.onCourse = False
+        print ("New attempt")
+
+    #--------------------------------------------------------------------
     #-- callback for crossing event
     #--------------------------------------------------------------------
     def crossed(self, updates, frame, motion, positive_direction=False):
@@ -199,6 +206,7 @@ class Tracker(threading.Thread):
         with self.lock:
             self.locked = True
             self.camera.request_key_frame()
+           
             if not self.baseA:
                 # Tracker is base B
                 if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
@@ -211,7 +219,7 @@ class Tracker(threading.Thread):
                             self.greenLEDThread.event.set()
             else:
                 # Tracker is base A
-		if self.onCourse:
+                if self.onCourse:
                     # Standard procedure, same as base B (could be merged with above code for base B)
                     if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
                         if self.greenLEDThread:
@@ -219,10 +227,10 @@ class Tracker(threading.Thread):
                 else: 
                     # Detect first out of course
                     if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
-                        if self.modeA == 0:
+                        if (self.modeA == 0):
                             if self.greenLEDThread:
                                 self.greenLEDThread.event.set()
-                        elif self.modeA == 1:
+                        elif (self.modeA == 1):
                             if self.yellowLEDThread:
                                 self.yellowLEDThread.event.set()
                         if self.raceMode:

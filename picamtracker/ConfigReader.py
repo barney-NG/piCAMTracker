@@ -43,6 +43,7 @@ default_config = \
 {
     "debug": False,
     "debugInputPort": 0,
+    "resetInputPort": 26,
     "greenLEDPort": 17,
     "redLEDPort": 27,
     "statusLEDPort": 23,

@@ -121,6 +121,7 @@ def main(ashow=True, debug=False):
             camera.framerate   = fps
 
         print("signalLength " + str(config.conf['signalLength']) + " ms")
+        print("resetInputPort " + str(config.conf['resetInputPort']))
         if config.conf['baseA']:
             print("Tracker is base A")
             if (config.conf['modeA']==0):
@@ -141,11 +142,12 @@ def main(ashow=True, debug=False):
         #serialPort = picamtracker.SerialIO.SerialCommunication(port=config.conf['serialPort'],options=config.conf['serialConf'])
         greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
             is_active_low=config.conf['ledActiveLow'],
-            duration=config.conf['signalLength'], start_blinks=3)
+            duration=config.conf['signalLength']) #, start_blinks=3)
         redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'],
             is_active_low=config.conf['ledActiveLow'])
         yellowLED = picamtracker.GPIOPort.gpioPort(config.conf['yellowLEDPort'], 
-            is_active_low=config.conf['ledActiveLow'])
+            is_active_low=config.conf['ledActiveLow'],
+            duration=config.conf['signalLength'])
         sleep(1.0)
         print("...start")
         picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=True)
@@ -155,7 +157,7 @@ def main(ashow=True, debug=False):
             ycross = config.conf['yCross']
             if ycross > 0:
                 ym = 16 * ycross
-                cl[ym,:,:] = 0xff  #horizantal line
+                cl[ym,:,:] = 0xff  #horizontal line
             xcross = config.conf['xCross']
             if xcross > 0:
                 xm = 16 * xcross
@@ -193,7 +195,7 @@ def main(ashow=True, debug=False):
         #camera.awb_gains = g
 
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
-        tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, yellowLed=yellowLED, position_left=config.conf['positionLeft'], base_a=config.conf['baseA'], a_base_mode=config.conf['modeA'])
+        tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, yellowLed=yellowLED, position_left=config.conf['positionLeft'], base_a=config.conf['baseA'], a_base_mode=config.conf['modeA'], race_mode=config.conf['raceMode'])
         writer = picamtracker.Writer(camera, stream=vstream, config=config)
         cmds = picamtracker.CommandInterface(config=config)
         cmds.subscribe(tracker.set_maxDist, 'maxDist')
@@ -216,7 +218,8 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_debug, 'debug')
             if config.conf['debugInputPort']:
                 picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)
-
+            if config.conf['resetInputPort']:
+                picamtracker.GPIOPort.addCallback(config.conf['resetInputPort'], tracker.resetEvent)
             try:
                 while True:
                     global temp
@@ -294,6 +297,7 @@ def main(ashow=True, debug=False):
                 tracker.join()
                 writer.join()
                 picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=False)
+               
                 #config.write()
 
 if __name__ == '__main__':
