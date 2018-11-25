@@ -59,8 +59,8 @@ shutdown/wakeup        GPIO3  (5) (6)  GND
                        GPIO5 (29) (30) GND    
                        GPIO6 (31) (32) GPIO12 
 redLEDPort            GPIO13 (33) (34) GND    
-                      GPIO19 (35) (36) GPIO16 
-resetInputPort        GPIO26 (37) (38) GPIO20 yellowLEDPort
+resetInputPort        GPIO19 (35) (36) GPIO16 
+                      GPIO26 (37) (38) GPIO20 yellowLEDPort
                          GND (39) (40) GPIO21 greenLEDPort
 
   

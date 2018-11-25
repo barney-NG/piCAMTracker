@@ -120,8 +120,8 @@ def main(ashow=True, debug=False):
             camera.sensor_mode = mode
             camera.framerate   = fps
 
-        print("signalLength " + str(config.conf['signalLength']) + " ms")
-        print("resetInputPort " + str(config.conf['resetInputPort']))
+#        print("signalLength " + str(config.conf['signalLength']) + " ms")
+#        print("resetInputPort " + str(config.conf['resetInputPort']))
         if config.conf['baseA']:
             print("Tracker is base A")
             if (config.conf['modeA']==0):
@@ -219,7 +219,7 @@ def main(ashow=True, debug=False):
             if config.conf['debugInputPort']:
                 picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)
             if config.conf['resetInputPort']:
-                picamtracker.GPIOPort.addCallback(config.conf['resetInputPort'], tracker.resetEvent)
+                picamtracker.GPIOPort.addCallback(config.conf['resetInputPort'], tracker.resetEvent, closing=False)
             try:
                 while True:
                     global temp

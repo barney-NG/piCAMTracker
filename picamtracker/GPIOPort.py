@@ -15,21 +15,26 @@ def statusLED(port, on=True):
         GPIO.output(port,GPIO.LOW)
 
     
-def addCallback(port, fctn, falling=True):
+def addCallback(port, fctn, falling=True, closing=True):
     """
-    add a callback function to a falling or raising edge of a port
+    add a callback function to a falling or raising edge of a port 
     """
     # TODO: add exception handling
     GPIO.setmode(GPIO.BCM)
     #GPIO.setwarnings(False)
     if falling:
-        GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        if closing:
+            GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        else:
+            GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
         GPIO.add_event_detect(port, GPIO.FALLING, callback=fctn, bouncetime=500)
     else:
-        GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        if closing:
+            GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        else:
+            GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.add_event_detect(port, GPIO.RISING, callback=fctn, bouncetime=500)
-    
-
+ 
 
 class gpioPort(threading.Thread):
     def __init__(self, port, duration=200., is_active_low=False, start_blinks=0):

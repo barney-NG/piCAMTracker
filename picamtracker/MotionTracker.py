@@ -192,8 +192,9 @@ class Tracker(threading.Thread):
     #-- resetEvent occured via resetInputPort
     #--------------------------------------------------------------------
     def resetEvent(self, source):
-        self.onCourse = False
-        print ("New attempt")
+        if not self.locked:
+            self.onCourse = False
+            print ("New attempt")
 
     #--------------------------------------------------------------------
     #-- callback for crossing event
