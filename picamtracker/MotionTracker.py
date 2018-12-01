@@ -197,6 +197,23 @@ class Tracker(threading.Thread):
             print ("New attempt")
 
     #--------------------------------------------------------------------
+    #-- called by runtracker in case of switch events
+    #--------------------------------------------------------------------
+    def setTrainingMode(self):
+         self.raceMode = False
+         print ("Training mode set")
+
+    def setRaceModeLeft(self):
+         self.raceMode = True
+         self.positionLeft = True
+         print ("Race mode, Tracker on LEFT hand side")
+
+    def setRaceModeRight(self):
+         self.raceMode = True
+         self.positionLeft = False
+         print ("Race mode, Tracker on RIGHT hand side")
+
+    #--------------------------------------------------------------------
     #-- callback for crossing event
     #--------------------------------------------------------------------
     def crossed(self, updates, frame, motion, positive_direction=False):

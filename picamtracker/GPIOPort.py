@@ -14,26 +14,44 @@ def statusLED(port, on=True):
     else:
         GPIO.output(port,GPIO.LOW)
 
-    
-def addCallback(port, fctn, falling=True, closing=True):
+def portIsActivated(port):    
+    if GPIO.input(port):
+        return True
+    else:
+        return False
+
+def addCallback(port, fctn, falling=True, closing=True, rising=False):
     """
     add a callback function to a falling or raising edge of a port 
     """
     # TODO: add exception handling
     GPIO.setmode(GPIO.BCM)
     #GPIO.setwarnings(False)
-    if falling:
+    if falling and rising:
         if closing:
             GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#            print ('Port %d, pull-up enabled, falling and rising' % port)
         else:
             GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-        GPIO.add_event_detect(port, GPIO.FALLING, callback=fctn, bouncetime=500)
+#            print ('Port %d, pull-down enabled, falling and rising' % port)
+        GPIO.add_event_detect(port, GPIO.BOTH, callback=fctn, bouncetime=500)
     else:
-        if closing:
-            GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        if falling:
+            if closing:
+                GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#                print ('Port %d, pull-up enabled, falling' % port)
+            else:
+                GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+#                print ('Port %d, pull-down enabled, falling' % port)
+            GPIO.add_event_detect(port, GPIO.FALLING, callback=fctn, bouncetime=500)
         else:
-            GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(port, GPIO.RISING, callback=fctn, bouncetime=500)
+            if closing:
+                GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+#                print ('Port %d, pull-down enabled, rising' % port)
+            else:
+                GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#                print ('Port %d, pull-up enabled, rising' % port)
+            GPIO.add_event_detect(port, GPIO.RISING, callback=fctn, bouncetime=500)
  
 
 class gpioPort(threading.Thread):

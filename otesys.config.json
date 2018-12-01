@@ -3,6 +3,8 @@
  "debug": false, 
  "debugInputPort": 2,
  "resetInputPort": 19, 
+ "switchLeftPort": 12, 
+ "switchRightPort": 16, 
  "greenLEDPort": 21, 
  "ledActiveLow": true, 
  "maxArea": 5000, 
@@ -21,7 +23,7 @@
  "previewX": 50, 
  "previewY": 80, 
  "quitAppByGPIO": false, 
- "redLEDPort": 13, 
+ "redLEDPort": 0, 
  "sadThreshold": 0, 
  "serialPort": "/dev/serial0",
  "serialConf": "9600 8N1",
@@ -40,5 +42,6 @@
  "positionLeft": false,
  "baseA": true,
  "modeA": 1,
- "raceMode": true
+ "raceMode": true,
+ "selectRaceModeAndPositionWithSwitch": true
 }

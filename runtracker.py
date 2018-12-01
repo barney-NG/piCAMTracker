@@ -65,8 +65,25 @@ def get_temp():
 
     return temp
 
+#--------------------------------------------------------------------
+#-- configEvent occured via switchLeftPort or switchRightPort
+#-- Any change of these ports will throw this event
+#--------------------------------------------------------------------
+def configEvent(self=True):
+    global tracker
+
+    if picamtracker.GPIOPort.portIsActivated(config.conf['switchLeftPort']) and picamtracker.GPIOPort.portIsActivated(config.conf['switchRightPort']):
+        tracker.setTrainingMode()
+
+    if not picamtracker.GPIOPort.portIsActivated(config.conf['switchLeftPort']):
+        tracker.setRaceModeLeft()
+
+    if not picamtracker.GPIOPort.portIsActivated(config.conf['switchRightPort']):
+        tracker.setRaceModeRight()
+
 def main(ashow=True, debug=False):
     global config
+    global tracker
     preview = True
     show = 1 if ashow else 0
     try:
@@ -130,14 +147,15 @@ def main(ashow=True, debug=False):
                 print("Dual button mode for base A (Mike Roberts)")
         else:
             print("Tracker is base B")
-        if config.conf['positionLeft']:
-            print("Tracker on LEFT hand side")
-        else:
-            print("Tracker on RIGHT hand side")
-        if config.conf['raceMode']:
-            print("Race mode - only relevant signals")
-        else:
-            print("Training mode - always double signal OUT and IN")
+        if not config.conf['selectRaceModeAndPositionWithSwitch']:
+            if config.conf['positionLeft']:
+                print("Tracker on LEFT hand side")
+            else:
+                print("Tracker on RIGHT hand side")
+            if config.conf['raceMode']:
+                print("Race mode - only relevant signals")
+            else:
+                print("Training mode - always both signals OUT and IN")
         print("warm-up 2 seconds...")
         #serialPort = picamtracker.SerialIO.SerialCommunication(port=config.conf['serialPort'],options=config.conf['serialConf'])
         greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
@@ -194,8 +212,20 @@ def main(ashow=True, debug=False):
         #camera.awb_mode  = 'off'
         #camera.awb_gains = g
 
+        if config.conf['selectRaceModeAndPositionWithSwitch']:
+                print ("Configuration of race mode and tracker position via switch:")
+                picamtracker.GPIOPort.addCallback(config.conf['switchLeftPort'], configEvent, falling=True, closing=True, rising=True)
+                picamtracker.GPIOPort.addCallback(config.conf['switchRightPort'], configEvent, falling=True, closing=True, rising=True)
+        
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
-        tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, yellowLed=yellowLED, position_left=config.conf['positionLeft'], base_a=config.conf['baseA'], a_base_mode=config.conf['modeA'], race_mode=config.conf['raceMode'])
+        if not config.conf['selectRaceModeAndPositionWithSwitch']:
+            tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, yellowLed=yellowLED, position_left=config.conf['positionLeft'], base_a=config.conf['baseA'], a_base_mode=config.conf['modeA'], race_mode=config.conf['raceMode'])
+        else:
+            tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, yellowLed=yellowLED, base_a=config.conf['baseA'], a_base_mode=config.conf['modeA'])
+            configEvent() 
+        if config.conf['resetInputPort']:
+            picamtracker.GPIOPort.addCallback(config.conf['resetInputPort'], tracker.resetEvent, closing=False)
+
         writer = picamtracker.Writer(camera, stream=vstream, config=config)
         cmds = picamtracker.CommandInterface(config=config)
         cmds.subscribe(tracker.set_maxDist, 'maxDist')
@@ -218,8 +248,6 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_debug, 'debug')
             if config.conf['debugInputPort']:
                 picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)
-            if config.conf['resetInputPort']:
-                picamtracker.GPIOPort.addCallback(config.conf['resetInputPort'], tracker.resetEvent, closing=False)
             try:
                 while True:
                     global temp
@@ -298,6 +326,7 @@ def main(ashow=True, debug=False):
                 writer.join()
                 picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=False)
                 #config.write()
+                picamtracker.GPIOPort.cleanup()
 
 if __name__ == '__main__':
     parser = ArgumentParser(prog='piCAMTracker')
@@ -312,6 +341,6 @@ if __name__ == '__main__':
     os.system("/home/pi/piCAMTracker/etc/background_service.sh </dev/null&")
     out = shell('/usr/bin/vcgencmd', 'measure_temp')
     print("Actual core %s" % out)
-    
+        
 
     main(args.show, args.debug)

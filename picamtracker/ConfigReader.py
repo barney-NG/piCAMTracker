@@ -44,6 +44,8 @@ default_config = \
     "debug": False,
     "debugInputPort": 0,
     "resetInputPort": 26,
+    "switchLeftPort": 12,
+    "switchRightPort": 16,
     "greenLEDPort": 17,
     "redLEDPort": 27,
     "statusLEDPort": 23,
@@ -82,7 +84,8 @@ default_config = \
     "positionLeft": False,
     "baseA": False,
     "modeA": 1,
-    "raceMode": False
+    "raceMode": False,
+    "selectRaceModeAndPositionWithSwitch": False
 }
 
 class Configuration:
