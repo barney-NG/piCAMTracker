@@ -48,6 +48,7 @@ import numpy as np
 import cv2
 from math import atan2,hypot,degrees,acos,pi,sqrt
 #from picamtracker import GPIOPort
+import os, datetime, time
 
 #- globals
 MAX_TRACKS     = 16
@@ -74,6 +75,10 @@ def weighted_distance(t,p):
 #- sort tracks by number of updates
 def by_updates(t):
     return t.updates
+
+#- echo events to console (or logfile)
+def echo(message):
+    os.system ("echo "+str(datetime.datetime.now())+" "+message)
 
 class Tracker(threading.Thread):
     """
@@ -194,24 +199,24 @@ class Tracker(threading.Thread):
     def resetEvent(self, source):
         if not self.locked:
             self.onCourse = False
-            print ("New attempt")
+            echo("New attempt")
 
     #--------------------------------------------------------------------
     #-- called by runtracker in case of switch events
     #--------------------------------------------------------------------
     def setTrainingMode(self):
          self.raceMode = False
-         print ("Training mode set")
+         echo("Training mode set")
 
     def setRaceModeLeft(self):
          self.raceMode = True
          self.positionLeft = True
-         print ("Race mode, Tracker on LEFT hand side")
+         echo("Race mode, Tracker on LEFT hand side")
 
     def setRaceModeRight(self):
          self.raceMode = True
          self.positionLeft = False
-         print ("Race mode, Tracker on RIGHT hand side")
+         echo("Race mode, Tracker on RIGHT hand side")
 
     #--------------------------------------------------------------------
     #-- callback for crossing event

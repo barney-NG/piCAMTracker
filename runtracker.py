@@ -326,7 +326,6 @@ def main(ashow=True, debug=False):
                 writer.join()
                 picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=False)
                 #config.write()
-                picamtracker.GPIOPort.cleanup()
 
 if __name__ == '__main__':
     parser = ArgumentParser(prog='piCAMTracker')
