@@ -145,12 +145,12 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 xmin = min(xo,x1nn)
                 xmax = max(xo+wo,x2nn)
                 # does x intersect?
-                xint = (xmax - xmin) <= (wo + wn + 2*extend)
+                xint = (xmax - xmin) <= (wo + wn + extend)
                 # find y range
                 ymin = min(yo,y1nn)
                 ymax = max(yo+ho,y2nn)
                 # does y intersect?
-                yint = (ymax - ymin) <= (ho + hn + 2*extend)
+                yint = (ymax - ymin) <= (ho + hn + extend)
 
             if (xint and yint):
                 # intersection if x and y intersect
@@ -281,7 +281,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         # initialize values not known at class initialization
         if not self.started:
             self.tracker.setup_sizes(self.rows, self.cols-1)
-            self.maxMovements = self.rows * self.cols * 0.33
+            self.maxMovements = self.rows * self.cols * 0.4
             self.started = True
             return
 
@@ -289,7 +289,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #-- IDENTIFY MOVEMENT
         #---------------------------------------------------------------
         mag = np.abs(a['x']) + np.abs(a['y'])
-	has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
+        has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
 
         #- reject if more than 33% of the macro blocks are moving
         moving_elements = np.count_nonzero(has_movement)
@@ -366,6 +366,9 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             else:
                 vx = np.mean(a[y0:y1,x0:x1]['x'])
                 vy = np.mean(a[y0:y1,x0:x1]['y'])
+                #if (abs(vx) + abs(vy) < self.vmin):
+                #    rejects += 1
+                #    continue
 
 	    #-- add points to list
             new_points.append([[x0,y0,w,h],[vx,vy]])
@@ -386,11 +389,15 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             if self.show & 0x0004:
                 for cnt in contours:
                     x,y,w,h = cv2.boundingRect(cnt)
-                    cv2.rectangle(self.big,(8*x,8*y),(8*(x+w),8*(y+h)),(255,255,255),1)
+                    x0 = 8*x; y0 = 8*y; x1 = 8*(x+w); y1 = 8*(y+h)
+                    cv2.rectangle(self.big,(x0,y0),(x1,y1),(255,255,255),2)
                     rect_txt = "%d,%d,%d,%d" % (x,y,x+w,y+h)
-                    cv2.putText(self.big, rect_txt, (8*x,8*y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
+                    cv2.putText(self.big, rect_txt, (x0,y0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 2)
                 for x,y,w,h in rects:
-                    cv2.rectangle(self.big,(8*x,8*y),(8*(x+w),8*(y+h)),(0,0,0),1)
+                    x0 = 8*x; y0 = 8*y; x1 = 8*(x+w); y1 = 8*(y+h)
+                    cv2.rectangle(self.big,(x0,y0),(x1,y1),(0,0,0),1)
+                    cv2.line(self.big,(x0,y0),(x1,y1),(0,0,0),1)
+                    cv2.line(self.big,(x0,y1),(x1,y0),(0,0,0),1)
 
             # Show the image in the window
             # without imshow we are at 5ms (sometimes 12ms)
