@@ -477,6 +477,7 @@ class Track:
     #-- update growing status
     #--------------------------------------------------------------------
     def updateGrowingStatus(self, rn):
+        neg_count = 6
         # does the track expand into any direction?
         maxx = max(self.maxx, rn[0]+rn[2])
         maxy = max(self.maxy, rn[1]+rn[3])
@@ -490,14 +491,14 @@ class Track:
         else:
             # TURN-Y if the area does not expand any more in y direction
             if Track.yCross > 0:
-                if self.noprogressy > 4 and not self.turnedY and not self.crossedY:
-                    moving_area = (maxx - minx) * (maxy - miny)
+                if self.noprogressy > neg_count and not self.turnedY and not self.crossedY:
+                    moving_distance = (maxy - miny)
                     # track needs some maturity to have a turn detected
-                    if self.updates > self.maturity and moving_area > 2 * self.old_area:
+                    if self.updates > self.maturity and moving_distance > self.maturity:
                         if self.parent.redLEDThread:
                             self.parent.redLEDThread.event.set()
                         self.turnedY = True
-                        print("[%s](%02d) y:%d/%d cnt:%d Y-TURN" % (self.name,self.updates,rn[1],rn[0],self.noprogressy))
+                        print("[%s](%02d) y:%d/%d cnt:%d Y-TURN md: %d" % (self.name,self.updates,rn[1],rn[0],self.noprogressy,moving_distance))
                 self.noprogressy += 1
             self.progressy = False
 
@@ -508,10 +509,10 @@ class Track:
         else:
             # TURN-X if the area does not expand any more in y direction
             if Track.xCross > 0:
-                if self.noprogressx > 4 and not self.turnedX and not self.crossedX:
-                    moving_area = (maxx - minx) * (maxy - miny)
+                if self.noprogressx > neg_count and not self.turnedX and not self.crossedX:
+                    moving_distance = (maxy - miny)
                     # track needs some maturity to have a turn detected
-                    if self.updates > self.maturity and moving_area > 2 * self.old_area:
+                    if self.updates > self.maturity and moving_distance > self.maturity:
                         if self.parent.redLEDThread:
                             self.parent.redLEDThread.event.set()
                         self.turnedX = True
