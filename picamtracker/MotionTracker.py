@@ -121,9 +121,6 @@ class Tracker(threading.Thread):
 
         #- initialize a fixed number of threads (less garbarge collection)
         self.track_pool = []
-        #for i in range(0,MAX_TRACKS):
-        for i in range(0,config.conf['maxTracks']):
-            self.track_pool.append(Track(self))
 
         #- do things according configuration
         if config is not None:
@@ -134,6 +131,10 @@ class Tracker(threading.Thread):
             self.trackLifeTime = config.conf['trackLifeTime']
             self.trackMaturity = config.conf['trackMaturity']
             self.debug = config.conf['debug']
+
+        #- create track instances
+        for i in range(0,config.conf['maxTracks']):
+            self.track_pool.append(Track(self))
 
         #- thread initialisation stuff
         self.event = threading.Event()
@@ -488,16 +489,17 @@ class Track:
             self.noprogressy = 0
         else:
             # TURN-Y if the area does not expand any more in y direction
-            if self.noprogressy > 2 and not self.turnedY and not self.crossedY:
-                moving_area = (maxx - minx) * (maxy - miny)
-                # track needs some maturity to have a turn detected
-                if self.updates > self.maturity and moving_area > 2 * self.old_area:
-                    if self.parent.redLEDThread:
-                        self.parent.redLEDThread.event.set()
-                    self.turnedY = True
-                    print("[%s](%02d) %2d Y-TURN" % (self.name,self.updates,rn[1]))
+            if Track.yCross > 0:
+                if self.noprogressy > 4 and not self.turnedY and not self.crossedY:
+                    moving_area = (maxx - minx) * (maxy - miny)
+                    # track needs some maturity to have a turn detected
+                    if self.updates > self.maturity and moving_area > 2 * self.old_area:
+                        if self.parent.redLEDThread:
+                            self.parent.redLEDThread.event.set()
+                        self.turnedY = True
+                        print("[%s](%02d) y:%d/%d cnt:%d Y-TURN" % (self.name,self.updates,rn[1],rn[0],self.noprogressy))
+                self.noprogressy += 1
             self.progressy = False
-            self.noprogressy += 1
 
         # update progress indicators in x direction
         if maxx > self.maxx or minx < self.minx:
@@ -505,16 +507,17 @@ class Track:
             self.noprogressx = 0
         else:
             # TURN-X if the area does not expand any more in y direction
-            if self.noprogressx > 2 and not self.turnedX and not self.crossedX:
-                moving_area = (maxx - minx) * (maxy - miny)
-                # track needs some maturity to have a turn detected
-                if self.updates > self.maturity and moving_area > 2 * self.old_area:
-                    if self.parent.redLEDThread:
-                        self.parent.redLEDThread.event.set()
-                    self.turnedX = True
-                    print("[%s](%02d) %2d X-TURN" % (self.name,self.updates,rn[1]))
+            if Track.xCross > 0:
+                if self.noprogressx > 4 and not self.turnedX and not self.crossedX:
+                    moving_area = (maxx - minx) * (maxy - miny)
+                    # track needs some maturity to have a turn detected
+                    if self.updates > self.maturity and moving_area > 2 * self.old_area:
+                        if self.parent.redLEDThread:
+                            self.parent.redLEDThread.event.set()
+                        self.turnedX = True
+                        print("[%s](%02d) x:%d/%d cnt:%d X-TURN" % (self.name,self.updates,rn[0],rn[1],self.noprogressx))
+                self.noprogressx += 1
             self.progressx = False
-            self.noprogressx += 1
 
         # update moving area
         self.maxx = maxx
@@ -547,7 +550,8 @@ class Track:
             #  v > 0 |          --->|
             #        |              |
             #  v < 0 |<---          |
-            #if self.updates > 4 and self.progressy == True and self.maxy-self.miny > 2*r[3] and self.crossedY == False:
+            #print("   [%s](%02d) x/y:%d/%d vy:%3.1f/%3.1f dy:%d/%d maturity: %d"
+            #        % (self.name,self.updates,r[0],r[1],-self.vv[0],-self.vv[1],dy,dx, self.maturity))
             if self.updates > self.maturity and self.progressy == True and self.crossedY == False:
                 # develope indicators
                 vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
@@ -560,10 +564,6 @@ class Track:
                     vy = float(dy)
                 if vy_ > 5:
                     delta = int(vy_/2) + 1
-
-                # this model uses a band of width == delta to detect a crossing event
-                #crossedYPositive =  vy >  0.0 and abs(y1-Track.yCross) < delta and self.miny < Track.yCross
-                #crossedYNegative =  vy <= 0.0 and abs(y0-Track.yCross) < delta and self.maxy > Track.yCross
 
                 # this model uses a simple >= limit to detect a crossing event
                 crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross
@@ -603,10 +603,6 @@ class Track:
                     vx = float(dx)
                 if vx_ > 5:
                     delta = int(vx_/2) + 1
-
-                # this model uses a band of width == delta to detect a crossing event
-                #crossedYPositive =  vy >  0.0 and abs(y1-Track.yCross) < delta and self.miny < Track.yCross
-                #crossedYNegative =  vy <= 0.0 and abs(y0-Track.yCross) < delta and self.maxy > Track.yCross
 
                 # this model uses a simple >= limit to detect a crossing event
                 crossedXPositive =  vx >  0.1 and x1 >= Track.xCross and (x1 - delta) < Track.xCross and self.minx < Track.xCross
