@@ -60,6 +60,8 @@ def distance(t,p):
     # BUG: upper corner as reference point is more stable than center
     px = p[0] + p[2] / 2.0
     py = p[1] + p[3] / 2.0
+    #px = p[0]
+    #py = p[1]
     return abs(t.cx - px) + abs(t.cy - py)
     #return np.hypot(t.cx - px, t.cy - py)
 
@@ -68,8 +70,12 @@ def distance(t,p):
 def weighted_distance(t,p):
     dist = float(distance(t,p))
     val = 0.0
+    divisor = 10.0
+    if t.updates > 50:
+        divisor = 100.0
     if dist > 0.0:
-        val = 100.0 * (dist - t.updates / 100.0)
+        val = 100.0 * (dist - t.updates / divisor)
+    #print("   >%s(%d) %4.1f %4.1f"%(t.name,t.updates,dist,val))
     return(val)
 
 #- sort tracks by number of updates
@@ -79,6 +85,13 @@ def by_updates(t):
 #- echo events to console (or logfile)
 def echo(message):
     os.system ("echo "+str(datetime.datetime.now())+" "+message)
+
+#- move angle into range [-pi, pi]
+def normalize_angle(x):
+    x %= 2 * np.pi
+    if x > np.pi:
+        x -= 2 * np.pi
+    return(x)
 
 class Tracker(threading.Thread):
     """
@@ -119,9 +132,6 @@ class Tracker(threading.Thread):
         
         #- initialize a fixed number of threads (less garbarge collection)
         self.track_pool = []
-        #for i in range(0,MAX_TRACKS):
-        for i in range(0,config.conf['maxTracks']):
-            self.track_pool.append(Track(self))
 
         #- do things according configuration
         if config is not None:
@@ -132,6 +142,10 @@ class Tracker(threading.Thread):
             self.trackLifeTime = config.conf['trackLifeTime']
             self.trackMaturity = config.conf['trackMaturity']
             self.debug = config.conf['debug']
+
+        #- create track instances
+        for i in range(0,config.conf['maxTracks']):
+            self.track_pool.append(Track(self))
 
         #- thread initialisation stuff
         self.event = threading.Event()
@@ -165,6 +179,7 @@ class Tracker(threading.Thread):
     def setup_sizes(self, rows, cols):
         Track.maxX = self.cols = cols
         Track.maxY = self.rows = rows
+        Track.maxArea = cols * rows
 
     def testCrossing(self, value):
         if value > 0:
@@ -336,7 +351,7 @@ class Tracker(threading.Thread):
             # >>> debug
             #cx = rn[0] + rn[2] / 2
             #cy = rn[1] + rn[3] / 2
-            #print "try: ", cx,cy
+            #print( "frame:%d %d,%d ===============================" % ( frame,rn[0],rn[1] ))
             # <<< debug
             #-- sorting by distance really makes sence here
             #for track in sorted(self.track_pool, key=lambda t: distance(t,rn)):
@@ -347,20 +362,20 @@ class Tracker(threading.Thread):
 
                 #-- the rest of the coordinates can be ignored
                 dist = distance(track,rn)
-                maxDist = max(self.maxDist,(rn[2]+rn[3]))
+                maxDist = max(self.maxDist,2*(rn[2]+rn[3]))
                 if dist > maxDist:
-                    #print("update_track: dist too big! %d > %d" % (dist, maxDist))
+                    #print("   [%s] precheck: dist too big! %d > %d" % (track.name, dist, maxDist))
                     break
 
                 # >>> debug
-                #print("   [%s]: (%2d) %3d  %d,%d" % (track.name,track.updates,dist,rn[0],rn[1]))
+                #print("   [%s](%d): %d,%d dist:%d" % (track.name,track.updates,track.re[0],track.re[1],dist))
                 # <<< debug
 
                 #-- check if track takes coordinates
                 tracked = track.update(frame,rn,vn)
                 if tracked:
                     has_been_tracked |= tracked
-                    #print "[%s] updated" % track.name, cx,cy
+                    #print( "   [%s] updated %d,%d" % (track.name, rn[0],rn[1]))
                     self.updated = True
                     break
 
@@ -412,6 +427,7 @@ class Track:
     maxLifeTime = 17
     maxX        = 99999
     maxY        = 99999
+    maxArea     = 1
     xCross      = -1
     yCross      = -1
 
@@ -452,8 +468,10 @@ class Track:
         self.minx = 99999
         self.miny = 99999
         self.maturity = self.parent.trackMaturity
-        self.progressx  = 0
-        self.progressy  = 0
+        self.progressx = False
+        self.progressy = False
+        self.noprogressx  = 0
+        self.noprogressy  = 0
         self.lastFrame = 0
         self.isGrowing = True
         self.cleanCrossings()
@@ -511,9 +529,27 @@ class Track:
         return self.id
 
     #--------------------------------------------------------------------
+    #-- get average direction of last n moves
+    #--------------------------------------------------------------------
+    def avgDir(self, moves=3):
+        dx = dy = 0.0
+        l = len(self.tr)
+        if moves >= l:
+           moves = l-1
+        if moves <= 0:
+            return np.zeros(2)
+
+        for n in range(-moves,0):
+            dx += self.tr[n-1][0] - self.tr[n][0]
+            dy += self.tr[n-1][1] - self.tr[n][1]
+
+        return np.array([dx/float(moves),dy/float(moves)])
+
+    #--------------------------------------------------------------------
     #-- update growing status
     #--------------------------------------------------------------------
     def updateGrowingStatus(self, rn):
+        neg_count = 6
         # does the track expand into any direction?
         maxx = max(self.maxx, rn[0]+rn[2])
         maxy = max(self.maxy, rn[1]+rn[3])
@@ -523,31 +559,37 @@ class Track:
         # update progress indicators in y direction
         if maxy > self.maxy or miny < self.miny:
             self.progressy = True
+            self.noprogressy = 0
         else:
             # TURN-Y if the area does not expand any more in y direction
-            if self.progressy and not self.turnedY and not self.crossedY:
-                moving_area = (maxx - minx) * (maxy - miny)
-                # track needs some maturity to have a turn detected
-                if self.updates > 4 and moving_area > 2 * self.old_area:
-                    if self.parent.redLEDThread:
-                        self.parent.redLEDThread.event.set()
-                    self.turnedY = True
-                    #print("[%s](%02d) %2d Y-TURN" % (self.name,self.updates,rn[1]))
+            if Track.yCross > 0:
+                if self.noprogressy > neg_count and not self.turnedY and not self.crossedY:
+                    moving_distance = (maxy - miny)
+                    # track needs some maturity to have a turn detected
+                    if self.updates > self.maturity and moving_distance > self.maturity:
+                        if self.parent.redLEDThread:
+                            self.parent.redLEDThread.event.set()
+                        self.turnedY = True
+                        print("[%s](%02d) y:%d/%d cnt:%d Y-TURN md: %d" % (self.name,self.updates,rn[1],rn[0],self.noprogressy,moving_distance))
+                self.noprogressy += 1
             self.progressy = False
 
         # update progress indicators in x direction
         if maxx > self.maxx or minx < self.minx:
             self.progressx = True
+            self.noprogressx = 0
         else:
-            # TURN-Y if the area does not expand any more in y direction
-            if self.progressx and not self.turnedX and not self.crossedX:
-                moving_area = (maxx - minx) * (maxy - miny)
-                # track needs some maturity to have a turn detected
-                if self.updates > 4 and moving_area > 2 * self.old_area:
-                    if self.parent.redLEDThread:
-                        self.parent.redLEDThread.event.set()
-                    self.turnedX = True
-                    #print("[%s](%02d) %2d Y-TURN" % (self.name,self.updates,rn[1]))
+            # TURN-X if the area does not expand any more in y direction
+            if Track.xCross > 0:
+                if self.noprogressx > neg_count and not self.turnedX and not self.crossedX:
+                    moving_distance = (maxy - miny)
+                    # track needs some maturity to have a turn detected
+                    if self.updates > self.maturity and moving_distance > self.maturity:
+                        if self.parent.redLEDThread:
+                            self.parent.redLEDThread.event.set()
+                        self.turnedX = True
+                        print("[%s](%02d) x:%d/%d cnt:%d X-TURN" % (self.name,self.updates,rn[0],rn[1],self.noprogressx))
+                self.noprogressx += 1
             self.progressx = False
 
         # update moving area
@@ -581,34 +623,34 @@ class Track:
             #  v > 0 |          --->|
             #        |              |
             #  v < 0 |<---          |
-            #if self.updates > 4 and self.progressy == True and self.maxy-self.miny > 2*r[3] and self.crossedY == False:
+            #print("   [%s](%02d) x/y:%d/%d vy:%3.1f/%3.1f dy:%d/%d maturity: %d"
+            #        % (self.name,self.updates,r[0],r[1],-self.vv[0],-self.vv[1],dy,dx, self.maturity))
             if self.updates > self.maturity and self.progressy == True and self.crossedY == False:
                 # develope indicators
-                vx = -self.vv[0]
-                vy = -self.vv[1] # remember the velocity has wrong direction!
-                x0 = r[0]
-                y0 = r[1]
+                vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
+                x0 = r[0]; y0 = r[1]
                 y1 = r[1] + r[3]
 
                 # for low speeds take distance as indicator
-                if abs(vy) < 0.1:
+                vy_ = abs(vy)
+                if vy_ < 0.1:
                     vy = float(dy)
-
-                # this model uses a band of width == delta to detect a crossing event
-                #crossedYPositive =  vy >  0.0 and abs(y1-Track.yCross) < delta and self.miny < Track.yCross
-                #crossedYNegative =  vy <= 0.0 and abs(y0-Track.yCross) < delta and self.maxy > Track.yCross
+                if vy_ > 5:
+                    delta = int(vy_/2) + 1
 
                 # this model uses a simple >= limit to detect a crossing event
-                crossedYPositive =  vy > 0.1 and y1 >= Track.yCross and (y1 - delta ) < Track.yCross and self.miny < Track.yCross
-                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross  and self.maxy > Track.yCross
+                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross
+                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross
 
                 if crossedYPositive:
-                    print("[%s](%02d) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d CROSSED++++++++++++++++++++" % (self.name,self.updates,y1,x0,vy,vx,dy,dx))
+                    print("[%s](%02d) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d CROSSED++++++++++++++++++++"
+                        % (self.name,self.updates,y1,x0,vy,vx,dy,dx))
                     self.crossedY = True
                     self.crossed(positive=True)
 
                 if crossedYNegative:
-                    print("[%s](%02d) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d CROSSED--------------------" % (self.name,self.updates,y0,x0,vy,vx,dy,dx))
+                    print("[%s](%02d) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d CROSSED--------------------"
+                        % (self.name,self.updates,y0,x0,vy,vx,dy,dx))
                     self.crossedY = True
                     self.crossed(positive=False)
 
@@ -624,31 +666,30 @@ class Track:
 
             if self.updates > self.maturity and self.progressx == True and self.crossedX == False:
                 # develope indicators
-                vx = -self.vv[0]
-                vy = -self.vv[1] # remember the velocity has wrong direction!
-                x0 = r[0]
-                y0 = r[1]
+                vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
+                x0 = r[0]; y0 = r[1]
                 x1 = r[0] + r[2]
 
                 # for low speeds take distance as indicator
-                if abs(vx) < 0.1:
-                    vx = float(dy)
-
-                # this model uses a band of width == delta to detect a crossing event
-                #crossedYPositive =  vy >  0.0 and abs(y1-Track.yCross) < delta and self.miny < Track.yCross
-                #crossedYNegative =  vy <= 0.0 and abs(y0-Track.yCross) < delta and self.maxy > Track.yCross
+                vx_ = abs(vx)
+                if vx_ < 0.1:
+                    vx = float(dx)
+                if vx_ > 5:
+                    delta = int(vx_/2) + 1
 
                 # this model uses a simple >= limit to detect a crossing event
-                crossedXPositive =  vx > 0.1 and x1 >= Track.xCross and (x1 - delta ) < Track.xCross and self.minx < Track.xCross
-                crossedXNegative =  vx < -0.1 and x0 <= Track.xCross and (x0 + delta) > Track.xCross  and self.maxx > Track.xCross
+                crossedXPositive =  vx >  0.1 and x1 >= Track.xCross and (x1 - delta) < Track.xCross and self.minx < Track.xCross
+                crossedXNegative =  vx < -0.1 and x0 <= Track.xCross and (x0 + delta) > Track.xCross and self.maxx > Track.xCross
 
                 if crossedXPositive:
-                    print("[%s](%02d) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d CROSSED++++++++++++++++++++" % (self.name,self.updates,x1,y0,vx,vy,dx,dy))
+                    print("[%s](%02d) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d CROSSED++++++++++++++++++++"
+                        % (self.name,self.updates,x1,y0,vx,vy,dx,dy))
                     self.crossedX = True
                     self.crossed(positive=True)
 
                 if crossedXNegative:
-                    print("[%s](%02d) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d CROSSED--------------------" % (self.name,self.updates,x0,y0,vx,vy,dx,dy))
+                    print("[%s](%02d) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d CROSSED--------------------"
+                        % (self.name,self.updates,x0,y0,vx,vy,dx,dy))
                     self.crossedX = True
                     self.crossed(positive=False)
 
@@ -716,12 +757,19 @@ class Track:
         #if delta_area >= 10.0:
         #    print("delta area: %4.2f" % (delta_area))
 
-        # TODO: poor mans perspective
-        # big nearby objects may move fast
-        # far away objects may move slow
+        # poor mans perspective
+        # big nearby objects may move fast --- far away objects may move slow
         # max_dist = m*x + b
-        #max_dist = max(max(rn[2],rn[3]),Track.maxDist)
-        max_dist = max((rn[2]+rn[3]),Track.maxDist)
+        max_dist = Track.maxDist
+        fill_grade = area / Track.maxArea
+
+        if(fill_grade > 0.2):
+            m_factor = 10. if (fill_grade > 0.9) else 1.0 / (1.0 - fill_grade)
+            #- enhace distance for big objects (just an empiric estimation)
+            max_dist *= int(2.0 * m_factor)
+            #- reduce maturity for big objects
+            self.maturity = max(3,int(self.parent.trackMaturity / m_factor))
+
         vlength = 0.0
         oodir = self.old_dir
         # >>> debug
@@ -749,13 +797,6 @@ class Track:
                 if vlength <= 2.0:
                     cos_delta = 1.0
                 else:
-                    # if dx/dy are smaller than +/- 1 use vx/vy as vector
-                    # TODO: this is slow and ugly :-/
-                    #if abs(dx) + abs(dy) < 2.0:
-                    #    new_dir = np.array([vy ,vx])
-                    #    dist = hypot(vx, vy)
-                    #    vlength = dist * self.old_dist
-
                     cos_delta = np.dot(self.old_dir, new_dir) / vlength
 
                 self.old_dir  = new_dir
@@ -804,7 +845,7 @@ class Track:
                 #    dyo = oodir[1]
                 #    print("[%s](%d) delta-: (%4.2f) dx/dy: %4.2f/%4.2f dxo/dyo %4.2f/%4.2f dist: %4.2f, vlength: %4.2f" %
                 #        (self.name, self.updates,degrees(acos(cos_delta)),dx,dy,dxo,dyo,dist,vlength))
-                #print "     x:%3d->%3d, y:%3d->%3d dist: %4.2f" % (self.vv[0],vn[0], self.vv[1],vn[1],dist)
+                #print("     vx:%3d->%3d, vy:%3d->%3d dist: %4.2f" % (self.vv[0],vn[0], self.vv[1],vn[1],dist))
                 # <<< debug
                 ii = 0
         else:
@@ -838,7 +879,7 @@ class Track:
         h = 8 * r[3]
 
         pts=np.int32(self.tr[-25:]) * 8
-        cv2.polylines(vis, [pts], False, color)
+        cv2.polylines(vis, [pts], False, color,2)
 
         text = "%s(%d)" % (self.name, self.updates)
         if x > 3 and y > 3:
@@ -874,12 +915,12 @@ class Track:
 if __name__ == '__main__':
 
     from time import sleep
-    t = Track()
-    t1 = Track()
-    print("mask: %08x" % t.id)
-    t.new_track(1,[8,8,14,4],[0.0,-4.0])
-    t1.new_track(1,[1,1,4,4],[3.0,4.0])
-    t.update(2,[0,0,5,5],[3.0,4.0])
+    #t = Track()
+    #t1 = Track()
+    #print("mask: %08x" % t.id)
+    #t.new_track(1,[8,8,14,4],[0.0,-4.0])
+    #t1.new_track(1,[1,1,4,4],[3.0,4.0])
+    #t.update(2,[0,0,5,5],[3.0,4.0])
     #t.update(0x50, 3,3,5,5,3.0,4.0)
     #t.update(0xAA, 0,0,5,5,3.0,4.0)
     #t.update(0xAA, 1,1,5,4,2.0,4.0)
