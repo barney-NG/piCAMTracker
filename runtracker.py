@@ -226,7 +226,7 @@ def main(ashow=True, debug=False):
 
 
                     frame,motion = tracker.getStatus()
-                    if frame > 0:
+                    if frame != 0:
                         #t0 = time()
                         #camera.split_recording('after.h264')
                         #vstream.copy_to('before.h264',size=2147483648)
@@ -235,7 +235,6 @@ def main(ashow=True, debug=False):
                         #camera.split_recording(vstream)
                         #name = "AAA-%d.jpg" % loop
                         #camera.capture(reader, format='rgb', use_video_port=True)
-
                         writer.takeSnapshot(frame, motion)
                         tracker.releaseLock()
                         #print("capture: %4.2fms" % (1000.0 * (time() - t0)))
