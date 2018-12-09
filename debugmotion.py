@@ -17,7 +17,7 @@ motion_dtype = np.dtype([
 
 class faked_frame:
     def __init__(self, index=0):
-      self.index = index
+        self.index = index
 
 class faked_camera:
     def __init__(self, resx=1280, resy=720):
@@ -82,39 +82,40 @@ def main(fobj=None,width=1280,height=960):
     analyser.cols = cols
 
     while True:
-      buf = fobj.read(chunk_size)
-      if len(buf) == chunk_size:
-        chunks_read += 1
-	camera.frame.index = chunks_read
-	camera.analog_gain = chunks_read
-        a = np.frombuffer(buf, dtype=motion_dtype).reshape((rows,cols))
-        analyser.analyse(a)
-	frame,motion = tracker.getStatus()
-        #tracker.showTracks(chunks_read, image)
-	if frame > 0:
-	  tracker.releaseLock()
-          #show_input(image, motion)
-        cv2.imshow(caption,np.flipud(np.rot90(np.flipud(image),k=1)))
-        ch = cv2.waitKey(wtime) & 0xFF
-        if ch == ord('s'):
-            wtime ^= 1
-        if ch == ord('g'):
-            target_frame = cv_getNumber()
-            print("goto frame: %d" % target_frame)
-	    try:
-	        fobj.seek(0,0)
-	        fobj.seek(target_frame*chunk_size,0)
-		camera.frame.index = chunks_read = target_frame
-	    except:
-	        print("frame not reachable")
+        buf = fobj.read(chunk_size)
+        if len(buf) == chunk_size:
+            chunks_read += 1
+            camera.frame.index = chunks_read
+            camera.analog_gain = chunks_read
+            a = np.frombuffer(buf, dtype=motion_dtype).reshape((rows,cols))
+            analyser.analyse(a)
+            frame,motion = tracker.getStatus()
+            #tracker.showTracks(chunks_read, image)
+            if frame > 0:
+                tracker.releaseLock()
+                #show_input(image, motion)
+            cv2.imshow(caption,np.flipud(np.rot90(np.flipud(image),k=1)))
+            ch = cv2.waitKey(wtime) & 0xFF
+            if ch == ord('s'):
+                wtime ^= 1
+            if ch == ord('g'):
+                target_frame = cv_getNumber()
+                print("goto frame: %d" % target_frame)
+                try:
+                    fobj.seek(0,0)
+                    fobj.seek(target_frame*chunk_size,0)
+                    camera.frame.index = chunks_read = target_frame
+                except:
+                    print("frame not reachable")
 
-        if ch == 27:
+            if ch == 27:
+                break
+                
+            image.fill(200)
+            print(chunks_read)
+        else:
+            print("end")
             break
-        image.fill(200)
-	print(chunks_read)
-      else:
-        print("end")
-        break
       
 
 
