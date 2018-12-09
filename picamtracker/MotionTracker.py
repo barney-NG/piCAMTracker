@@ -752,7 +752,7 @@ class Track:
         fill_grade = area / Track.maxArea
 
         if(fill_grade > 0.2):
-            m_factor = 1.0 / (1.0 - fill_grade)
+            m_factor = 10. if (fill_grade > 0.9) else 1.0 / (1.0 - fill_grade)
             #- enhace distance for big objects (just an empiric estimation)
             max_dist *= int(2.0 * m_factor)
             #- reduce maturity for big objects
