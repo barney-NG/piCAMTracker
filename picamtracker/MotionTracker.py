@@ -427,7 +427,7 @@ class Track:
         self.noprogressy  = 0
         self.lastFrame = 0
         self.turnedFrame = 0
-        self.turnedRe    = [0,0,0,0]
+        self.turnedRe = [0,0,0,0]
         self.isGrowing = True
         self.cleanCrossings()
 
@@ -593,7 +593,7 @@ class Track:
 
     def turned(self, positive=False):
         if self.parent:
-            self.parent.turned(self.updates, self.turnedFrame, [self.re, self.vv, [self.minx, self.miny, self.maxx, self.maxy]], positive)
+            self.parent.turned(self.updates, self.turnedFrame, [self.turnedRe, self.vv, [self.minx, self.miny, self.maxx, self.maxy]], positive)
             
             
     #--------------------------------------------------------------------
