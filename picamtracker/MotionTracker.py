@@ -537,14 +537,12 @@ class Track:
     #-- check if object is turnung before crossing plane
     #--------------------------------------------------------------------
     def detectTurn(self, dx, dy, rn):
-        backward_maturiy = self.maturity
+        backward_maturiy = 5  #self.maturity
         
         #- check for Y-Turn    
         if Track.yCross > 0 and not (self.progressy or self.turnedY or self.crossedY):
             # develope validity near by the turn
-            if self.noprogressy == 0:
-                self.turnedFrame = self.lastFrame
-                self.turnedRe = rn
+            if self.noprogressy == 1:
                 # develope some criteria for a valid detection
                 moving_distance = (self.maxy - self.miny)
                 dy0 = self.distance[1]
@@ -564,9 +562,7 @@ class Track:
         #- check for X-Turn    
         if Track.xCross > 0 and not (self.progressx or self.turnedX or self.crossedX):
             # develope validity near by the turn
-            if self.noprogressx == 0:
-                self.turnedFrame = self.lastFrame
-                self.turnedRe = rn
+            if self.noprogressx == 1:
                 # develope some criteria for a valid detection
                 moving_distance = (self.maxx - self.minx)
                 dx0 = self.distance[0]
@@ -583,7 +579,6 @@ class Track:
                 print("[%s](%02d) x:%d/%d X-TURN"
                       % (self.name,self.updates,rn[0],rn[1]))
         
-        
     #--------------------------------------------------------------------
     #-- raise crossing handler in parent class
     #--------------------------------------------------------------------
@@ -593,7 +588,7 @@ class Track:
 
     def turned(self, positive=False):
         if self.parent:
-            self.parent.turned(self.updates, self.turnedFrame, [self.turnedRe, self.vv, [self.minx, self.miny, self.maxx, self.maxy]], positive)
+            self.parent.turned(self.updates, self.lastFrame, [self.re, self.vv, [self.minx, self.miny, self.maxx, self.maxy]], positive)
             
             
     #--------------------------------------------------------------------
