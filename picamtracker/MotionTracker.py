@@ -427,6 +427,7 @@ class Track:
         self.noprogressy  = 0
         self.lastFrame = 0
         self.turnedFrame = 0
+        self.turnedRe    = [0,0,0,0]
         self.isGrowing = True
         self.cleanCrossings()
 
@@ -540,10 +541,10 @@ class Track:
         
         #- check for Y-Turn    
         if Track.yCross > 0 and not (self.progressy or self.turnedY or self.crossedY):
-            self.noprogressy += 1
-            self.turnedFrame = self.lastFrame
             # develope validity near by the turn
-            if self.noprogressy == 1:
+            if self.noprogressy == 0:
+                self.turnedFrame = self.lastFrame
+                self.turnedRe = rn
                 # develope some criteria for a valid detection
                 moving_distance = (self.maxy - self.miny)
                 dy0 = self.distance[1]
@@ -553,6 +554,7 @@ class Track:
                 #print("[%s](%d) dy: %d, md: %d rel: %4.2f<%4.2f?" % (self.name, self.updates, dy0, moving_distance, rel, abs(dy0)/moving_distance))
             
             # track needs some maturity to have a turn detected
+            self.noprogressy += 1
             if self.noprogressy > backward_maturiy and self.diryOK and self.distyOK:
                 self.turned()
                 self.turnedY = True
@@ -561,10 +563,10 @@ class Track:
         
         #- check for X-Turn    
         if Track.xCross > 0 and not (self.progressx or self.turnedX or self.crossedX):
-            self.turnedFrame = self.lastFrame
-            self.noprogressx += 1
             # develope validity near by the turn
-            if self.noprogressx == 1:
+            if self.noprogressx == 0:
+                self.turnedFrame = self.lastFrame
+                self.turnedRe = rn
                 # develope some criteria for a valid detection
                 moving_distance = (self.maxx - self.minx)
                 dx0 = self.distance[0]
@@ -574,6 +576,7 @@ class Track:
                 #print("[%s](%d) dy: %d, md: %d rel: %4.2f<%4.2f?" % (self.name, self.updates, dx0, moving_distance, rel, abs(dx0)/moving_distance))
             
             # track needs some maturity to have a turn detected
+            self.noprogressx += 1
             if self.noprogressx > backward_maturiy and self.dirxOK and self.distxOK:
                 self.turned()
                 self.turnedX = True
