@@ -114,17 +114,17 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         extend = 3
         append = True
         #print("=====")
-        #print("new: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xn,yn,xn+wn,yn+hn))
+        #print("new: x1/y1: %2d/%2d, x2/y2: %2d/%2d  w/h %d/%d" % (xn,yn,xn+wn,yn+hn,wn,hn))
         #- Loop through all existing rects
         for xo,yo,wo,ho in rects:
-            #print("old: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xo,yo,xo+wo,yo+ho))
+            #print("  old: x1/y1: %2d/%2d, x2/y2: %2d/%2d w/h: %d/%d" % (xo,yo,xo+wo,yo+ho,wo,ho))
             # full intersection (new isin old)
             if xn >= xo and xn+wn <= xo+wo and yn >= yo and yn+hn <= yo+ho:
                 #print("new in old")
                 return rects
             # full intersection (old isin new)
             if xo > xn and xo+wo <= xn+wn and yo > yn and yo+ho <= yn+hn:
-                #print("old in new delete old")
+                #print("  old in new delete old")
                 rects.pop(i)
                 i += 1
                 #append = False
@@ -138,7 +138,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             y2nn  = min(yn+hn+extend,self.rows)
 
             if xo > x1nn and xo+wo <= x2nn and yo > y1nn and yo+ho <= y2nn:
-                #print("old in extended new")
+                #print("  old in extended new")
                 xint = yint = True
             else:
                 # find x range
@@ -160,7 +160,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 ymin = min(yo,yn)
                 ymax = max(yo+ho,yn+hn)
                 rects[i] = [xmin,ymin,xmax-xmin,ymax-ymin]
-                #print("joi: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xmin,ymin,xmax,ymax))
+                #print("  joi: x1/y1: %2d/%2d, x2/y2: %2d/%2d w/h: %d/%d" % (xmin,ymin,xmax,ymax,(xmax-xmin),(ymax-ymin)))
                 append = False
 
             #- continue searching for intersections
@@ -182,15 +182,25 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             return w*h
 
         rects = []
-        for cnt in sorted(contours, key=bySize, reverse=True):
+        #for cnt in sorted(contours, key=bySize, reverse=True):
+        for cnt in sorted(contours, key=bySize):
             x,y,w,h = cv2.boundingRect(cnt)
 
             if len(rects) > 0:
                 rects = self.intersects(rects,x,y,w,h)
             else:
                 rects.append([x,y,w,h])
-
-        return rects
+        
+        if len(rects) > 1:
+            rects1 = []
+            for r in rects:
+                if len(rects1) > 0:
+                    rects = self.intersects(rects1,r[0],r[1],r[2],r[3])
+                else:
+                    rects1.append(r)                
+            return rects1
+        else:
+            return rects
 
     def debug_button(self, source):
         self.set_debug(15)
@@ -392,7 +402,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                     x0 = 8*x; y0 = 8*y; x1 = 8*(x+w); y1 = 8*(y+h)
                     cv2.rectangle(self.big,(x0,y0),(x1,y1),(255,255,255),2)
                     rect_txt = "%d,%d,%d,%d" % (x,y,x+w,y+h)
-                    cv2.putText(self.big, rect_txt, (x0,y0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 2)
+                    cv2.putText(self.big, rect_txt, (x0,y0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
                 for x,y,w,h in rects:
                     x0 = 8*x; y0 = 8*y; x1 = 8*(x+w); y1 = 8*(y+h)
                     cv2.rectangle(self.big,(x0,y0),(x1,y1),(0,0,0),1)

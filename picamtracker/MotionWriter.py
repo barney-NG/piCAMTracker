@@ -181,8 +181,14 @@ class Writer(threading.Thread):
                     if self.xcross > 0:
                         cv2.line(image,(int(self.xcross),0),(int(self.xcross),self.resy),(0,0,0),1)
 
-                    cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(200,200,200),1)
-                    cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
+                    if framenb < 0:
+                        framenb = -framenb
+                        #cv2.rectangle(image,(x0,y0),(x1,y1),(20,20,220),1)
+                        cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(20,20,220),1)
+                    else:
+                        cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
+                        cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(200,200,200),1)
+                        
                     txt = "%d" % (framenb/2)
                     cv2.putText(image,txt,(int(x0), int(y0)),cv2.FONT_HERSHEY_SIMPLEX,0.5,(20,220,20),1)
                     xm = int((x1+x0) / 2)
@@ -225,6 +231,11 @@ class Writer(threading.Thread):
         sleep(0.05) # wait for keyframe is written in circular buffer
         record = False
         i_size = 0
+        isCut = False
+        if framenb < 0:
+            framenb = -framenb
+            isCut = True
+            
         # lock stream by reading it
         for frame in reversed(self.stream.frames):
             index = frame.index
@@ -248,6 +259,8 @@ class Writer(threading.Thread):
                 self.stream.seek(pos)
                 with self.lock:
                     self.frame2decode = self.stream.read(szs)
+                    if isCut:
+                        framenb = -framenb
                     self.update_hits(framenb, motion)
                 self.stream.seek(save_pos)
                 break
