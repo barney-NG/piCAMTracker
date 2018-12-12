@@ -13,3 +13,4 @@ Thank you to all who gave input and ideas to improve the concepts, the hardware 
 * Gorazd Pisanec
 * Gregor Harih
 * Alexander Hall
+* Josef Wikliky
