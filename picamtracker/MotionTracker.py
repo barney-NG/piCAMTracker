@@ -423,11 +423,11 @@ class Track:
         self.maturity = self.parent.trackMaturity
         self.progressx = False
         self.progressy = False
+        self.deltaX = 0
+        self.deltaY = 0
         self.noprogressx  = 0
         self.noprogressy  = 0
         self.lastFrame = 0
-        self.turnedFrame = 0
-        self.turnedRe = [0,0,0,0]
         self.isGrowing = True
         self.cleanCrossings()
 
@@ -483,22 +483,39 @@ class Track:
 
         return self.id
 
-    #--------------------------------------------------------------------
-    #-- get average direction of last n moves
-    #--------------------------------------------------------------------
-    def avgDir(self, moves=3):
-        dx = dy = 0.0
-        l = len(self.tr)
-        if moves >= l:
-           moves = l-1
-        if moves <= 0:
-            return np.zeros(2)
+    def checkStartingConditions(self):
+        """
+        check conditions at point #3
+        """
+        
+        if self.updates >= 3:
+            
+            if Track.xCross > 0:
+                x0 = self.tr[0][0]
+                x1 = self.tr[2][0]
+                xc = Track.maxX / 2
+                #- if the first occurence is right from center movement must be negative
+                if x0 >= xc and (x1-x0) <= 0:
+                    return True
+                #- if the first occurence is left from center movement must be positive
+                if x0 < xc and (x1-x0) >= 0:
+                    return True
+            
+            if Track.yCross > 0:
+                y0 = self.tr[0][1]
+                y1 = self.tr[2][1]
+                yc = Track.maxY / 2
+                #- if the first occurence is above center movement must be negative
+                if y0 >= yc and (y1-y0) <= 0:
+                    return True
+                #- if the first occurence is below center movement must be positive
+                if y0 < yc and (y1-y0) >= 0:
+                    return True
+                
+                #print("[%s](%d) start failed: y0: %d dy: %d" % (self.name, self.updates, y0, (y1-y0)))
 
-        for n in range(-moves,0):
-            dx += self.tr[n-1][0] - self.tr[n][0]
-            dy += self.tr[n-1][1] - self.tr[n][1]
-
-        return np.array([dx/float(moves),dy/float(moves)])
+        return False    
+            
 
     #--------------------------------------------------------------------
     #-- update growing status
@@ -514,6 +531,7 @@ class Track:
         # update progress indicators in y direction
         if maxy > self.maxy or miny < self.miny:
             self.progressy = True
+            self.deltaY = maxy - miny
             self.noprogressy = 0
         else:
             self.progressy = False
@@ -521,6 +539,7 @@ class Track:
         # update progress indicators in x direction
         if maxx > self.maxx or minx < self.minx:
             self.progressx = True
+            self.deltaX = maxx - minx
             self.noprogressx = 0
         else:
             self.progressx = False
@@ -530,7 +549,7 @@ class Track:
         self.maxy = maxy
         self.minx = minx
         self.miny = miny
-
+        
         self.isGrowing =  self.progressx or self.progressy
 
     #--------------------------------------------------------------------
@@ -538,18 +557,21 @@ class Track:
     #--------------------------------------------------------------------
     def detectTurn(self, dx, dy, rn):
         backward_maturiy = 5  #self.maturity
+        dmin = 10
+        checkDist = 5
         
         #- check for Y-Turn    
-        if Track.yCross > 0 and not (self.progressy or self.turnedY or self.crossedY):
+        if Track.yCross > 0 and not (self.progressy or self.deltaY<dmin or self.turnedY or self.crossedY):
             # develope validity near by the turn
             if self.noprogressy == 1:
                 # develope some criteria for a valid detection
-                moving_distance = (self.maxy - self.miny)
                 dy0 = self.distance[1]
-                rel = -0.67 * (rn[3] /  moving_distance) + 0.9
-                self.diryOK = (dy0 < 0 and self.miny > Track.yCross) or (dy0 > 0 and self.maxy < Track.yCross)
-                self.distyOK = abs(dy0) > rel * moving_distance
-                #print("[%s](%d) dy: %d, md: %d rel: %4.2f<%4.2f?" % (self.name, self.updates, dy0, moving_distance, rel, abs(dy0)/moving_distance))
+                rel = -0.67 * (rn[3] /  self.deltaY) + 0.9
+                self.diryOK = (dy0 < 0 and self.miny > Track.yCross and abs(self.miny-Track.yCross) < checkDist) or \
+                              (dy0 > 0 and self.maxy < Track.yCross and abs(Track.yCross-self.maxy) < checkDist)
+                self.distyOK = abs(dy0) > rel * self.deltaY
+                #dist = (Track.yCross-self.maxy) if dy > 0 else (self.miny-Track.yCross)
+                #print("[%s](%d) dy: %d, md: %d rel: %4.2f<%4.2f? dist: %d" % (self.name, self.updates, dy0, self.deltaY, rel, abs(dy0)/self.deltaY, dist))
             
             # track needs some maturity to have a turn detected
             self.noprogressy += 1
@@ -560,16 +582,16 @@ class Track:
                       % (self.name,self.updates,rn[1],rn[0]))
         
         #- check for X-Turn    
-        if Track.xCross > 0 and not (self.progressx or self.turnedX or self.crossedX):
+        if Track.xCross > 0 and not (self.progressx or self.deltaX<dmin or self.turnedX or self.crossedX):
             # develope validity near by the turn
             if self.noprogressx == 1:
                 # develope some criteria for a valid detection
-                moving_distance = (self.maxx - self.minx)
                 dx0 = self.distance[0]
-                rel = -0.67 * (rn[2] /  moving_distance) + 0.9
-                self.dirxOK = (dx0 < 0 and self.minx > Track.xCross) or (dx0 > 0 and self.maxx < Track.xCross)
-                self.distxOK = abs(dx0) > rel * moving_distance
-                #print("[%s](%d) dy: %d, md: %d rel: %4.2f<%4.2f?" % (self.name, self.updates, dx0, moving_distance, rel, abs(dx0)/moving_distance))
+                rel = -0.67 * (rn[2] /  self.deltaX) + 0.9
+                self.dirxOK = (dx0 < 0 and self.minx > Track.xCross and abs(self.minx-Track.xCross) < checkDist) or \
+                              (dx0 > 0 and self.maxx < Track.xCross and abs(Track.xCross-self.maxx) < checkDist)
+                self.distxOK = abs(dx0) > rel * self.deltaX
+                #print("[%s](%d) dy: %d, md: %d rel: %4.2f<%4.2f?" % (self.name, self.updates, dx0, self.deltaX, rel, abs(dx0)/self.deltaX))
             
             # track needs some maturity to have a turn detected
             self.noprogressx += 1
@@ -609,7 +631,7 @@ class Track:
             #  v < 0 |<---          |
             #print("   [%s](%02d) x/y:%d/%d vy:%3.1f/%3.1f dy:%d/%d maturity: %d"
             #        % (self.name,self.updates,r[0],r[1],-self.vv[0],-self.vv[1],dy,dx, self.maturity))
-            if self.updates > self.maturity and self.progressy == True and self.crossedY == False:
+            if self.updates >= self.maturity and self.progressy == True and self.crossedY == False:
                 # develope indicators
                 vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
                 x0 = r[0]; y0 = r[1]
@@ -623,18 +645,18 @@ class Track:
                     delta = int(vy_/2) + 1
 
                 # this model uses a simple >= limit to detect a crossing event
-                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross #and self.distyOK
-                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross #and self.distyOK
+                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and self.deltaY > self.maturity and self.distance[1] / self.deltaY > 0.4
+                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and self.deltaY > self.maturity and -self.distance[1] / self.deltaY > 0.4
 
                 if crossedYPositive:
-                    print("[%s](%02d) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d CROSSED++++++++++++++++++++"
-                        % (self.name,self.updates,y1,x0,vy,vx,dy,dx))
+                    print("[%s](%02d/%d) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d delta:%d dist:%d Y-CROSSED++++++++++++++++++++"
+                        % (self.name,self.updates,self.lastFrame,y1,x0,vy,vx,dy,dx,self.deltaY,self.distance[1]))
                     self.crossedY = True
                     self.crossed(positive=True)
 
                 if crossedYNegative:
-                    print("[%s](%02d) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d CROSSED--------------------"
-                        % (self.name,self.updates,y0,x0,vy,vx,dy,dx))
+                    print("[%s](%02d/%d) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d delta:%d dist:%d Y-CROSSED--------------------"
+                        % (self.name,self.updates,self.lastFrame,y0,x0,vy,vx,dy,dx,self.deltaY,self.distance[1]))
                     self.crossedY = True
                     self.crossed(positive=False)
 
@@ -648,7 +670,7 @@ class Track:
             #        |              |
             #  v < 0 |<---          |
 
-            if self.updates > self.maturity and self.progressx == True and self.crossedX == False:
+            if self.updates >= self.maturity and self.progressx == True and self.crossedX == False:
                 # develope indicators
                 vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
                 x0 = r[0]; y0 = r[1]
@@ -662,17 +684,17 @@ class Track:
                     delta = int(vx_/2) + 1
 
                 # this model uses a simple >= limit to detect a crossing event
-                crossedXPositive =  vx >  0.1 and x1 >= Track.xCross and (x1 - delta) < Track.xCross and self.minx < Track.xCross
-                crossedXNegative =  vx < -0.1 and x0 <= Track.xCross and (x0 + delta) > Track.xCross and self.maxx > Track.xCross
+                crossedXPositive =  vx >  0.1 and x1 >= Track.xCross and (x1 - delta) < Track.xCross and self.minx < Track.xCross and self.deltaX > self.maturity
+                crossedXNegative =  vx < -0.1 and x0 <= Track.xCross and (x0 + delta) > Track.xCross and self.maxx > Track.xCross and self.deltaX > self.maturity
 
                 if crossedXPositive:
-                    print("[%s](%02d) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d CROSSED++++++++++++++++++++"
+                    print("[%s](%02d) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED++++++++++++++++++++"
                         % (self.name,self.updates,x1,y0,vx,vy,dx,dy))
                     self.crossedX = True
                     self.crossed(positive=True)
 
                 if crossedXNegative:
-                    print("[%s](%02d) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d CROSSED--------------------"
+                    print("[%s](%02d) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED--------------------"
                         % (self.name,self.updates,x0,y0,vx,vy,dx,dy))
                     self.crossedX = True
                     self.crossed(positive=False)
@@ -811,6 +833,12 @@ class Track:
                 if(len(self.tr) > 24):
                     del self.tr[0]
 
+                #- stop investigation if object is moving in the wrong direction
+                if self.updates == 3:
+                    if not self.checkStartingConditions():
+                        self.reset()
+                        return self.id
+                    
                 #- is the coverered area still growing?
                 self.updateGrowingStatus(rn)
 
@@ -818,7 +846,8 @@ class Track:
                 if self.isLeaving(dx,dy):
                     self.reset()
                     return self.id
-
+                    
+                
                 # crossing status
                 self.detectCrossing(dx,dy,rn)
 
