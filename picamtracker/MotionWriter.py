@@ -186,8 +186,8 @@ class Writer(threading.Thread):
                         #cv2.rectangle(image,(x0,y0),(x1,y1),(20,20,220),1)
                         cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(20,20,220),1)
                     else:
-                        cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
                         cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(200,200,200),1)
+                        cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
                         
                     txt = "%d" % (framenb/2)
                     cv2.putText(image,txt,(int(x0), int(y0)),cv2.FONT_HERSHEY_SIMPLEX,0.5,(20,220,20),1)
