@@ -21,10 +21,10 @@ Currently this is an alpha release.
   * If you want to follow up more far away objects (F3B speed for example) the newer V2 camera is the better choice.
   * To improve nearby crossing detection the camera should be mounted straight. (Not in 90 degrees as used before)
     * Crossing is now in X direction (viewAngle: 0, xCross: 40, yCross: -1)  
-* V1 camera from Waveshare (module G); 1280x960 pixels, 42 f/s; full FOV; 256MB GPU memory
-  * Mode 5 (1280x720p, 49 f/s) does not center the frames horizontally
-* V2 camera with standard lens; 1632x896, 40 f/s; full FOV; 256MB GPU memory.
-  * 1280x720p, 62 f/s (FOV is very small)
+* V1 camera from Waveshare with fisheye lens (module G); 1280x960 pixels, 42 f/s; full FOV; 192MB GPU memory
+  * Mode 5 (1280x720p @ 49 f/s) does not center the frames horizontally
+* V2 camera with standard lens; 1632x896, 40 f/s; full FOV; 192MB GPU memory.
+  * 1280x720p @ 62 f/s (FOV is very small)
   * In general the V2 camera needs more light than the V1 with the fisheye
 * In stormy conditions you need to fix the camera very well. Otherwise a lot of wrong positives are genenrated.
 * The new Raspberry Pi 3 Model B Plus is working. (Speed is not improved)
