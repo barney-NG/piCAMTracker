@@ -186,6 +186,7 @@ class Tracker(threading.Thread):
             motion = [[10,10,10,10],[1,1],[9,9,11,11]]
             frame = self.camera.frame.index
             self.crossed(99,frame,motion)
+            echo ("Test button")
 
     #--------------------------------------------------------------------
     #-- release lock

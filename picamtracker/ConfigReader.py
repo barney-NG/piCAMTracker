@@ -46,6 +46,7 @@ default_config = \
     "resetInputPort": 26,
     "switchLeftPort": 12,
     "switchRightPort": 16,
+    "testInputPort": 5,
     "greenLEDPort": 17,
     "redLEDPort": 27,
     "statusLEDPort": 23,

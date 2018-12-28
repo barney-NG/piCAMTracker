@@ -106,6 +106,7 @@ def main(ashow=True, debug=False):
             # 1280x720 has a bug. (wrong center value)
             resx = 1280
             resy = 960
+#            resy = 720
             fps  = 42
             mode = 4
         elif revision == 'IMX219':
@@ -225,6 +226,9 @@ def main(ashow=True, debug=False):
             configEvent() 
         if config.conf['resetInputPort']:
             picamtracker.GPIOPort.addCallback(config.conf['resetInputPort'], tracker.resetEvent, closing=False)
+        if config.conf['testInputPort']:
+            picamtracker.GPIOPort.addCallback(config.conf['testInputPort'], tracker.testCrossing)
+            print("Test configured")
 
         writer = picamtracker.Writer(camera, stream=vstream, config=config)
         cmds = picamtracker.CommandInterface(config=config)
@@ -247,7 +251,7 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_sadThreshold, 'sadThreshold')
             cmds.subscribe(output.set_debug, 'debug')
             if config.conf['debugInputPort']:
-                picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)
+                picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)           
             try:
                 while True:
                     global temp
