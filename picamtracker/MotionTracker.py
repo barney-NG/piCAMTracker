@@ -185,7 +185,11 @@ class Tracker(threading.Thread):
         if value > 0:
             motion = [[10,10,10,10],[1,1],[9,9,11,11]]
             frame = self.camera.frame.index
-            self.crossed(99,frame,motion)
+            self.onCourse = True
+            if not self.positionLeft:
+                self.crossed(99,frame,motion,positive_direction=True)
+            else:
+                self.crossed(99,frame,motion, positive_direction=False)
             echo ("Test button")
 
     #--------------------------------------------------------------------
