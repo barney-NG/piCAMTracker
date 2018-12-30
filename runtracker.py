@@ -106,7 +106,6 @@ def main(ashow=True, debug=False):
             # 1280x720 has a bug. (wrong center value)
             resx = 1280
             resy = 960
-#            resy = 720
             fps  = 42
             mode = 4
         elif revision == 'IMX219':
