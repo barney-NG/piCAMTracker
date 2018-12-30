@@ -5,6 +5,7 @@
  "resetInputPort": 19, 
  "switchLeftPort": 12, 
  "switchRightPort": 16, 
+ "testInputPort": 5, 
  "greenLEDPort": 21, 
  "ledActiveLow": true, 
  "maxArea": 5000, 

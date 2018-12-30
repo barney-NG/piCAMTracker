@@ -70,7 +70,7 @@ def get_temp():
 #-- Any change of these ports will throw this event
 #--------------------------------------------------------------------
 def configEvent(self=True):
-    global tracker
+#    global tracker		# Error message will come up if switch is in LEFT position if this line is active. Why? Not understood...
 
     if picamtracker.GPIOPort.portIsActivated(config.conf['switchLeftPort']) and picamtracker.GPIOPort.portIsActivated(config.conf['switchRightPort']):
         tracker.setTrainingMode()
@@ -228,7 +228,6 @@ def main(ashow=True, debug=False):
             picamtracker.GPIOPort.addCallback(config.conf['resetInputPort'], tracker.resetEvent, closing=False)
         if config.conf['testInputPort']:
             picamtracker.GPIOPort.addCallback(config.conf['testInputPort'], tracker.testCrossing)
-            print("Test configured")
 
         writer = picamtracker.Writer(camera, stream=vstream, config=config)
         cmds = picamtracker.CommandInterface(config=config)
@@ -251,7 +250,7 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_sadThreshold, 'sadThreshold')
             cmds.subscribe(output.set_debug, 'debug')
             if config.conf['debugInputPort']:
-                picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)           
+                picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button) 
             try:
                 while True:
                     global temp
