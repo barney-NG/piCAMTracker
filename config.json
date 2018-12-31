@@ -6,7 +6,7 @@
  "switchLeftPort": 12, 
  "switchRightPort": 16, 
  "testInputPort": 5, 
- "greenLEDPort": 21, 
+ "greenLEDPort": 17, 
  "ledActiveLow": true, 
  "maxArea": 5000, 
  "maxDist": 6, 
@@ -44,5 +44,5 @@
  "baseA": false,
  "modeA": 1,
  "raceMode": false,
- "selectRaceModeAndPositionWithSwitch": false
+ "selectRaceModeAndPositionWithSwitch": true
 }
