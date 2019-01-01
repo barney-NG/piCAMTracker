@@ -250,23 +250,19 @@ class Tracker(threading.Thread):
             self.locked = True
             self.camera.request_key_frame()
            
-            if not self.baseA:
-                # Tracker is base B
-                if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
-                    if self.greenLEDThread:
-                        self.greenLEDThread.event.set()
-                if (not self.raceMode):
-                    # Double signal in training mode
-                    if ((not self.positionLeft) and (not positive_direction)) or (self.positionLeft and positive_direction):
+            if (not self.raceMode):
+                # Just pass through all signals in training mode
+                if self.greenLEDThread:
+                    self.greenLEDThread.event.set()
+            else:
+                if not self.baseA:
+                    # Tracker is base B in race mode
+                    # Pass events matching configured direction only
+                    if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
                         if self.greenLEDThread:
                             self.greenLEDThread.event.set()
-            else:
-                # Tracker is base A
-                if (not self.raceMode):
-                    # Just pass through all signals in training mode
-                    if self.greenLEDThread:
-                        self.greenLEDThread.event.set()
                 else:
+                    # Tracker is base A in race mode
                     if self.onCourse:
                         # Standard procedure, same as base B (could be merged with above code for base B)
                         if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
