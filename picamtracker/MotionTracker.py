@@ -262,31 +262,36 @@ class Tracker(threading.Thread):
                             self.greenLEDThread.event.set()
             else:
                 # Tracker is base A
-                if self.onCourse:
-                    # Standard procedure, same as base B (could be merged with above code for base B)
-                    if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
-                        if self.greenLEDThread:
-                            self.greenLEDThread.event.set()
-                else: 
-                    # Detect first out of course
-                    if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
-                        if (self.modeA == 0):
+                if (not self.raceMode):
+                    # Just pass through all signals in training mode
+                    if self.greenLEDThread:
+                        self.greenLEDThread.event.set()
+                else:
+                    if self.onCourse:
+                        # Standard procedure, same as base B (could be merged with above code for base B)
+                        if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
                             if self.greenLEDThread:
                                 self.greenLEDThread.event.set()
-                        elif (self.modeA == 1):
-                            if self.yellowLEDThread:
-                                self.yellowLEDThread.event.set()
-                        if self.raceMode:
-                            print("Out of course")
-                    # Detect first in course
-                    if ((not self.positionLeft) and (not positive_direction)) or (self.positionLeft and positive_direction):
-                        if self.greenLEDThread:
-                            self.greenLEDThread.event.set()
+                    else: 
+                        # Detect first out of course
+                        if ((not self.positionLeft) and positive_direction) or (self.positionLeft and (not positive_direction)):
+                            if (self.modeA == 0):
+                                if self.greenLEDThread:
+                                    self.greenLEDThread.event.set()
+                            elif (self.modeA == 1):
+                                if self.yellowLEDThread:
+                                    self.yellowLEDThread.event.set()
                             if self.raceMode:
-                                self.onCourse = True
-                                print("In course")
-                            else:
-                                self.onCourse = False
+                                print("Out of course")
+                        # Detect first in course
+                        if ((not self.positionLeft) and (not positive_direction)) or (self.positionLeft and positive_direction):
+                            if self.greenLEDThread:
+                                self.greenLEDThread.event.set()
+                                if self.raceMode:
+                                    self.onCourse = True
+                                    print("In course")
+                                else:
+                                    self.onCourse = False
             self.updates  = updates
             self.frame  = frame
             self.motion = motion
