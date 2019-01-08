@@ -19,7 +19,6 @@
  "previewW": 640,
  "previewX": 50,
  "previewY": 80,
- "pulseMode": false,
  "quitAppByGPIO": false,
  "redLEDPort": 27,
  "sadThreshold": 0,

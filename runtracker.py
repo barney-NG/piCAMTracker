@@ -125,12 +125,10 @@ def main(ashow=True, debug=False):
         greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
             is_active_low=config.conf['ledActiveLow'],
             duration=config.conf['signalLength'],
-            start_blinks=3,
-            pulses_only=config.conf['pulseMode'])
+            start_blinks=3)
         redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'],
             duration=config.conf['signalLength'],
-            is_active_low=config.conf['ledActiveLow'],
-            pulses_only=config.conf['pulseMode'])
+            is_active_low=config.conf['ledActiveLow'])
         sleep(1.0)
         print("...start")
         picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=True)

@@ -46,7 +46,6 @@ default_config = \
     "greenLEDPort": 17,
     "redLEDPort": 27,
     "statusLEDPort": 23,
-    "pulseMode": False,
     "ledActiveLow": False,
     "signalLength": 300.0,
     "quitAppByGPIO": False,
