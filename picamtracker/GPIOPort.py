@@ -14,7 +14,7 @@ def statusLED(port, on=True):
     else:
         GPIO.output(port,GPIO.LOW)
 
-    
+
 def addCallback(port, fctn, falling=True):
     """
     add a callback function to a falling or raising edge of a port
@@ -28,11 +28,11 @@ def addCallback(port, fctn, falling=True):
     else:
         GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
         GPIO.add_event_detect(port, GPIO.RISING, callback=fctn, bouncetime=500)
-    
+
 
 
 class gpioPort(threading.Thread):
-    def __init__(self, port, duration=200., is_active_low=False, start_blinks=0):
+    def __init__(self, port, duration=200., is_active_low=False, start_blinks=0, pulses_only=False):
         super(gpioPort, self).__init__()
         self.terminated = False
         self.duration   = duration
@@ -40,6 +40,7 @@ class gpioPort(threading.Thread):
         self.port       = port
         self.activate   = GPIO.HIGH
         self.deactivate = GPIO.LOW
+        self.pulses     = pulses_only
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.port,GPIO.OUT)
@@ -60,10 +61,16 @@ class gpioPort(threading.Thread):
     def blink(self, numbers):
         for i in range(0,numbers):
             GPIO.output(self.port,self.activate)
+            # Bravo t868 needs the first falling edge to toggle signal on receiver
+            if self.pulses:
+                GPIO.output(self.port,self.deactivate)
             sleep(self.duration/1000.0)
+            # Bravo t868 needs the second falling edge to disable the signal again.
+            if self.pulses:
+                GPIO.output(self.port,self.activate)
             GPIO.output(self.port,self.deactivate)
             sleep(self.duration/1000.0)
-      
+
     def check(self, value):
         self.event.set()
 
@@ -103,4 +110,3 @@ if __name__ == '__main__':
 
     statusLED(23,on=False)
     GPIO.cleanup()
-
