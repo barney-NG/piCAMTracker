@@ -6,7 +6,7 @@
  "greenLEDPort": 17,
  "ledActiveLow": false,
  "maxArea": 5000,
- "maxDist": 6,
+ "maxDist": 8,
  "maxSnapshots": 100,
  "maxTracks": 16,
  "minArea": 1,

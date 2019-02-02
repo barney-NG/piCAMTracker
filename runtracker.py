@@ -95,7 +95,7 @@ def main(ashow=True, debug=False):
             # V2 module
             resx = 1632
             resy = 896
-            fps  = 40
+            fps  = 30
             mode = 5
         else:
             raise ValueError('Unknown camera device')
@@ -197,6 +197,7 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_minArea, 'minArea')
             cmds.subscribe(output.set_sadThreshold, 'sadThreshold')
             cmds.subscribe(output.set_debug, 'debug')
+            cmds.subscribe(output.set_baseB, 'baseB')
             if config.conf['debugInputPort']:
                 picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)
 

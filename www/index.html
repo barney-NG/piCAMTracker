@@ -95,164 +95,167 @@ function mjpeg_start()
 </script>
 <style>
 #centered {
-	width:  960;
-	height: 1280;
-	margin: 0px auto;
-	border: 1px solid grey;
+        width:  960;
+        height: 1280;
+        margin: 0px auto;
+        border: 1px solid grey;
 }
 </style>
 
 
 <html>
 <head>
-	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-	<meta name="apple-touch-fullscreen" content="yes">
-	<!--<meta name="viewport" content="width=448, initial-scale=1"/>-->
-	<meta name="viewport" content="width=device-width, initial-scale=0.68">
-	<meta name="format-detection" content="telephone=no">
-	<title>Fxx Crossing Detection</title>
-	<link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css"/>
-	<!-- link rel="icon" sizes="128x128" href="favicon.icns"/ -->
-	<script src="js/jquery-2.2.0.min.js"></script>
-	<script src="js/jquery.mobile-1.4.5.min.js"></script>
-	<!--<script src="js/awesome-websocket.js"></script>-->
-	<!-- this awsome page originally comes from fcd (C) Juergen Burghardt -->
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-touch-fullscreen" content="yes">
+        <!--<meta name="viewport" content="width=448, initial-scale=1"/>-->
+        <meta name="viewport" content="width=device-width, initial-scale=0.68">
+        <meta name="format-detection" content="telephone=no">
+        <title>Fxx Crossing Detection</title>
+        <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css"/>
+        <!-- link rel="icon" sizes="128x128" href="favicon.icns"/ -->
+        <script src="js/jquery-2.2.0.min.js"></script>
+        <script src="js/jquery.mobile-1.4.5.min.js"></script>
+        <!--<script src="js/awesome-websocket.js"></script>-->
+        <!-- this awsome page originally comes from fcd (C) Juergen Burghardt -->
 </head>
 
 <body onload="mjpeg_start();">
-	<!-- Start of first page -->
-	<div data-role="page" id="page1" data-theme='b'>
-		<div style="min-height: 30px"></div>
-		<div data-role="header">
-			<div class="led-green" id="ledG1"></div>
-			<div class="led-red"   id="ledR1"></div>
-			<div class="led-blue"  id="ledB1"></div>
-			<h1>Configuration</h1>
-			<a href="#page2" data-transition="flip" class="ui-btn-right">Crossing</a>
-			<a href="#page3" data-transition="flip" class="ui-btn-left">Params</a>
-		</div><!-- /header -->
-		<div role="main" class="ui-content">
-			<div style="min-height: 10px"></div>
-			<!--div style="min-height: 60px"></div-->
-      <div style="float: left">
-			  <input type="submit" id = "test" value="Test Crossing Beep" onclick="fifo_command('testBeep:',1) ;">
-      </div>
-      <div style="float: right">
-			  <input type="submit" id = "debug" value="Start Debugging (30s)" onclick="fifo_command('debug:',30) ;">
-      </div>
-			<div style="min-height: 10px"></div>
-			<div data-role="fieldcontain">
-  			<form>
-    			<fieldset data-role="controlgroup" data-type="vertical">
-  	        <legend>Command (Not yet enabled)</legend>
-  	        <input type="radio" name="rbCmd" id="normal" value="3" checked="checked" onclick="submitCmd();">
-  	        <label for="normal">Normal Training</label>
-  	        <input type="radio" name="rbCmd" id="stream" value="4" onclick="submitCmd();">
-  	        <label for="stream">Stream Video</label>
-  	        <input type="radio" name="rbCmd" id="record" value="5" onclick="submitCmd();">
-  	        <label for="record">Record Video</label>
-  	        <input type="radio" name="rbCmd" id="replay" value="6" onclick="submitCmd();">
-  	        <label for="replay">Replay Raw Video (no beep!)</label>
-            <!--<input type="radio" name="rbCmd" id="recmpeg" value="7" onclick="submitCmd();">
-  	        <label for="recmpeg">Record MPEG Video (no beep!)</label>
-  	        <input type="radio" name="rbCmd" id="repmpeg" value="8" onclick="submitCmd();">
-  	        <label for="repmpeg">Replay MPEG Video (no beep!)</label> -->
-    				<input type="radio" name="rbCmd" id="psave" value="9" onclick="submitCmd();">
-  	        <label for="psave">Sleep Mode (no beep!)</label>
-    			</fieldset>
-  			</form>
-			</div>
-      <div style="min-height: 20px"></div>
-	    <div data-role="fieldcontain">
-        <label for="txt2">Video File:</label>
-        <input type="text" name="text" id="txt2" value="">
-	    </div>
-		</div><!-- /content -->
-	</div><!-- /page -->
+        <!-- Start of first page -->
+        <div data-role="page" id="page1" data-theme='b'>
+                <div style="min-height: 30px"></div>
+                <div data-role="header">
+                        <div class="led-green" id="ledG1"></div>
+                        <div class="led-red"   id="ledR1"></div>
+                        <div class="led-blue"  id="ledB1"></div>
+                        <h1>Configuration</h1>
+                        <a href="#page2" data-transition="flip" class="ui-btn-right">Crossing</a>
+                        <a href="#page3" data-transition="flip" class="ui-btn-left">Params</a>
+                </div><!-- /header -->
+                <div role="main" class="ui-content">
+                        <div style="min-height: 10px"></div>
+                        <!--div style="min-height: 60px"></div-->
+                        <div style="float: left">
+                          <input type="submit" id = "test" value="Test Crossing Beep" onclick="fifo_command('testBeep:',1) ;">
+                        </div>
+                        <div style="float: right">
+                          <input type="submit" id = "debug" value="Start Debugging (30s)" onclick="fifo_command('debug:',30) ;">
+                        </div> 
+			<div style="min-height: 20px"></div> 
+                        <div data-role="fieldcontain"> 
+			    <form> 
+				<fieldset data-role="controlgroup" data-type="vertical">
+				    <legend>Plane from:</legend>
+				    <input type="radio" name="baseB" id="both" value="0" checked="checked" onclick="fifo_command('baseB:',0) ;">
+				    <label for="both">left and right</label>
+				    <input type="radio" name="baseB" id="left" value="1" onclick="fifo_command('baseB:',1) ;">
+				    <label for="left">right only</label>
+				    <input type="radio" name="baseB" id="right" value="2" onclick="fifo_command('baseB:',2) ;">
+				    <label for="right">left only</label>
+				    <!--<input type="radio" name="rbCmd" id="replay" value="6" onclick="submitCmd();">
+				    <label for="replay">Replay Raw Video (no beep!)</label>
+				    <input type="radio" name="rbCmd" id="recmpeg" value="7" onclick="submitCmd();">
+				    <label for="recmpeg">Record MPEG Video (no beep!)</label>
+				    <input type="radio" name="rbCmd" id="repmpeg" value="8" onclick="submitCmd();">
+				    <label for="repmpeg">Replay MPEG Video (no beep!)</label>
+				    <input type="radio" name="rbCmd" id="psave" value="9" onclick="submitCmd();">
+				    <label for="psave">Sleep Mode (no beep!)</label>-->
+				</fieldset>
+			    </form>
+                        </div><!-- /fieldcontain -->
+			<div style="min-height: 20px"></div>
+			<input type="submit" id= "storeParams2" value="Store Params"
+				onclick="fifo_command('storeParams:',1) ;" />
+                        </div>
+			<!--<div data-role="fieldcontain">
+			    <label for="txt2">Video File:</label>
+			    <input type="text" name="text" id="txt2" value="">
+			</div><!-- /fieldcontain -->
+                </div><!-- /content -->
+        </div><!-- /page -->
 
-	<!-- The Canvas size specified here is the "initial" internal resolution. jsmpeg will
-		change this internal resolution to whatever the source provides. The size the
-		canvas is displayed on the website is dictated by the CSS style.
-	-->
-	<!-- Start of second page -->
-	<div data-role="page" id="page2" data-theme='b'>
-		<div style="min-height: 30px"></div>
-		<div data-role="header">
-			<div class="led-green" id="ledG2"></div>
-			<div class="led-red"   id="ledR2"></div>
-			<div class="led-blue"  id="ledB2"></div>
-			<h1>Crossing</h1>
-			<a href="#page1" data-transition="flip" class="ui-btn-left">Config</a>
-			<a href="#page3" data-transition="flip" class="ui-btn-right">Params</a>
-		</div><!-- /header -->
-		<div role="main" class="ui-content">
-      <!-- <?php echo '<img src="image.jpg?m=' . filemtime('image.jpg') . '"  width="100%" style="border: 1px white" alt="web server not runnig?">'; ?> -->
-      <img id="mjpeg_image" width="100%" style="border: 1px white" alt="web server not runnig?"/>
-		  <!-- canvas id="videoCanvas" width="360" height="640"></canvas -->
-		</div><!-- /content -->
-	</div><!-- /page -->
+        <!-- The Canvas size specified here is the "initial" internal resolution. jsmpeg will
+                change this internal resolution to whatever the source provides. The size the
+                canvas is displayed on the website is dictated by the CSS style.
+        -->
+        <!-- Start of second page -->
+        <div data-role="page" id="page2" data-theme='b'>
+                <div style="min-height: 30px"></div>
+                <div data-role="header">
+                        <div class="led-green" id="ledG2"></div>
+                        <div class="led-red"   id="ledR2"></div>
+                        <div class="led-blue"  id="ledB2"></div>
+                        <h1>Crossing</h1>
+                        <a href="#page1" data-transition="flip" class="ui-btn-left">Config</a>
+                        <a href="#page3" data-transition="flip" class="ui-btn-right">Params</a>
+                </div><!-- /header -->
+                <div role="main" class="ui-content">
+		    <!-- <?php echo '<img src="image.jpg?m=' . filemtime('image.jpg') . '"  width="100%" style="border: 1px white" alt="web server not runnig?">'; ?> -->
+		    <img id="mjpeg_image" width="100%" style="border: 1px white" alt="web server not runnig?"/>
+		    <!-- canvas id="videoCanvas" width="360" height="640"></canvas -->
+                </div><!-- /content -->
+        </div><!-- /page -->
 
-	<!-- Start of third page -->
-	<div data-role="page" id="page3" data-theme='b'>
-		<div style="min-height: 30px"></div>
-		<div data-role="header">
-			<div class="led-green" id="ledG3"></div>
-			<div class="led-red"   id="ledR3"></div>
-			<div class="led-blue"  id="ledB3"></div>
-			<h1>Parameters</h1>
-			<a href="#page1" data-transition="flip" class="ui-btn-right">Config</a>
-			<a href="#page2" data-transition="flip" class="ui-btn-left">Crossing</a>
-		</div><!-- /header -->
-		<div role="main" class="ui-content">
-			<!--<div style="float: left">-->
-      <!--<div style="float: left">
-				<input type="checkbox" id="check3" onclick="abaseCmd() ;"><label id="label3" for="check3">Plane from Left</label>
-			</div>-->
-			<div style="float: right">
-				<input type="submit" id= "storeParams" value="Store Params"
-               onclick="fifo_command('storeParams:',1) ;" />
-			</div>
-			<div style="min-height: 70px"></div>
-			<label for="slider-vMin">Minimum Speed: (slower objects are ignored)</label>
-			<input type="range" id="slider-vMin" value="1" min="1" max="25" step="2" data-highlight="true"
+        <!-- Start of third page -->
+        <div data-role="page" id="page3" data-theme='b'>
+                <div style="min-height: 30px"></div>
+                <div data-role="header">
+                        <div class="led-green" id="ledG3"></div>
+                        <div class="led-red"   id="ledR3"></div>
+                        <div class="led-blue"  id="ledB3"></div>
+                        <h1>Parameters</h1>
+                        <a href="#page1" data-transition="flip" class="ui-btn-right">Config</a>
+                        <a href="#page2" data-transition="flip" class="ui-btn-left">Crossing</a>
+                </div><!-- /header -->
+                <div role="main" class="ui-content">
+                        <!--<div style="float: left">-->
+			<!--<div style="float: left">
+                                <input type="checkbox" id="check3" onclick="abaseCmd() ;"><label id="label3" for="check3">Plane from Left</label>
+                        </div>-->
+                        <div style="float: right">
+			<input type="submit" id= "storeParams" value="Store Params"
+				onclick="fifo_command('storeParams:',1) ;" />
+                        </div>
+                        <div style="min-height: 70px"></div>
+                        <label for="slider-vMin">Minimum Speed: (slower objects are ignored)</label>
+                        <input type="range" id="slider-vMin" value="1" min="1" max="25" step="2" data-highlight="true"
                                onchange="fifo_command('vMin:',$('#slider-vMin').val()) ;" />
-			<label for="slider-vMax">Maximum Speed: (faster objects are ignored)</label>
-			<input type="range" id="slider-vMax" value="50" min="50" max="200" step="50" data-highlight="true"
+                        <label for="slider-vMax">Maximum Speed: (faster objects are ignored)</label>
+                        <input type="range" id="slider-vMax" value="50" min="50" max="200" step="50" data-highlight="true"
                                onchange="fifo_command('vMax:',$('#slider-vMax').val()) ;" />
-			<!--label for="slider-NoiseLevel">Noise Level:</label>
-			<input type="range" id="slider-NoiseLevel" value="0" min="0" max="8192" step="1024" data-highlight="true"
+                        <!--label for="slider-NoiseLevel">Noise Level:</label>
+                        <input type="range" id="slider-NoiseLevel" value="0" min="0" max="8192" step="1024" data-highlight="true"
                                onchange="fifo_command('sadThreshold:',$('#slider-NoiseLevel').val()) ;" /-->
-			<label for="slider-MinArea">Minimum Area: (smaller objects are ignored)</label>
-			<input type="range" name="slider-MinArea" id="slider-MinArea" value="1" min="1" max="200" step="20" data-highlight="true"
+                        <label for="slider-MinArea">Minimum Area: (smaller objects are ignored)</label>
+                        <input type="range" name="slider-MinArea" id="slider-MinArea" value="1" min="1" max="200" step="20" data-highlight="true"
                                onchange="fifo_command('minArea:',$('#slider-MinArea').val()) ;" />
-			<label for="slider-MaxArea">Maximum Area: (larger objects are ignored)</label>
-			<input type="range" name="slider-MaxArea" id="slider-MaxArea" value="2000" min="500" max="5000" step="500" data-highlight="true"
+                        <label for="slider-MaxArea">Maximum Area: (larger objects are ignored)</label>
+                        <input type="range" name="slider-MaxArea" id="slider-MaxArea" value="2000" min="500" max="5000" step="500" data-highlight="true"
                                onchange="fifo_command('maxArea:',$('#slider-MaxArea').val()) ;" />
-			<label for="slider-MaxMotionDistance">Maximum Motion Distance: (maximal object distance between two frames)</label>
-			<input type="range" name="slider-MaxMotionDistance" id="slider-MaxMotionDistance" value="4" min="1" max="8" step="2" data-highlight="true"
+                        <label for="slider-MaxMotionDistance">Maximum Motion Distance: (maximal object distance between two frames)</label>
+                        <input type="range" name="slider-MaxMotionDistance" id="slider-MaxMotionDistance" value="4" min="1" max="8" step="2" data-highlight="true"
                                onchange="fifo_command('maxDist:',$('#slider-MaxMotionDistance').val()) ;" />
-			<label for="slider-DetectionMaturity">Detection Maturity: (number of frames to enable crossing detection)</label>
-			<input type="range" name="slider-DetectionMaturity" id="slider-DetectionMaturity" value="8" min="4" max="20" step="2" data-highlight="true"
+                        <label for="slider-DetectionMaturity">Detection Maturity: (number of frames to enable crossing detection)</label>
+                        <input type="range" name="slider-DetectionMaturity" id="slider-DetectionMaturity" value="8" min="4" max="20" step="2" data-highlight="true"
                                onchange="fifo_command('trackMaturity:',$('#slider-DetectionMaturity').val()) ;" />
-		</div><!-- /content -->
-	</div><!-- /page -->
+                </div><!-- /content -->
+        </div><!-- /page -->
 
-	<!-- script type="text/javascript" src="js/jsmpg.js"></script -->
-	<!-- script type="text/javascript" src="js/reconnecting-websocket.min.js"></script -->
-	<!-- script type="text/javascript" src="js/fcd.js"></scripti -->
-	<link rel="stylesheet" href="css/fcd.css"/>
+        <!-- script type="text/javascript" src="js/jsmpg.js"></script -->
+        <!-- script type="text/javascript" src="js/reconnecting-websocket.min.js"></script -->
+        <!-- script type="text/javascript" src="js/fcd.js"></scripti -->
+        <link rel="stylesheet" href="css/fcd.css"/>
   <script>
     // TEST ONLY
-  	// show websocket link status; initial value is red, i.e. hide green led
-  	//document.getElementById("ledG1").style.visibility = "hidden";
-  	//document.getElementById("ledG2").style.visibility = "hidden";
-  	//document.getElementById("ledG3").style.visibility = "hidden";
-  	// replay/record-LED (blue) initially off
-  	document.getElementById("ledB1").style.visibility = "hidden";
-  	document.getElementById("ledB2").style.visibility = "hidden";
-  	document.getElementById("ledB3").style.visibility = "hidden";
-  	// replay/record-LED (blue) initially off
+        // show websocket link status; initial value is red, i.e. hide green led
+        //document.getElementById("ledG1").style.visibility = "hidden";
+        //document.getElementById("ledG2").style.visibility = "hidden";
+        //document.getElementById("ledG3").style.visibility = "hidden";
+        // replay/record-LED (blue) initially off
+        document.getElementById("ledB1").style.visibility = "hidden";
+        document.getElementById("ledB2").style.visibility = "hidden";
+        document.getElementById("ledB3").style.visibility = "hidden";
+        // replay/record-LED (blue) initially off
     //document.getElementById("ledR1").style.visibility = "visible";
     //document.getElementById("ledR2").style.visibility = "visible";
     //document.getElementById("ledR3").style.visibility = "visible";

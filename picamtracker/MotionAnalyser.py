@@ -230,6 +230,29 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 self.fobj.close()
                 self.fobj = None
 
+    def set_baseB(self,mode):
+        """
+        callback setting baseB mode
+        """
+        print("MotionAnalyser:baseB: %d" % mode)
+            
+        if mode == 0:
+            self.config.conf['baseB'] = 'none'
+            self.checkX = 0
+            self.checkY = 0
+        if mode == 1:
+            self.config.conf['baseB'] = 'left'
+            if self.ycross > 0:
+                self.checkY = -1
+            if self.xcross > 0:
+                self.checkX = -1
+        if mode == 2:
+            self.config.conf['baseB'] = 'right'
+            if self.ycross > 0:
+                self.checkY = 1
+            if self.xcross > 0:
+                self.checkX = 1
+                
     def set_vMax(self,value):
         """
         callback setting vMax
