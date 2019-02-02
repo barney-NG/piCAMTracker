@@ -89,7 +89,7 @@ def main(fobj=None,width=1280,height=960):
             camera.analog_gain = chunks_read
             a = np.frombuffer(buf, dtype=motion_dtype).reshape((rows,cols))
             analyser.analyse(a)
-            frame,motion = tracker.getStatus()
+            delay,frame,motion = tracker.getStatus()
             #tracker.showTracks(chunks_read, image)
             if frame > 0:
                 tracker.releaseLock()

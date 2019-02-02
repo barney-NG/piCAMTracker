@@ -41,6 +41,7 @@ import json
 
 default_config = \
 {
+    "baseB": "none",
     "debug": False,
     "debugInputPort": 0,
     "greenLEDPort": 17,

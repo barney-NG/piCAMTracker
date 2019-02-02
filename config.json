@@ -1,4 +1,5 @@
 {
+ "baseB": "none",
  "cmdFIFO": "/home/pi/piCAMTracker/www/FIFO",
  "debug": false,
  "debugInputPort": 2,

@@ -80,6 +80,16 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.debugged_frames = 0
         self.filenb = 0
         self.name_template = '/run/picamtracker/debug_motion_%03d.data'
+        self.checkY = 0
+        self.checkX = 0
+        if self.ycross > 0 and config.conf["baseB"] == "left":
+            self.checkY = -1
+        if self.ycross > 0 and config.conf["baseB"] == "right":
+            self.checkY = 1
+        if self.xcross > 0 and config.conf["baseB"] == "left":
+            self.checkX = -1
+        if self.xcross > 0 and config.conf["baseB"] == "right":
+            self.checkX = 1
 
     def debug_out(self, array):
         """
@@ -380,11 +390,21 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 #    rejects += 1
                 #    continue
 
-	    #-- add points to list
-            new_points.append([[x0,y0,w,h],[vx,vy]])
+	        #-- add points to list
+            append = True
+            if self.checkX:
+                append = False
+                if self.checkX > 0 and vx >= 0: append = True
+                if self.checkX < 0 and vx <= 0: append = True
+            if self.checkY:
+                append = False
+                if self.checkY > 0 and vy >= 0: append = True
+                if self.checkY < 0 and vy <= 0: append = True                
+            if append:
+                new_points.append([[x0,y0,w,h],[vx,vy]])
 
         # insert/update new movements
-        self.tracker.update_tracks(self.frame,new_points)
+        self.tracker.update_tracks(t1,self.frame,new_points)
 
         if self.show:
             self.tracker.showTracks(self.frame, self.big)

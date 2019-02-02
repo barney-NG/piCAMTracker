@@ -47,6 +47,7 @@ from collections import deque
 import numpy as np
 import cv2
 from math import atan2,hypot,degrees,acos,pi,sqrt
+from time import sleep,time
 #from picamtracker import GPIOPort
 
 #- globals
@@ -118,6 +119,7 @@ class Tracker(threading.Thread):
         self.cols = 0
         self.rows = 0
         self.direction = 0
+        self.detectionDelay = -0.999
 
         #- initialize a fixed number of threads (less garbarge collection)
         self.track_pool = []
@@ -193,14 +195,16 @@ class Tracker(threading.Thread):
         with self.lock:
             frame  = self.frame
             motion = self.motion
+            delay = self.detectionDelay
             self.frame = 0
             self.direction = 0
-        return (frame, motion)
+            self.detectionDelay = -0.999
+        return (delay, frame, motion)
 
     #--------------------------------------------------------------------
     #-- callback for crossing event
     #--------------------------------------------------------------------
-    def crossed(self, updates, frame, motion, positive_direction=False):
+    def crossed(self, updates, timestamp, frame, motion, positive_direction=False):
         if self.locked:
             print("blocked")
             return False
@@ -212,6 +216,7 @@ class Tracker(threading.Thread):
                 self.greenLEDThread.event.set()
             self.updates  = updates
             self.frame  = frame
+            self.detectionDelay = time() - timestamp
             self.motion = motion
             self.direction = 1 if positive_direction else -1
 
@@ -220,7 +225,7 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     #-- callback for cut event
     #--------------------------------------------------------------------
-    def turned(self, updates, frame, motion, positive_direction=False):
+    def turned(self, updates, timestamp, frame, motion, positive_direction=False):
         if self.locked:
             print("blocked")
             return False
@@ -232,6 +237,7 @@ class Tracker(threading.Thread):
                 self.redLEDThread.event.set()
             self.updates  = updates
             self.frame  = -frame
+            self.detectionDelay = time() - timestamp
             self.motion = motion
             self.direction = 0
 
@@ -258,8 +264,8 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     #-- queue new points and feed worker
     #--------------------------------------------------------------------
-    def update_tracks(self, frame, motion):
-        self.q.append([frame,motion])
+    def update_tracks(self, timestamp, frame, motion):
+        self.q.append([timestamp,frame,motion])
         self.event.set()
 
     #--------------------------------------------------------------------
@@ -278,8 +284,8 @@ class Tracker(threading.Thread):
     def run(self):
         while not self.terminated:
             try:
-                frame,motion = self.q.popleft()
-                self.update_track_pool(frame,motion)
+                timestamp,frame,motion = self.q.popleft()
+                self.update_track_pool(timestamp,frame,motion)
             except IndexError:
                 self.event.clear()
                 self.event.wait(1)
@@ -287,7 +293,7 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     #-- offer new points to existing tracks
     #--------------------------------------------------------------------
-    def update_track_pool(self, frame, motion):
+    def update_track_pool(self, timestamp, frame, motion):
         # walk through all changes
         self.updated = False
         has_been_tracked = 0x00000000
@@ -302,7 +308,6 @@ class Tracker(threading.Thread):
             #print( "frame:%d %d,%d ===============================" % ( frame,rn[0],rn[1] ))
             # <<< debug
             #-- sorting by distance really makes sence here
-            #for track in sorted(self.track_pool, key=lambda t: distance(t,rn)):
             for track in sorted(self.track_pool, key=lambda t: weighted_distance(t,rn)):
                 #-- skip tracks already updated
                 if has_been_tracked & track.id:
@@ -320,7 +325,7 @@ class Tracker(threading.Thread):
                 # <<< debug
 
                 #-- check if track takes coordinates
-                tracked = track.update(frame,rn,vn)
+                tracked = track.update(timestamp,frame,rn,vn)
                 if tracked:
                     has_been_tracked |= tracked
                     #print( "   [%s](%d) updated with: %d,%d" % (track.name, track.updates, rn[0],rn[1]))
@@ -332,7 +337,7 @@ class Tracker(threading.Thread):
                 for track in self.track_pool:
                     if track.updates == 0:
                         #print("   [%s] new %d/%d" % (track.name, rn[0],rn[1]))
-                        track.new_track(frame,rn,vn)
+                        track.new_track(timestamp,frame,rn,vn)
                         self.updated = True
                         break
 
@@ -351,7 +356,9 @@ class Tracker(threading.Thread):
             if updates and frame - track.lastFrame > self.trackLifeTime:
                 track.reset()
 
-        self.noise = float(noise / len(self.track_pool))
+        #self.noise = float(noise / len(self.track_pool))
+        self.noise = float(active / len(self.track_pool))
+        
         self.active_tracks = active
 
     def showTracks(self, frame, vis):
@@ -428,6 +435,7 @@ class Track:
         self.noprogressx  = 0
         self.noprogressy  = 0
         self.lastFrame = 0
+        self.timestamp = 0
         self.isGrowing = True
         self.cleanCrossings()
 
@@ -455,7 +463,7 @@ class Track:
                 #print "[%s] (%d) clean" % (self.name, self.updates)
                 self.reset()
 
-    def new_track(self,frame,rn,vn):
+    def new_track(self,timestamp,frame,rn,vn):
         """
         start a new track
         """
@@ -480,6 +488,7 @@ class Track:
         self.tr.append([cxn,cyn])
         self.updates = 1
         self.lastFrame = frame
+        self.timestamp = timestamp
 
         return self.id
 
@@ -606,11 +615,11 @@ class Track:
     #--------------------------------------------------------------------
     def crossed(self, positive=False):
         if self.parent:
-            self.parent.crossed(self.updates, self.lastFrame, [self.re, self.vv, [self.minx, self.miny, self.maxx, self.maxy]], positive)
+            self.parent.crossed(self.updates, self.timestamp, self.lastFrame, [self.re, self.vv, [self.minx, self.miny, self.maxx, self.maxy]], positive)
 
     def turned(self, positive=False):
         if self.parent:
-            self.parent.turned(self.updates, self.lastFrame, [self.re, self.vv, [self.minx, self.miny, self.maxx, self.maxy]], positive)
+            self.parent.turned(self.updates, self.timestamp, self.lastFrame, [self.re, self.vv, [self.minx, self.miny, self.maxx, self.maxy]], positive)
             
             
     #--------------------------------------------------------------------
@@ -649,14 +658,16 @@ class Track:
                 crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and self.deltaY > self.maturity and -self.distance[1] / self.deltaY > 0.4
 
                 if crossedYPositive:
-                    print("[%s](%02d/%d) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d delta:%d dist:%d Y-CROSSED++++++++++++++++++++"
-                        % (self.name,self.updates,self.lastFrame,y1,x0,vy,vx,dy,dx,self.deltaY,self.distance[1]))
+                    delay = (time() - self.timestamp) * 1000.0
+                    print("[%s](%02d/%3.0f) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d delta:%d dist:%d Y-CROSSED++++++++++++++++++++"
+                        % (self.name,self.updates,delay,y1,x0,vy,vx,dy,dx,self.deltaY,self.distance[1]))
                     self.crossedY = True
                     self.crossed(positive=True)
 
                 if crossedYNegative:
-                    print("[%s](%02d/%d) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d delta:%d dist:%d Y-CROSSED--------------------"
-                        % (self.name,self.updates,self.lastFrame,y0,x0,vy,vx,dy,dx,self.deltaY,self.distance[1]))
+                    delay = (time() - self.timestamp) * 1000.0
+                    print("[%s](%02d/%3.0f) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d delta:%d dist:%d Y-CROSSED--------------------"
+                        % (self.name,self.updates,delay,y0,x0,vy,vx,dy,dx,self.deltaY,self.distance[1]))
                     self.crossedY = True
                     self.crossed(positive=False)
 
@@ -710,7 +721,7 @@ class Track:
     #--------------------------------------------------------------------
     #-- update track data
     #--------------------------------------------------------------------
-    def update(self,frame,rn,vn):
+    def update(self,timestamp,frame,rn,vn):
 
         # this is not the place for new tracks
         if self.updates < 1:
@@ -722,6 +733,7 @@ class Track:
             return 0x00000000
 
         self.lastFrame = frame
+        self.timestamp = timestamp
 
         # PiMotionAnalysis.analyse may be called more than once per frame -> double hit?
         cxn  = rn[0]+rn[2]/2.0

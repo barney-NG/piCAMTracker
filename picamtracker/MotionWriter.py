@@ -121,8 +121,8 @@ class Writer(threading.Thread):
     #--------------------------------------------------------------------
     #-- queue new points and feed worker
     #--------------------------------------------------------------------
-    def update_hits(self, framenb, motion):
-        self.q.append([framenb,motion])
+    def update_hits(self, delay,framenb, motion):
+        self.q.append([delay,framenb,motion])
         self.event.set()
 
     #--------------------------------------------------------------------
@@ -138,7 +138,7 @@ class Writer(threading.Thread):
     def run(self):
         while not self.terminated:
             try:
-                framenb,motion = self.q.popleft()
+                delay,framenb,motion = self.q.popleft()
                 fdata = None
                 with self.lock:
                     fdata,nbytes = self.decoder.decode_frame(self.frame2decode)
@@ -189,7 +189,7 @@ class Writer(threading.Thread):
                         cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(200,200,200),1)
                         cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
                         
-                    txt = "%d" % (framenb/2)
+                    txt = "%5.0f" % (delay*1000.0)
                     cv2.putText(image,txt,(int(x0), int(y0)),cv2.FONT_HERSHEY_SIMPLEX,0.5,(20,220,20),1)
                     xm = int((x1+x0) / 2)
                     ym = int((y1+y0) / 2)
@@ -226,7 +226,7 @@ class Writer(threading.Thread):
     #--------------------------------------------------------------------
     #-- lock stream and find frame to take as snapshot
     #--------------------------------------------------------------------
-    def takeSnapshot(self, framenb, motion):
+    def takeSnapshot(self, delay, framenb, motion):
         n = 0
         sleep(0.05) # wait for keyframe is written in circular buffer
         record = False
@@ -261,7 +261,7 @@ class Writer(threading.Thread):
                     self.frame2decode = self.stream.read(szs)
                     if isCut:
                         framenb = -framenb
-                    self.update_hits(framenb, motion)
+                    self.update_hits(delay, framenb, motion)
                 self.stream.seek(save_pos)
                 break
 

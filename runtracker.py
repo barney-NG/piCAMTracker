@@ -211,7 +211,7 @@ def main(ashow=True, debug=False):
                     if loop & 1:
                         add_text = ""
                         sep = ""
-                        if tracker.noise > 0.4:
+                        if tracker.noise > 0.8:
                             add_text += " NOISY"
                             sep = " +"
                         if camera.analog_gain > 7:
@@ -227,7 +227,7 @@ def main(ashow=True, debug=False):
                         camera.annotate_text = "%s (%3.1f f/s) %s" % (dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), fs, add_text)
 
 
-                    frame,motion = tracker.getStatus()
+                    delay,frame,motion = tracker.getStatus()
                     if frame != 0:
                         #t0 = time()
                         #camera.split_recording('after.h264')
@@ -237,7 +237,7 @@ def main(ashow=True, debug=False):
                         #camera.split_recording(vstream)
                         #name = "AAA-%d.jpg" % loop
                         #camera.capture(reader, format='rgb', use_video_port=True)
-                        writer.takeSnapshot(frame, motion)
+                        writer.takeSnapshot(delay, frame, motion)
                         tracker.releaseLock()
                         #print("capture: %4.2fms" % (1000.0 * (time() - t0)))
 
