@@ -95,7 +95,7 @@ def main(ashow=True, debug=False):
             # V2 module
             resx = 1632
             resy = 896
-            fps  = 30
+            fps  = 40
             mode = 5
         else:
             raise ValueError('Unknown camera device')
