@@ -176,7 +176,7 @@ class Tracker(threading.Thread):
         if value > 0:
             motion = [[10,10,10,10],[1,1],[9,9,11,11]]
             frame = self.camera.frame.index
-            self.crossed(99,frame,motion)
+            self.crossed(99,time(),frame,motion)
 
     #--------------------------------------------------------------------
     #-- release lock
@@ -221,7 +221,7 @@ class Tracker(threading.Thread):
             self.direction = 1 if positive_direction else -1
 
         return True
-        
+
     #--------------------------------------------------------------------
     #-- callback for cut event
     #--------------------------------------------------------------------
@@ -358,7 +358,7 @@ class Tracker(threading.Thread):
 
         #self.noise = float(noise / len(self.track_pool))
         self.noise = float(active / len(self.track_pool))
-        
+
         self.active_tracks = active
 
     def showTracks(self, frame, vis):
@@ -496,9 +496,9 @@ class Track:
         """
         check conditions at point #3
         """
-        
+
         if self.updates >= 3:
-            
+
             if Track.xCross > 0:
                 x0 = self.tr[0][0]
                 x1 = self.tr[2][0]
@@ -509,7 +509,7 @@ class Track:
                 #- if the first occurence is left from center movement must be positive
                 if x0 < xc and (x1-x0) >= 0:
                     return True
-            
+
             if Track.yCross > 0:
                 y0 = self.tr[0][1]
                 y1 = self.tr[2][1]
@@ -520,11 +520,11 @@ class Track:
                 #- if the first occurence is below center movement must be positive
                 if y0 < yc and (y1-y0) >= 0:
                     return True
-                
+
                 #print("[%s](%d) start failed: y0: %d dy: %d" % (self.name, self.updates, y0, (y1-y0)))
 
-        return False    
-            
+        return False
+
 
     #--------------------------------------------------------------------
     #-- update growing status
@@ -558,7 +558,7 @@ class Track:
         self.maxy = maxy
         self.minx = minx
         self.miny = miny
-        
+
         self.isGrowing =  self.progressx or self.progressy
 
     #--------------------------------------------------------------------
@@ -568,8 +568,8 @@ class Track:
         backward_maturiy = 5  #self.maturity
         dmin = 10
         checkDist = 5
-        
-        #- check for Y-Turn    
+
+        #- check for Y-Turn
         if Track.yCross > 0 and not (self.progressy or self.deltaY<dmin or self.turnedY or self.crossedY):
             # develope validity near by the turn
             if self.noprogressy == 1:
@@ -581,7 +581,7 @@ class Track:
                 self.distyOK = abs(dy0) > rel * self.deltaY
                 #dist = (Track.yCross-self.maxy) if dy > 0 else (self.miny-Track.yCross)
                 #print("[%s](%d) dy: %d, md: %d rel: %4.2f<%4.2f? dist: %d" % (self.name, self.updates, dy0, self.deltaY, rel, abs(dy0)/self.deltaY, dist))
-            
+
             # track needs some maturity to have a turn detected
             self.noprogressy += 1
             if self.noprogressy > backward_maturiy and self.diryOK and self.distyOK:
@@ -589,8 +589,8 @@ class Track:
                 self.turnedY = True
                 print("[%s](%02d) y:%d/%d Y-TURN"
                       % (self.name,self.updates,rn[1],rn[0]))
-        
-        #- check for X-Turn    
+
+        #- check for X-Turn
         if Track.xCross > 0 and not (self.progressx or self.deltaX<dmin or self.turnedX or self.crossedX):
             # develope validity near by the turn
             if self.noprogressx == 1:
@@ -601,7 +601,7 @@ class Track:
                               (dx0 > 0 and self.maxx < Track.xCross and abs(Track.xCross-self.maxx) < checkDist)
                 self.distxOK = abs(dx0) > rel * self.deltaX
                 #print("[%s](%d) dy: %d, md: %d rel: %4.2f<%4.2f?" % (self.name, self.updates, dx0, self.deltaX, rel, abs(dx0)/self.deltaX))
-            
+
             # track needs some maturity to have a turn detected
             self.noprogressx += 1
             if self.noprogressx > backward_maturiy and self.dirxOK and self.distxOK:
@@ -609,7 +609,7 @@ class Track:
                 self.turnedX = True
                 print("[%s](%02d) x:%d/%d X-TURN"
                       % (self.name,self.updates,rn[0],rn[1]))
-        
+
     #--------------------------------------------------------------------
     #-- raise crossing handler in parent class
     #--------------------------------------------------------------------
@@ -620,8 +620,8 @@ class Track:
     def turned(self, positive=False):
         if self.parent:
             self.parent.turned(self.updates, self.timestamp, self.lastFrame, [self.re, self.vv, [self.minx, self.miny, self.maxx, self.maxy]], positive)
-            
-            
+
+
     #--------------------------------------------------------------------
     #-- main target: is the object crossing the crossing line?
     #-- TODO: make the same for x direction
@@ -699,14 +699,16 @@ class Track:
                 crossedXNegative =  vx < -0.1 and x0 <= Track.xCross and (x0 + delta) > Track.xCross and self.maxx > Track.xCross and self.deltaX > self.maturity
 
                 if crossedXPositive:
-                    print("[%s](%02d) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED++++++++++++++++++++"
-                        % (self.name,self.updates,x1,y0,vx,vy,dx,dy))
+                    delay = (time() - self.timestamp) * 1000.0
+                    print("[%s](%02d/%3.0f) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED++++++++++++++++++++"
+                        % (self.name,self.updates,delay,x1,y0,vx,vy,dx,dy))
                     self.crossedX = True
                     self.crossed(positive=True)
 
                 if crossedXNegative:
-                    print("[%s](%02d) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED--------------------"
-                        % (self.name,self.updates,x0,y0,vx,vy,dx,dy))
+                    delay = (time() - self.timestamp) * 1000.0
+                    print("[%s](%02d/%3.0f) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED--------------------"
+                        % (self.name,self.updates,delay,x0,y0,vx,vy,dx,dy))
                     self.crossedX = True
                     self.crossed(positive=False)
 
@@ -773,7 +775,7 @@ class Track:
         # reject too big area changes
         if delta_area > 15.0:
             return 0x00000000
-            
+
         self.old_area = area
         found = 0x00000000
 
@@ -850,7 +852,7 @@ class Track:
                     if not self.checkStartingConditions():
                         self.reset()
                         return self.id
-                    
+
                 #- is the coverered area still growing?
                 self.updateGrowingStatus(rn)
 
@@ -858,14 +860,14 @@ class Track:
                 if self.isLeaving(dx,dy):
                     self.reset()
                     return self.id
-                    
-                
+
+
                 # crossing status
                 self.detectCrossing(dx,dy,rn)
 
                 # turning status
                 self.detectTurn(dx,dy,rn)
-                
+
                 # >>> debug
                 #print("%s[%d] append %2d/%2d" %
                 #      (self.name,self.updates-1,rn[0],rn[1]))
