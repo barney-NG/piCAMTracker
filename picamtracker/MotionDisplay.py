@@ -5,6 +5,7 @@ import numpy as np
 import os
 import pygame
 import cv2
+import prctl
 
 class Display(threading.Thread):
     def __init__(self, caption="Display", x=0, y=0,w=640,h=480):
@@ -16,6 +17,7 @@ class Display(threading.Thread):
         self.caption = caption
         self.notPlaced = True
         self.key = 32
+        prctl.set_name('ptrk.Display')
 
         # Check which frame buffer drivers are available
         # Start with fbcon since directfb hangs with composite output

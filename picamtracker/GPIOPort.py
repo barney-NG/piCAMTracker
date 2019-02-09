@@ -2,6 +2,7 @@
 import threading
 from time import sleep
 import RPi.GPIO as GPIO
+import prctl
 
 def statusLED(port, on=True):
     """
@@ -40,6 +41,7 @@ class gpioPort(threading.Thread):
         self.port       = port
         self.activate   = GPIO.HIGH
         self.deactivate = GPIO.LOW
+        prctl.set_name('ptrk.GPIO')
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.port,GPIO.OUT)

@@ -44,6 +44,7 @@ import select
 import json
 import re
 from time import sleep
+import prctl
 
 class CommandInterface(threading.Thread):
     #--------------------------------------------------------------------
@@ -55,6 +56,7 @@ class CommandInterface(threading.Thread):
         self.fd        = None
         self.buff_size = buff_size
         self.tokenDict    = {}
+        prctl.set_name('ptrk.CommandInterface')
 
         if config:
             pipe = config.conf['cmdFIFO']

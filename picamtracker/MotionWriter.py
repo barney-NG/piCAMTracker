@@ -54,6 +54,7 @@ import pygame.image
 import cv2
 from picamtracker import libh264decoder
 import gc
+import prctl
 
 class Writer(threading.Thread):
     """
@@ -91,6 +92,7 @@ class Writer(threading.Thread):
             self.k = 2
         if config.conf['viewAngle'] == 270:
             self.k = 1
+        prctl.set_name('ptrk.Writer')
 
 
         #pygame.init()

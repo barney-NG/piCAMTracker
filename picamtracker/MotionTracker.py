@@ -48,7 +48,7 @@ import numpy as np
 import cv2
 from math import atan2,hypot,degrees,acos,pi,sqrt
 from time import sleep,time
-#from picamtracker import GPIOPort
+import prctl
 
 #- globals
 MAX_TRACKS     = 16
@@ -120,6 +120,7 @@ class Tracker(threading.Thread):
         self.rows = 0
         self.direction = 0
         self.detectionDelay = -0.999
+        prctl.set_name('ptrk.Tracker')
 
         #- initialize a fixed number of threads (less garbarge collection)
         self.track_pool = []

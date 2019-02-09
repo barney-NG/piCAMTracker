@@ -12,6 +12,7 @@ import sys
 import subprocess
 from argparse import ArgumentParser
 import picamtracker
+import prctl
 
 max_temp = 75.0
 temp = 20.0
@@ -200,6 +201,7 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_baseB, 'baseB')
             if config.conf['debugInputPort']:
                 picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)
+            prctl.set_name('ptrk.MainLoop')
 
             try:
                 while True:
