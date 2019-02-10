@@ -14,7 +14,7 @@
         <!--<script src="js/awesome-websocket.js"></script>-->
         <!-- this awsome page originally comes from fcd (C) Juergen Burghardt -->
 	<script>
-	    
+
 	    function pikrellcam(start_stop)
 	    {
 		sys_cmd.open("PUT", "sys_command.php?cmd=pikrellcam_" + start_stop, true);
@@ -112,11 +112,11 @@
                         <input type="range" name="slider-MaxMotionDistance" id="slider-MaxMotionDistance" value="4" min="1" max="8" step="2" data-highlight="true"
                                onchange="fifo_command('maxDist:',$('#slider-MaxMotionDistance').val()) ;" />
                         <label for="slider-DetectionMaturity">Detection Maturity: (number of frames to enable crossing detection)</label>
-                        <input type="range" name="slider-DetectionMaturity" id="slider-DetectionMaturity" value="8" min="4" max="20" step="2" data-highlight="true"
+                        <input type="range" name="slider-DetectionMaturity" id="slider-DetectionMaturity" value="7" min="4" max="10" step="1" data-highlight="true"
                                onchange="fifo_command('trackMaturity:',$('#slider-DetectionMaturity').val()) ;" />
                 </div><!-- /content -->
         </div><!-- /page -->
- 
+
         <!-- Start of second page -->
         <div data-role="page" id="page2" data-theme='b'>
                 <div style="min-height: 30px"></div>
@@ -136,10 +136,10 @@
                         </div>
                         <div style="float: right">
                           <input type="submit" id = "debug" value="Start Debugging (30s)" onclick="fifo_command('debug:',30) ;">
-                        </div> 
-			<div style="min-height: 20px"></div> 
-                        <div data-role="fieldcontain"> 
-			    <form> 
+                        </div>
+			<div style="min-height: 20px"></div>
+                        <div data-role="fieldcontain">
+			    <form>
 				<fieldset data-role="controlgroup" data-type="vertical">
 				    <legend>Plane from:</legend>
 				    <input type="radio" name="baseB" id="both" value="0" checked="checked" onclick="fifo_command('baseB:',0) ;">
@@ -214,7 +214,7 @@
 	else
 	    return new ActiveXObject("Microsoft.XMLHTTP");  // IE6, IE5
     }
-    
+
     var fifo_cmd = create_XMLHttpRequest();
 
     function fifo_command (cmd, val)
@@ -223,10 +223,10 @@
 	fifo_cmd.open("PUT", "fifo_command.php?cmd=" + text, true);
 	fifo_cmd.send();
     }
-	    
+
     var sys_cmd = create_XMLHttpRequest();
     var read_config = create_XMLHttpRequest();
-    read_config.onreadystatechange = function() 
+    read_config.onreadystatechange = function()
     {
 	if(this.readyState == 4 && this.status == 200) {
 	    var cfg = JSON.parse(this.responseText);
@@ -264,7 +264,7 @@
 	  document.getElementById("ledR3").style.visibility = "visible";
 	}
     }
-    
+
     $(document).ready(function() {
 	console.log("ready");
 	read_config.open("GET","config.json",true);
