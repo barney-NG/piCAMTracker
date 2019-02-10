@@ -113,7 +113,7 @@ class Tracker(threading.Thread):
         self.locked = False
         self.maxDist = 5
         self.trackLifeTime = 17
-        self.trackMaturity = 10
+        self.trackMaturity = 7
         self.debug = False
         self.fobj = None
         self.cols = 0
@@ -151,8 +151,8 @@ class Tracker(threading.Thread):
     #-- callback for 'trackMaturity' command
     #--------------------------------------------------------------------
     def set_trackMaturity(self, value):
-        if value > 0 and value < 25:
-            Track.trackMaturity = value
+        if value > 3 and value <= 10:
+            self.trackMaturity = value
             if self.config:
                 self.config.conf['trackMaturity'] = value
 

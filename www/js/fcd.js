@@ -4,7 +4,7 @@
  		var VidCanvContext = canvas.getContext('2d');
 
 		var player = new jsmpeg(client, {canvas:canvas});
-                
+
 		function clearCanvas() {
 			VidCanvContext.clearRect(0, 0, canvas.width, canvas.height);
 			VidCanvContext.fillStyle = "white";
@@ -26,10 +26,10 @@
 		var maxtracesValue = $( '#slider-MaxTraces' ).val();
 		var lifetimeValue = $( '#slider-TraceLifetime' ).val();
 		var averageweightValue = $( '#slider-AverageWeight' ).val();
-		
-		//setup websocket remote control 
+
+		//setup websocket remote control
 		var clientRC = new WebSocket( 'ws://'+location.host+':8086/' );
-		
+
 		clientRC.onerror = function(errstr) {
 		  console.log('error: ', errstr);
 		}
@@ -51,7 +51,7 @@
 			averageweightValue = varobj.bgw;
 
 			var activePage = $.mobile.activePage.attr('id');
-			
+
 			if (activePage == "page1") {
 				// Plane from left
 				if (varobj.btn2 == '1') {
@@ -99,7 +99,7 @@
 					$("input[name=rbCmd]").checkboxradio("refresh");
 					clearCanvas();
 				}
-			
+
 				// MPEG File Name, update on change
 				if (datetime != varobj.dt) {
 					datetime = varobj.dt;
@@ -112,14 +112,14 @@
 				}
 			}
 
-			if (activePage == "page3") {
+			if (activePage == "page1") {
 				if (varobj.flpc == '1') {
 					$( "#flipCam" ).addClass('ui-checkbox-on').removeClass('ui-checkbox-off');
 				} else {
 					$( "#flipCam" ).addClass('ui-checkbox-off').removeClass('ui-checkbox-on');
 				}
 
-				// select new option, remove 'selected' from all others, and refresh menue 
+				// select new option, remove 'selected' from all others, and refresh menue
 				$('#thresh option').eq(thresholdValue-1).prop('selected', true).siblings('option').removeAttr('selected');
 				$('#thresh').selectmenu("refresh", true);
 
@@ -142,7 +142,7 @@
 			console.log('cmd: ' + cmd);
 			if ((cmd == 7) || (cmd == 5)) {
 				// provide date and time as part of file name
-				var currentdate = new Date(); 
+				var currentdate = new Date();
 			    var datetime;
 			    yy = currentdate.getFullYear();
 			    mo = (currentdate.getMonth() + 1);
@@ -160,11 +160,11 @@
 			if (cmd == 5) {
 				$("#txt2" ).val('fcd_' + datetime + '.avi');
 			    clientRC.send('D' + datetime);
-			} 
+			}
 			if (cmd == 7) {
 				$("#txt2" ).val('fcd_' + datetime + '.mpeg');
 			    clientRC.send('D' + datetime);
-			} 
+			}
 			clientRC.send(cmd);
 			playSound1();
 		};
@@ -253,8 +253,8 @@
 			console.log('New Average Weight is', averageweightValue);
 		};
 
-		//setup websocket websound crossing alert 
-               
+		//setup websocket websound crossing alert
+
 		var clientSound = new ReconnectingWebSocket( 'ws://'+location.host+':8087/' );
 
 
@@ -271,7 +271,7 @@
 			// replay done status; 0: no replay, 1: replay on, but playlist done, 2: replay on
 			webRep = sndobj.rep;
 		}
-                
+
 
 	var audioCtx = new (window.AudioContext || window.webkitAudioContext || window.audioContext);
 
