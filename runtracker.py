@@ -201,7 +201,7 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_baseB, 'baseB')
             if config.conf['debugInputPort']:
                 picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)
-            prctl.set_name('ptrk.MainLoop')
+            prctl.set_name('python')
 
             try:
                 while True:
