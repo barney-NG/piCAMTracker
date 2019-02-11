@@ -241,9 +241,10 @@
 	    // set checkbox status
 	    if(cfg.baseB == 'right') {
 		document.getElementById("right").click();
-	    }
-	    if(cfg.baseB == 'left') {
+	    } else if(cfg.baseB == 'left') {
 		document.getElementById("left").click();
+	    } else {
+		document.getElementById("both").click();
 	    }
 	    // link status (green) on
 	    document.getElementById("ledG1").style.visibility = "visible";

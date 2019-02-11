@@ -234,7 +234,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         """
         callback setting baseB mode
         """
-        print("MotionAnalyser:baseB: %d" % mode)
+        print("MotionAnalyser::baseB: %d" % mode)
             
         if mode == 0:
             self.config.conf['baseB'] = 'none'
@@ -258,7 +258,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback setting vMax
         """
         if value > self.vmin:
-            print("MotionAnalyser:vMax: %d" % value)
+            print("MotionAnalyser::vMax: %d" % value)
             self.vmax = value
             if self.config:
                 self.config.conf['vMax'] = value
@@ -269,7 +269,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         """
         if value < 1:
             value = 1
-        print("MotionAnalyser:vMin: %d" % value)
+        print("MotionAnalyser::vMin: %d" % value)
         self.vmin = value
         if self.config:
             self.config.conf['vMin'] = value
@@ -279,7 +279,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback setting max area
         """
         if value > self.minArea:
-            print("MotionAnalyser:maxArea: %d" % value)
+            print("MotionAnalyser::maxArea: %d" % value)
             self.maxArea = value
             if self.config:
                 self.config.conf['maxArea'] = value
@@ -290,7 +290,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         """
         if value < 1:
             value = 1
-        print("MotionAnalyser:minArea: %d" % value)
+        print("MotionAnalyser::minArea: %d" % value)
         self.minArea = value
         if self.config:
             self.config.conf['minArea'] = value
@@ -300,7 +300,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback setting SAD threshold
         """
         if value >=0 and value < 16384:
-            print("MotionAnalyser:sadThreshold: %d" % value)
+            print("MotionAnalyser::sadThreshold: %d" % value)
             self.sadThreshold = value
             if self.config:
                 self.config.conf['sadThreshold'] = value
