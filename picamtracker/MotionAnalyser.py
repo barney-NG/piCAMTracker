@@ -332,6 +332,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #-- IDENTIFY MOVEMENT
         #---------------------------------------------------------------
         mag = np.abs(a['x']) + np.abs(a['y'])
+        #has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax, a['sad'] > self.sadThreshold)
         has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
 
         #- reject if more than 33% of the macro blocks are moving
@@ -444,7 +445,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                     x,y,w,h = cv2.boundingRect(cnt)
                     x0 = 8*x; y0 = 8*y; x1 = 8*(x+w); y1 = 8*(y+h)
                     cv2.rectangle(self.big,(x0,y0),(x1,y1),(255,255,255),2)
-                    rect_txt = "%d,%d,%d,%d" % (x,y,x+w,y+h)
+                    rect_txt = "%d,%d,%d,%d (%d)" % (x,y,x+w,y+h,w*h)
                     cv2.putText(self.big, rect_txt, (x0,y0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
                 for x,y,w,h in rects:
                     x0 = 8*x; y0 = 8*y; x1 = 8*(x+w); y1 = 8*(y+h)

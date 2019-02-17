@@ -22,9 +22,10 @@
 	define("LOG_FILE", "/tmp/picamtracker.log");
 	define("MJPEG_FILE", "/run/picamtracker/mjpeg.jpg");
 	define("MJPEG_CTRL_FILE", "/run/picamtracker/act_image.name");
+	define("EMPTY_FILE", "/home/pi/piCAMTracker/www/empty-small.jpg");
 
 	//define("PIKRELLCAM", "/home/pi/piCAMTracker/pikrellcam");
 	define("FIFO_FILE", "/home/pi/piCAMTracker/www/FIFO");
 
-	define("VERSION", "0.1.0");
+	define("VERSION", "0.5.1");
 ?>

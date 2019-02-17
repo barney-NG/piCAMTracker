@@ -103,7 +103,7 @@
                         <input type="range" id="slider-NoiseLevel" value="0" min="0" max="8192" step="1024" data-highlight="true"
                                onchange="fifo_command('sadThreshold:',$('#slider-NoiseLevel').val()) ;" /-->
                         <label for="slider-MinArea">Minimum Area: (smaller objects are ignored)</label>
-                        <input type="range" name="slider-MinArea" id="slider-MinArea" value="1" min="1" max="200" step="20" data-highlight="true"
+                        <input type="range" name="slider-MinArea" id="slider-MinArea" value="1" min="1" max="25" step="1" data-highlight="true"
                                onchange="fifo_command('minArea:',$('#slider-MinArea').val()) ;" />
                         <label for="slider-MaxArea">Maximum Area: (larger objects are ignored)</label>
                         <input type="range" name="slider-MaxArea" id="slider-MaxArea" value="2000" min="500" max="5000" step="500" data-highlight="true"
@@ -186,6 +186,7 @@
 		    <img id="mjpeg_image" width="100%" style="border: 1px white" alt="web server not runnig?"/>
 		    <!-- canvas id="videoCanvas" width="360" height="640"></canvas -->
                 </div><!-- /content -->
+		<input type="submit" id = "test" value="Test Crossing Beep" onclick="fifo_command('testBeep:',1) ;">
         </div><!-- /page -->
 
 

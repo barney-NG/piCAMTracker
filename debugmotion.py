@@ -127,9 +127,6 @@ def main(fobj=None,width=1280,height=960):
 
 if __name__ == '__main__':
     global config
-    config = picamtracker.ConfigReader.Configuration('config.json')
-    config.conf['debug'] = False
-
     parser = argparse.ArgumentParser(prog='debugmotion.py')
     parser.add_argument(
         'input', 
@@ -139,14 +136,22 @@ if __name__ == '__main__':
         '--width', 
         type=int,
         help   = 'input width',
-        default=1280)
+        default=1632)
     parser.add_argument(
         '--height', 
         type=int,
         help   = 'input height',
-        default=960)
+        default=896)
+    parser.add_argument(
+        '--cfg', 
+        type=str,
+        help   = 'config file',
+        default='config.json')
 
     args = parser.parse_args()
+
+    config = picamtracker.ConfigReader.Configuration(args.cfg)
+    config.conf['debug'] = False
 
     #curses.wrapper(main)
     main(args.input,args.width,args.height)

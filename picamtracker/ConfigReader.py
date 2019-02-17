@@ -92,8 +92,8 @@ class Configuration:
         try:
             self.conf = json.load(open(config_file,'r'))
             self.configFileName = config_file
-        except IOError:
-            pass
+        except IOError as err:
+            print("I/O error: {0}".format(err))
         except:
             raise
 
