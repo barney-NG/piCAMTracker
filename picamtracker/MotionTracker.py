@@ -177,7 +177,11 @@ class Tracker(threading.Thread):
 
     def testCrossing(self, value):
         if value > 0:
-            motion = [[10,10,10,10],[1,1],[9,9,11,11]]
+            xm = int(self.cols / 2)
+            ym = int(self.rows / 2)
+            #         [target_rect    ]         [bounding_rect          ]
+            motion = [[xm-5,ym-5,10,10],[10,10],[xm-10,ym-10,xm+10,ym+10]]
+            
             frame = self.camera.frame.index
             self.crossed(99,time(),frame,motion)
 
