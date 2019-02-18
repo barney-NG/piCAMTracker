@@ -56,8 +56,9 @@ def cv_getNumber():
             break
     return int(str)
 
-def main(fobj=None,width=1280,height=960):
+def main(fobj=None,width=1280,height=960,video=False):
     global config
+    writer = None
 
     #width  = 1632
     #height = 896
@@ -68,10 +69,14 @@ def main(fobj=None,width=1280,height=960):
     chunk_size = cols*rows*4
     chunks_read = 0
     wtime = 0x00
+    
+    if video:
+        writer = cv2.VideoWriter('output.avi', cv2.VideoWriter_fourcc('M','J','P','G'),38,(height/2,width/2))
 
     caption = 'piCAMTracker::cv2'
     camera = faked_camera(resx=width, resy=height)
     image = np.ones((height/2,width/2,3), np.uint8) * 220
+    rot_img = np.flipud(np.rot90(np.flipud(image),k=1))
     tracker = picamtracker.MotionTracker.Tracker(camera, greenLed=None, redLed=None, config=config)
     tracker.setup_sizes(height/16, width/16)
     x_disp = config.conf['previewX'] + config.conf['offsetX']
@@ -89,12 +94,21 @@ def main(fobj=None,width=1280,height=960):
             camera.analog_gain = chunks_read
             a = np.frombuffer(buf, dtype=motion_dtype).reshape((rows,cols))
             analyser.analyse(a)
+            
+                
             delay,frame,motion = tracker.getStatus()
             #tracker.showTracks(chunks_read, image)
             if frame > 0:
                 tracker.releaseLock()
                 #show_input(image, motion)
-            cv2.imshow(caption,np.flipud(np.rot90(np.flipud(image),k=1)))
+            
+            
+            if writer and chunks_read > 1:
+                writer.write(np.flipud(np.rot90(np.flipud(analyser.big),k=1)))
+            
+            cv2.imshow(caption,rot_img)
+            
+                
             ch = cv2.waitKey(wtime) & 0xFF
             if ch == ord('s'):
                 wtime ^= 1
@@ -122,6 +136,9 @@ def main(fobj=None,width=1280,height=960):
     fobj.close()
     tracker.stop()
     tracker.join()
+    if writer:
+        writer.release()
+        
     if display is not None:
         display.terminated = True
 
@@ -135,23 +152,28 @@ if __name__ == '__main__':
     parser.add_argument(
         '--width', 
         type=int,
-        help   = 'input width',
+        help   = 'input width (default: 1632)',
         default=1632)
     parser.add_argument(
         '--height', 
         type=int,
-        help   = 'input height',
+        help   = 'input height (default: 896)',
         default=896)
     parser.add_argument(
-        '--cfg', 
+        '-c','--cfg', 
         type=str,
-        help   = 'config file',
+        help   = 'use an alternative config file',
         default='config.json')
-
+    parser.add_argument(
+        '--video',
+        action='store_true',
+        help   = 'create output.avi video file',
+        default=False)
+        
     args = parser.parse_args()
 
     config = picamtracker.ConfigReader.Configuration(args.cfg)
     config.conf['debug'] = False
 
     #curses.wrapper(main)
-    main(args.input,args.width,args.height)
+    main(args.input,args.width,args.height,args.video)
