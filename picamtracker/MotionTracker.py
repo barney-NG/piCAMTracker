@@ -645,8 +645,9 @@ class Track:
             #  v > 0 |          --->|
             #        |              |
             #  v < 0 |<---          |
-            #print("   [%s](%02d) x/y:%d/%d vy:%3.1f/%3.1f dy:%d/%d maturity: %d"
-            #        % (self.name,self.updates,r[0],r[1],-self.vv[0],-self.vv[1],dy,dx, self.maturity))
+            #print("   [%s](%02d) x0/y0:%d/%d x1/y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d maturity: %d"
+            #        % (self.name,self.updates,r[0],r[1],r[0]+r[2],r[1]+r[3],-self.vv[0],-self.vv[1],dy,dx, self.maturity))
+            #print("   %4.2f > 0.4?" % (self.distance[1] / self.deltaY))
             if self.updates >= self.maturity and self.progressy == True and self.crossedY == False:
                 # develope indicators
                 vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
@@ -661,8 +662,8 @@ class Track:
                     delta = int(vy_/2) + 1
 
                 # this model uses a simple >= limit to detect a crossing event
-                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and self.deltaY > self.maturity and self.distance[1] / self.deltaY > 0.4
-                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and self.deltaY > self.maturity and -self.distance[1] / self.deltaY > 0.4
+                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and self.deltaY > self.maturity #and self.distance[1] / self.deltaY > 0.4
+                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and self.deltaY > self.maturity #and -self.distance[1] / self.deltaY > 0.4
 
                 if crossedYPositive:
                     delay = (time() - self.timestamp) * 1000.0
