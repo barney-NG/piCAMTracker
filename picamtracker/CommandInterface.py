@@ -57,13 +57,11 @@ class CommandInterface(threading.Thread):
         self.buff_size = buff_size
         self.tokenDict    = {}
         prctl.set_name('ptrk.CommandInterface')
+        self.pipe = None
 
         if config:
-            pipe = config.conf['cmdFIFO']
-            try:
-                self.fd = os.open(pipe, os.O_RDONLY|os.O_NONBLOCK)
-            except:
-                raise
+            self.pipe = config.conf['cmdFIFO']
+            self.open()
 
 
         # precompile some regular expressions
@@ -75,6 +73,13 @@ class CommandInterface(threading.Thread):
             self.terminated = False
             self.daemon = True
             self.start()
+
+    def open(self):
+        if self.pipe:
+            try:
+                self.fd = os.open(self.pipe, os.O_RDONLY|os.O_NONBLOCK)
+            except:
+                 raise
 
     #--------------------------------------------------------------------
     #-- register a callback function for a specific keyword
@@ -111,6 +116,10 @@ class CommandInterface(threading.Thread):
                         raise e
                 if cmd:
                     self.interprete(cmd)
+                else:
+                    # pipe is not a socket
+                    os.close(self.fd)
+                    self.open()
 
         os.close(self.fd)
 

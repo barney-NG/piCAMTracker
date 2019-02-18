@@ -507,9 +507,9 @@ class Track:
         if self.updates >= 3:
 
             if Track.xCross > 0:
-                x0 = self.tr[0][0]
-                x1 = self.tr[2][0]
-                xc = Track.maxX / 2
+                x0 = int(self.tr[0][0])
+                x1 = int(self.tr[2][0])
+                xc = int(Track.maxX / 2)
                 #- if the first occurence is right from center movement must be negative
                 if x0 >= xc and (x1-x0) <= 0:
                     return True
@@ -518,9 +518,9 @@ class Track:
                     return True
 
             if Track.yCross > 0:
-                y0 = self.tr[0][1]
-                y1 = self.tr[2][1]
-                yc = Track.maxY / 2
+                y0 = int(self.tr[0][1])
+                y1 = int(self.tr[2][1])
+                yc = int(Track.maxY / 2)
                 #- if the first occurence is above center movement must be negative
                 if y0 >= yc and (y1-y0) <= 0:
                     return True
@@ -528,7 +528,7 @@ class Track:
                 if y0 < yc and (y1-y0) >= 0:
                     return True
 
-                #print("[%s](%d) start failed: y0: %d dy: %d" % (self.name, self.updates, y0, (y1-y0)))
+                #print("[%s](%d) start failed: yc: %d dy: %d" % (self.name, self.updates, y0, (y1-y0)))
 
         return False
 
