@@ -220,9 +220,11 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback to start/stop debugging
         """
         if value > 0:
-            print("MotionAnalyser:debug on (%d)" % value)
-            self.max_debugged_frames = 40 * value
-            self.debug = True
+            # only start debugging when old session has stopped
+            if self.fobj == None:
+                print("MotionAnalyser:debug on (%d)" % value)
+                self.max_debugged_frames = 40 * value
+                self.debug = True
         else:
             self.debug = False
             self.max_debugged_frames = 1200
