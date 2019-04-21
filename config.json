@@ -9,7 +9,7 @@
  "maxDist": 8,
  "maxSnapshots": 100,
  "maxTracks": 16,
- "minArea": 1,
+ "minArea": 2,
  "minCosDelta": 0.5,
  "minDist": 0,
  "offsetX": 0,
