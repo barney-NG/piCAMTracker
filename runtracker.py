@@ -177,7 +177,10 @@ def main(ashow=True, debug=False):
         #camera.awb_gains = g
 
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
-        tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config)
+        udpThread = picamtracker.UDPBeep.udpBeep(config.conf['IPUDPBEEP'], 4445)
+        udpThread.event.set ()
+        #-udpThread = None
+        tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, udpThread=udpThread)
         writer = picamtracker.Writer(camera, stream=vstream, config=config)
         cmds = picamtracker.CommandInterface(config=config)
         cmds.subscribe(tracker.set_maxDist, 'maxDist')
@@ -256,6 +259,7 @@ def main(ashow=True, debug=False):
                 #serialPort.terminated = True
                 greenLED.terminated = True
                 redLED.terminated = True
+                udpThread.terminated = True
                 camera.stop_recording()
                 if preview:
                     camera.stop_preview()

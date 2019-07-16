@@ -96,7 +96,7 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     #-- constructor
     #--------------------------------------------------------------------
-    def __init__(self, camera, greenLed=None, redLed=None, config=None):
+    def __init__(self, camera, greenLed=None, redLed=None, udpThread=None, config=None):
         super(Tracker,self).__init__()
         self.lock = threading.Lock()
         self.config = config
@@ -105,6 +105,7 @@ class Tracker(threading.Thread):
         self.resy = camera.resolution[1]
         self.greenLEDThread = greenLed
         self.redLEDThread   = redLed
+        self.udpThread = udpThread
         self.updates  = 0
         self.frame  = 0
         self.noise  = 0.0
@@ -219,6 +220,8 @@ class Tracker(threading.Thread):
         with self.lock:
             self.locked = True
             self.camera.request_key_frame()
+            if self.udpThread:
+                self.udpThread.event.set()
             if self.greenLEDThread:
                 self.greenLEDThread.event.set()
             self.updates  = updates
