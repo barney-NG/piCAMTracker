@@ -6,10 +6,6 @@ import socket
 import time
 import logging
 
-UDP_IP_UDPBEEP = "192.168.1.72"
-UDP_IP_HOME = "192.168.0.23"
-UDP_PORT = 4445
-INITMSG = "Init"
 EVENTMSG = "Event"
 
 class udpBeep(threading.Thread):
@@ -45,16 +41,5 @@ class udpBeep(threading.Thread):
                 except socket.error as msg:
                     logging.warning('udp error')
                 self.event.clear()
-
-
-
-if __name__ == '__main__':
-        udpbeep = udpBeep ("255.255.255.255", UDP_PORT)
-        #udpbeep = udpBeep ("192.168.255.255", UDP_PORT)
-        udpbeep.event.set ()
-        time.sleep (1)
-        #udpbeep.event.set ()
-        
-
 
 
