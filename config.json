@@ -1,4 +1,5 @@
 {
+ "IPUDPBEEP": "255.255.255.255",
  "baseB": "none",
  "cmdFIFO": "/home/pi/piCAMTracker/www/FIFO",
  "debug": false,
