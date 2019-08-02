@@ -171,15 +171,19 @@ def main(ashow=True, debug=False):
 
         #- disable auto (exposure + white balance)
         #camera.shutter_speed = camera.exposure_speed
-        #camera.exposure_mode = 'off'
+        camera.exposure_compensation = 5
+        camera.exposure_mode = 'backlight'
         #g = camera.awb_gains
         #camera.awb_mode  = 'off'
         #camera.awb_gains = g
 
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
-        udpThread = picamtracker.UDPBeep.udpBeep(config.conf['IPUDPBEEP'], 4445)
-        udpThread.event.set ()
-        #-udpThread = None
+        if 'IPUDPBEEP' in config.conf:
+            udpThread = picamtracker.UDPBeep.udpBeep(config.conf['IPUDPBEEP'], 4445)
+            udpThread.event.set ()
+        else:
+            udpThread = None
+
         tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, udpThread=udpThread)
         writer = picamtracker.Writer(camera, stream=vstream, config=config)
         cmds = picamtracker.CommandInterface(config=config)

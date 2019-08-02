@@ -876,8 +876,8 @@ class Track:
                 # crossing status
                 self.detectCrossing(dx,dy,rn)
 
-                # turning status
-                self.detectTurn(dx,dy,rn)
+                # turning status (disabled for now)
+                # self.detectTurn(dx,dy,rn)
 
                 # >>> debug
                 #print("%s[%d] append %2d/%2d" %
