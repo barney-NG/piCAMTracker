@@ -5,6 +5,7 @@ Thank you to all who gave input and ideas to improve the concepts, the hardware 
 ## Contributors
 * Olav Kallhovd
 * Simon Watts
+* Joel Marin
 
 ## People who have donated to piCAMTracker
 
@@ -14,3 +15,4 @@ Thank you to all who gave input and ideas to improve the concepts, the hardware 
 * Gregor Harih
 * Alexander Hall
 * Josef Wikliky
+* Andrew Crampton
