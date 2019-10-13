@@ -326,7 +326,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         # initialize values not known at class initialization
         if not self.started:
             self.tracker.setup_sizes(self.rows, self.cols-1)
-            self.maxMovements = self.rows * self.cols * 0.4
+            self.maxMovements = int(self.rows * self.cols * 0.8)
             self.started = True
             return
 
@@ -337,7 +337,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax, a['sad'] > self.sadThreshold)
         has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
 
-        #- reject if more than 33% of the macro blocks are moving
+        #- reject if more than 80% of the macro blocks are moving
         moving_elements = np.count_nonzero(has_movement)
         if moving_elements > self.maxMovements:
             print("MAXMOVEMENT! (%d)" % moving_elements)
