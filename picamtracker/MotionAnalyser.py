@@ -317,12 +317,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.frame = self.camera.frame.index
         self.processed_frames += 1
 
-        if self.debug:
-            self.debug_out(a)
-
-        #print("---%5.0fms ---" % (dt*1000.0))
-        #return
-
+        
         # initialize values not known at class initialization
         if not self.started:
             self.tracker.setup_sizes(self.rows, self.cols-1)
@@ -330,14 +325,20 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             self.started = True
             return
 
+        if self.debug:
+            self.debug_out(a)
+        
+        #print("---%5.0fms ---" % (dt*1000.0))
+        #return
+
         #---------------------------------------------------------------
         #-- IDENTIFY MOVEMENT
         #---------------------------------------------------------------
         mag = np.abs(a['x']) + np.abs(a['y'])
-        #has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax, a['sad'] > self.sadThreshold)
-        has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
+        has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax, a['sad'] > self.sadThreshold)
+        #has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
 
-        #- reject if more than 80% of the macro blocks are moving
+        #- reject if more than 33% of the macro blocks are moving
         moving_elements = np.count_nonzero(has_movement)
         if moving_elements > self.maxMovements:
             print("MAXMOVEMENT! (%d)" % moving_elements)
@@ -377,7 +378,9 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #-- MARK MOVING REGIONS
         #---------------------------------------------------------------
         #_, mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        #contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         _,contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
         rects = self.removeIntersections(contours)
 
         #---------------------------------------------------------------
