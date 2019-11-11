@@ -18,3 +18,4 @@ Thank you to all who gave input and ideas to improve the concepts, the hardware 
 * Josef Wikliky
 * Andrew Crampton
 * Jorgen Busk
+* William Fourie
