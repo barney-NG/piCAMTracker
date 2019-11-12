@@ -335,11 +335,12 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #-- IDENTIFY MOVEMENT
         #---------------------------------------------------------------
         mag = np.abs(a['x']) + np.abs(a['y'])
-        has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax, a['sad'] > self.sadThreshold)
-        #has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
+        #has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax, a['sad'] > self.sadThreshold)
+        has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
 
-        #- reject if more than 33% of the macro blocks are moving
+        #- reject if more than 80% of the macro blocks are moving
         moving_elements = np.count_nonzero(has_movement)
+        #print("moving elements: %d" % moving_elements)
         if moving_elements > self.maxMovements:
             print("MAXMOVEMENT! (%d)" % moving_elements)
             return
@@ -378,8 +379,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #-- MARK MOVING REGIONS
         #---------------------------------------------------------------
         #_, mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        #contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        _,contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # opencv-4.X
+        _,contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # opencv-3.X
         
         rects = self.removeIntersections(contours)
 
@@ -395,7 +396,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             #-- reject areas which are too big
             area = w*h
             if area > self.maxArea:
-                print( "MAXAEREA! (%d %d/%d)" % (area,w,h))
+                print( "MAXAEREA! %d > %d (%d/%d)" % (area,self.maxArea,w,h))
                 rejects += 1
                 continue
             #-- reject areas which are too small
@@ -419,7 +420,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 #    rejects += 1
                 #    continue
 
-	        #-- add points to list
+	        #-- check baseB option (allow movement from one direction only)
             append = True
             if self.checkX:
                 append = False
@@ -429,6 +430,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 append = False
                 if self.checkY > 0 and vy >= 0: append = True
                 if self.checkY < 0 and vy <= 0: append = True                
+            #-- add points to list
             if append:
                 new_points.append([[x0,y0,w,h],[vx,vy]])
 

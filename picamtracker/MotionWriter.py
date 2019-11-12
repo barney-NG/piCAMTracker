@@ -49,10 +49,12 @@ from picamera.frames import PiVideoFrame, PiVideoFrameType, PiCameraMMALError
 from picamera import mmal,mmalobj as mo
 import numpy as np
 from picamtracker import Display
-import pygame as pg
-import pygame.image
+if sys.version_info < (3,0):
+    from picamtracker.python2 import libh264decoder as h264decoder
+else:
+    from picamtracker import libh264decoder as h264decoder
+
 import cv2
-from picamtracker import libh264decoder
 import gc
 import prctl
 
@@ -65,6 +67,7 @@ class Writer(threading.Thread):
     #--------------------------------------------------------------------
     def __init__(self, camera, stream=None, config=None):
         super(Writer,self).__init__()
+        self.name = 'Writer'
         self.config = config
         self.doStreaming = False
         self.stream = stream
@@ -77,9 +80,12 @@ class Writer(threading.Thread):
 
         #self.display = Display('Debug',10,10)
         self.image = np.ones((self.resx,self.resy,3), dtype=np.uint8) * 220
-        self.decoder = libh264decoder.H264Decoder()
-        self.frame2decode = None
-        self.maxDiff = 15
+        self.imagesize = self.resx * self.resy * 3
+        #self.capture = np.empty((self.resx*self.resy*3,),dtype=np.uint8)
+        self.decoder = h264decoder.H264Decoder()
+        self.isCut = False
+        self.written = False
+        self.maxDiff = 25 # empiric value :-/
         self.ycross = -1
         self.xcross = -1
         self.k = 0
@@ -120,6 +126,14 @@ class Writer(threading.Thread):
     def __del__(self):
         return
 
+    def check(self):
+        ret_code = self.written
+        print("writer::check (%d)" % ret_code)
+        with self.lock:
+            if self.written:
+                self.written = False
+        return ret_code
+        
     #--------------------------------------------------------------------
     #-- queue new points and feed worker
     #--------------------------------------------------------------------
@@ -145,81 +159,84 @@ class Writer(threading.Thread):
                 with self.lock:
                     fdata,nbytes = self.decoder.decode_frame(self.frame2decode)
 
+                
+                image = self.image
+                image.fill(220)
+                
                 if fdata:
                     (frame,w,h,ls) = fdata
-                    #print("=== w:%d h:%d ls:%d" % (w,h,ls))
                     if frame:
                         image = np.fromstring(frame, dtype=np.uint8)
-                    else:
-                        image = self.image
-                        image.fill(220)
-                        w = self.resx
-                        h = self.resy
+                
+                w = self.resx
+                h = self.resy    
+                image = image.reshape((h,w,3))
+                re = motion[0]
+                vv = motion[1] * 16
+                mm = motion[2]
 
-                    image = image.reshape((h,w,3))
-                    re = motion[0]
-                    vv = motion[1]
-                    mm = motion[2]
+                x0 = re[0]
+                y0 = re[1]
+                w  = re[2]
+                h  = re[3]
+                xmin = mm[0] * 16
+                ymin = mm[1] * 16
+                xmax = mm[2] * 16
+                ymax = mm[3] * 16
+                x1 = x0 + w
+                y1 = y0 + h
+                x0 *= 16
+                x1 *= 16
+                y0 *= 16
+                y1 *= 16
 
-                    x0 = re[0]
-                    y0 = re[1]
-                    w  = re[2]
-                    h  = re[3]
-                    xmin = mm[0] * 16
-                    ymin = mm[1] * 16
-                    xmax = mm[2] * 16
-                    ymax = mm[3] * 16
-                    x1 = x0 + w
-                    y1 = y0 + h
-                    x0 *= 16
-                    x1 *= 16
-                    y0 *= 16
-                    y1 *= 16
+                # center line
+                if self.ycross > 0:
+                    cv2.line(image,(0,int(self.ycross)),(self.resx,int(self.ycross)),(0,0,0),1)
 
-                    # center line
-                    if self.ycross > 0:
-                        cv2.line(image,(0,int(self.ycross)),(self.resx,int(self.ycross)),(0,0,0),1)
+                if self.xcross > 0:
+                    cv2.line(image,(int(self.xcross),0),(int(self.xcross),self.resy),(0,0,0),1)
 
-                    if self.xcross > 0:
-                        cv2.line(image,(int(self.xcross),0),(int(self.xcross),self.resy),(0,0,0),1)
-
-                    if framenb < 0:
-                        framenb = -framenb
-                        #cv2.rectangle(image,(x0,y0),(x1,y1),(20,20,220),1)
-                        cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(20,20,220),1)
-                    else:
-                        cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(200,200,200),1)
-                        cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
-                        
-                    txt = "%5.0f" % (delay*1000.0)
-                    cv2.putText(image,txt,(int(x0), int(y0)),cv2.FONT_HERSHEY_SIMPLEX,0.5,(20,220,20),1)
-                    xm = int((x1+x0) / 2)
-                    ym = int((y1+y0) / 2)
-                    xe = int(xm - 4*vv[0])
-                    ye = int(ym - 4*vv[1])
-                    cv2.arrowedLine(image,(xm,ym),(xe,ye),(20,220,20),1)
-                    #image = cv2.resize(image,None,fx=0.5,fy=0.5,interpolation=cv2.INTER_LINEAR)
-                    image = np.rot90(image,self.k)
-                    imagepath = self.imgtemplate % self.nbimage
-                    if self.nbimage > self.nimages:
-                        self.nbimage = 0
-                    else:
-                        self.nbimage += 1
-                    cv2.imwrite(imagepath, image, [cv2.IMWRITE_JPEG_QUALITY, 90])
-                    try:
-                        fs = open(self.imgctrl_file, "w")
-                        fs.write(imagepath)
-                        fs.close()
-                    except:
-                        print("cannot write %s" % self.imgctrl_file)
-                        pass
-                    #pg.image.save(surface, self.imgpath)
+                if framenb < 0:
+                    framenb = -framenb
+                    #cv2.rectangle(image,(x0,y0),(x1,y1),(20,20,220),1)
+                    cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(20,20,220),1)
+                else:
+                    cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(200,200,200),1)
+                    cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
+                    
+                #txt = "%4.1fms" % (delay*1000.0)
+                txt = "%4.1f" % (np.linalg.norm(motion[1]))
+                cv2.putText(image,txt,(int(x0), int(y0)),cv2.FONT_HERSHEY_SIMPLEX,0.5,(20,220,20),1)
+                xm = int((x1+x0) / 2)
+                ym = int((y1+y0) / 2)
+                xe = int(xm - vv[0])
+                ye = int(ym - vv[1])
+                cv2.arrowedLine(image,(xm,ym),(xe,ye),(20,220,20),1)
+                #image = cv2.resize(image,None,fx=0.5,fy=0.5,interpolation=cv2.INTER_LINEAR)
+                image = np.rot90(image,self.k)
+                imagepath = self.imgtemplate % self.nbimage
+                if self.nbimage > self.nimages:
+                    self.nbimage = 0
+                else:
+                    self.nbimage += 1
+                cv2.imwrite(imagepath, image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                try:
+                    fs = open(self.imgctrl_file, "w")
+                    fs.write(imagepath)
+                    fs.close()
+                except:
+                    print(
+                    
+                    "cannot write %s" % self.imgctrl_file)
+                    pass
 
                 #- do garbage collection here!
                 c0,c1,c2 = gc.get_count()
                 t0,t1,t2 = gc.get_threshold()
                 if c0 > t0 or c1 > t1 or c2 > t2:
                     gc.collect()
+                self.written = True
 
             except IndexError:
                 self.event.clear()
@@ -228,31 +245,51 @@ class Writer(threading.Thread):
     #--------------------------------------------------------------------
     #-- lock stream and find frame to take as snapshot
     #--------------------------------------------------------------------
+    #def takeSnapshot(self, framenb):
     def takeSnapshot(self, delay, framenb, motion):
         n = 0
-        sleep(0.05) # wait for keyframe is written in circular buffer
+        fmin = 9999999
+        fmax = 0
         record = False
         i_size = 0
+        minus_max_diff = -2 * self.maxDiff
         isCut = False
+        
         if framenb < 0:
             framenb = -framenb
-            isCut = True
-            
+            self.isCut = True
+        
+        sleep(0.1) # wait for keyframe is written in circular buffer
         # lock stream by reading it
         for frame in reversed(self.stream.frames):
+            n += 1
             index = frame.index
             ftype = frame.frame_type
+            #if n == 1:
+            #    print("index: %d type: %d (_%d_)" % (index,ftype,framenb))
+            fmin = min(fmin,index)
+            fmax = max(fmax,index)
+            
             if not record:
                 diff = 99999
+                # sps frame
                 if ftype == 1:
                     i_size = frame.frame_size
+                # i-frame
                 if ftype == 2:
-                    diff = framenb - index
+                    diff = index - framenb
+                    #print("index: %d type 2 diff: %d" % (index,diff))
 
-                if diff <= 0 and diff > -self.maxDiff:
+                # negative diff -> frame was created before event
+                # positive diff -> frame was created after event
+                # we allow i-frames created very short before the crossing event
+                if diff > -5 and diff <= self.maxDiff:
                     #print("found key/sps frame @ %d (type:%d delta:%d)" % (index,ftype,diff))
                     record = True
-
+                # stop loop if difference is too big
+                if diff < minus_max_diff:
+                    break
+                    
             # decode the next sps + i-frame
             if record:
                 save_pos = self.stream.tell()
@@ -261,13 +298,13 @@ class Writer(threading.Thread):
                 self.stream.seek(pos)
                 with self.lock:
                     self.frame2decode = self.stream.read(szs)
-                    if isCut:
+                    if self.isCut:
                         framenb = -framenb
                     self.update_hits(delay, framenb, motion)
                 self.stream.seek(save_pos)
                 break
 
-            n += 1
-
-	if record == 0:
-          print("%d frames searched (%d found @ %d)" % (n,record,framenb))
+        if record == False:
+            print("%d frames searched (%d < _%d_ < %d) no i-frame found!" % (n,fmin,framenb,fmax))
+        
+        return record

@@ -49,6 +49,8 @@ import cv2
 from math import atan2,hypot,degrees,acos,pi,sqrt
 from time import sleep,time
 import prctl
+import enum
+import logging
 
 #- globals
 MAX_TRACKS     = 16
@@ -89,6 +91,13 @@ def normalize_angle(x):
         x -= 2 * np.pi
     return(x)
 
+class direction(enum.Enum):
+    unknown = 0
+    left2right = 1
+    right2left = 2
+    up2down = 3
+    down2up = 4
+
 class Tracker(threading.Thread):
     """
     Track manager: assigns macro blocks to tracks
@@ -96,7 +105,7 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     #-- constructor
     #--------------------------------------------------------------------
-    def __init__(self, camera, greenLed=None, redLed=None, udpThread=None, config=None):
+    def __init__(self, camera, greenLed=None, redLed=None, udpThread=None, config=None, writer=None):
         super(Tracker,self).__init__()
         self.lock = threading.Lock()
         self.config = config
@@ -120,6 +129,7 @@ class Tracker(threading.Thread):
         self.cols = 0
         self.rows = 0
         self.direction = 0
+        self.imageWriter = writer
         self.detectionDelay = -0.999
         prctl.set_name('ptrk.Tracker')
 
@@ -207,6 +217,7 @@ class Tracker(threading.Thread):
             self.frame = 0
             self.direction = 0
             self.detectionDelay = -0.999
+        #print("Tracker::getStatus (%d)" % frame)
         return (delay, frame, motion)
 
     #--------------------------------------------------------------------
@@ -219,14 +230,14 @@ class Tracker(threading.Thread):
 
         with self.lock:
             self.locked = True
-            self.camera.request_key_frame()
             if self.udpThread:
                 self.udpThread.event.set()
             if self.greenLEDThread:
                 self.greenLEDThread.event.set()
+            self.detectionDelay = time() - timestamp
+            self.camera.request_key_frame()
             self.updates  = updates
             self.frame  = frame
-            self.detectionDelay = time() - timestamp
             self.motion = motion
             self.direction = 1 if positive_direction else -1
 
@@ -428,6 +439,7 @@ class Track:
         self.distance = [0,0]
         self.dirxOK = False
         self.diryOK = False
+        self.direction = 0
         self.distxOK = False
         self.distyOK = False
         self.old_dir  = None
@@ -473,6 +485,26 @@ class Track:
                 #print "[%s] (%d) clean" % (self.name, self.updates)
                 self.reset()
 
+    def leadingEdge(self,rn):
+        
+        # right to left -> left edge is leading
+        if self.direction == 1:
+             return rn[0], rn[1] + rn[3]/2
+        # left to right -> right edge is leading
+        if self.direction == 2:
+             return rn[0] + rn[2], rn[1] + rn[3]/2
+             
+        # up to down -> lower edge is leading
+        if self.direction == 4:
+             return rn[0] + rn[2]/2, rn[1] + rn[3]
+        # down to up -> upper edge is leading
+        if self.direction == 3:
+             return rn[0] + rn[2]/2, rn[1]
+        
+        # unknown
+        return rn[0] + rn[2]/2, rn[1] + rn[3]/2
+        
+             
     def new_track(self,timestamp,frame,rn,vn):
         """
         start a new track
@@ -484,9 +516,30 @@ class Track:
         #if rn[0] + rn[2] + vn[0] > Track.maxX or rn[1] + rn[3] + vn[1] > Track.maxY:
         #    #print("[%s]: %d/%d %3.1f/%3.1f new track rejected (too high)" % (self.name, rn[0]+rn[2],rn[1]+rn[3],vn[0],vn[1]))
         #    return 0
+        
+        # determine followup type
+        # xCross > 0 and x > xmax / 2 -> right_to_left
+        # xCross > 0 and x < xmax / 2 -> left_to_right
+        # yCross > 0 and y > ymax / 2 -> up_to_down
+        # yCross > 0 and y < ymax / 2 -> down_to_up
+        
+        if Track.xCross > 0:
+            if rn[0] > int(Track.maxX / 2):
+                self.direction = 1
+            else:
+                self.direction = 2
+        
+        if Track.yCross > 0:
+            if rn[1] > int(Track.maxY / 2):
+                self.direction = 3
+            else:
+                self.direction = 4
+            
 
-        cxn  = rn[0]+rn[2]/2 #xn+wn/2
-        cyn  = rn[1]+rn[3]/2 #yn+hn/2
+        cxn,cyn = self.leadingEdge(rn)
+        
+        #cxn  = rn[0]+rn[2]/2 #xn+wn/2
+        #cyn  = rn[1]+rn[3]/2 #yn+hn/2
 
         #cxn  = rn[0]
         #cyn  = rn[1]
@@ -661,8 +714,8 @@ class Track:
                 vy_ = abs(vy)
                 if vy_ < 0.1:
                     vy = float(dy)
-                if vy_ > 5:
-                    delta = int(vy_/2) + 1
+                if vy_ > delta:
+                    delta = int(vy_) + 1
 
                 # this model uses a simple >= limit to detect a crossing event
                 crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and self.deltaY > self.maturity #and self.distance[1] / self.deltaY > 0.4
@@ -670,14 +723,14 @@ class Track:
 
                 if crossedYPositive:
                     delay = (time() - self.timestamp) * 1000.0
-                    print("[%s](%02d/%3.0f) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d delta:%d dist:%d Y-CROSSED++++++++++++++++++++"
+                    print("[%s](%02d/%4.1f) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d deltaY:%d dist:%d Y-CROSSED++++++++++++++++++++"
                         % (self.name,self.updates,delay,y1,x0,vy,vx,dy,dx,self.deltaY,self.distance[1]))
                     self.crossedY = True
                     self.crossed(positive=True)
 
                 if crossedYNegative:
                     delay = (time() - self.timestamp) * 1000.0
-                    print("[%s](%02d/%3.0f) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d delta:%d dist:%d Y-CROSSED--------------------"
+                    print("[%s](%02d/%4.1f) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d deltaY:%d dist:%d Y-CROSSED--------------------"
                         % (self.name,self.updates,delay,y0,x0,vy,vx,dy,dx,self.deltaY,self.distance[1]))
                     self.crossedY = True
                     self.crossed(positive=False)
@@ -702,8 +755,8 @@ class Track:
                 vx_ = abs(vx)
                 if vx_ < 0.1:
                     vx = float(dx)
-                if vx_ > 5:
-                    delta = int(vx_/2) + 1
+                if vx_ > delta:
+                    delta = int(vx_) + 1
 
                 # this model uses a simple >= limit to detect a crossing event
                 crossedXPositive =  vx >  0.1 and x1 >= Track.xCross and (x1 - delta) < Track.xCross and self.minx < Track.xCross and self.deltaX > self.maturity
@@ -711,14 +764,14 @@ class Track:
 
                 if crossedXPositive:
                     delay = (time() - self.timestamp) * 1000.0
-                    print("[%s](%02d/%3.0f) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED++++++++++++++++++++"
+                    print("[%s](%02d/%4.1f) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED++++++++++++++++++++"
                         % (self.name,self.updates,delay,x1,y0,vx,vy,dx,dy))
                     self.crossedX = True
                     self.crossed(positive=True)
 
                 if crossedXNegative:
                     delay = (time() - self.timestamp) * 1000.0
-                    print("[%s](%02d/%3.0f) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED--------------------"
+                    print("[%s](%02d/%4.1f) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED--------------------"
                         % (self.name,self.updates,delay,x0,y0,vx,vy,dx,dy))
                     self.crossedX = True
                     self.crossed(positive=False)
@@ -749,8 +802,10 @@ class Track:
         self.timestamp = timestamp
 
         # PiMotionAnalysis.analyse may be called more than once per frame -> double hit?
-        cxn  = rn[0]+rn[2]/2.0
-        cyn  = rn[1]+rn[3]/2.0
+        #cxn  = rn[0]+rn[2]/2.0
+        #cyn  = rn[1]+rn[3]/2.0
+        
+        cxn,cyn = self.leadingEdge(rn)
 
         # estimating via the object center produces very much noise. (??? I didn't think much about that)
         # estimation is done via the upper left corner (until I have something better)
@@ -772,6 +827,7 @@ class Track:
         vx    = -vn[0]
         vy    = -vn[1]
         dist  = hypot(dx,dy)
+        speed = hypot(vx,vy)
         area  = rn[2] * rn[3]
 
         if self.old_area is None:
@@ -784,7 +840,7 @@ class Track:
             delta_area = self.old_area/area
 
         # reject too big area changes
-        if delta_area > 15.0:
+        if delta_area > 15.0 and self.updates > 2:
             return 0x00000000
 
         self.old_area = area
@@ -795,8 +851,19 @@ class Track:
         # max_dist = m*x + b
         max_dist = Track.maxDist
         fill_grade = area / Track.maxArea
-
-        if(fill_grade > 0.2):
+        
+        if(fill_grade > 0.3 and self.updates > 1):
+            # fast crossing check
+            if Track.yCross > 0:
+                if vy > 5.0 and cyn >= Track.yCross and (cyn - rn[3]) < Track.yCross:
+                    print("FASTBEEP ++++")
+                    print(">>>>>> [%s](%d) grade: %5.2f  speed: %4.1f dist: %4.2f" % (self.name,self.updates,fill_grade, speed, dist))
+            
+                if vy < -5.0 and cyn <= Track.yCross and (cyn + rn[3]) > Track.yCross:
+                    print("FASTBEEP ----")
+                    print(">>>>>> [%s](%d) grade: %5.2f  speed: %4.1f dist: %4.2f" % (self.name,self.updates,fill_grade, speed, dist))
+            
+                    
             m_factor = 10. if (fill_grade > 0.9) else 1.0 / (1.0 - fill_grade)
             #- enhace distance for big objects (just an empiric estimation)
             max_dist *= int(2.0 * m_factor)
