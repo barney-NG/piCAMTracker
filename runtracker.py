@@ -101,7 +101,7 @@ def main(ashow=True, debug=False):
             mode = 5
             #resx = 1280
             #resy = 720
-            #fps  = 59
+            #fps  = 90
             #mode = 6 # this mode does not use the full FOV!            
         else:
             raise ValueError('Unknown camera device')
@@ -113,8 +113,8 @@ def main(ashow=True, debug=False):
         if config.conf['xCross'] > 0 and config.conf['xCross'] != (resx/32):
             print("WARNING: X crossing bar is not in the center of the screen!")
 
-        if 'fps' in config.conf and config.conf['fps'] > 0 and config.conf['fps'] < fps:
-            fps = config.conf['fps']
+        #if 'fps' in config.conf and config.conf['fps'] > 0 and config.conf['fps'] < fps:
+        #    fps = config.conf['fps']
 
         camera.resolution = (resx,resy)
 
@@ -127,7 +127,7 @@ def main(ashow=True, debug=False):
         else:
             display = None
             camera.sensor_mode = mode
-            camera.framerate   = fps
+            camera.framerate_range = (25, fps)
 
         act_fps = fps
         
@@ -181,14 +181,13 @@ def main(ashow=True, debug=False):
             overlay.window = (px,py,int(resy/2),int(resx/2))
             overlay.rotation= rotation
 
-        #- disable auto (exposure + white balance)
-        #camera.shutter_speed = camera.exposure_speed
+        #- set exposure mode
         camera.exposure_compensation = 5
         camera.exposure_mode = 'auto'
-        #g = camera.awb_gains
-        #camera.awb_mode  = 'off'
-        #camera.awb_gains = g
-
+        #camera.exposure_mode = 'sports'
+        #camera.exposure_mode = 'backlight
+        #camera.contrast = 10
+        
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
         if 'IPUDPBEEP' in config.conf and re.match('.*\.255$', config.conf['IPUDPBEEP']):
             print("setup UDP Broadcast")
@@ -204,13 +203,14 @@ def main(ashow=True, debug=False):
         cmds.subscribe(tracker.set_trackMaturity, 'trackMaturity')
         cmds.subscribe(tracker.testCrossing, 'testBeep')
         cmds.subscribe(config.set_storeParams, 'storeParams')
-        #cmds.subscribe(greenLED.check, 'testBeep')
+
 
         with picamtracker.MotionAnalyser(camera, tracker, display, show, config) as output:
             loop = 0
             t_wait = 0.5
             old_frames = 0
-            auto_mode = 10
+            #auto_mode = 10
+            auto_mode = -1
             last_auto_mode = time()
             camera.annotate_text_size = 24
             camera.start_recording(output=vstream, format='h264', level='4.2', motion_output=output)
@@ -221,6 +221,8 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_sadThreshold, 'sadThreshold')
             cmds.subscribe(output.set_debug, 'debug')
             cmds.subscribe(output.set_baseB, 'baseB')
+            cmds.subscribe(output.set_exposure, 'exposure')
+            
             if config.conf['debugInputPort']:
                 picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)
             prctl.set_name('python')
@@ -267,7 +269,7 @@ def main(ashow=True, debug=False):
                     delay,frame,motion = tracker.getStatus()
                     if frame != 0:
                         #print("crossing for frame: %d" % frame)
-                        #t0 = time()
+                        t0 = time()
                         #camera.split_recording('after.h264')
                         #vstream.copy_to('before.h264',size=2147483648)
                         #vstream.copy_to('before.h264',size=1073741824)
@@ -279,15 +281,15 @@ def main(ashow=True, debug=False):
                         writer.takeSnapshot(delay, frame, motion)
                         tracker.releaseLock()
                         
-                        #print("capture: %4.2fms" % (1000.0 * (time() - t0)))
-                        auto_diff = time() - last_auto_mode
-                        if auto_diff > 180 and auto_mode < 0:
-                            camera.exposure_mode = 'auto'
-                            camera.exposure_compensation = 5
-                            camera.awb_mode  = 'auto'
-                            auto_mode = 10
-                            last_auto_mode = time()
-                            print("auto_mode: on")
+                        print("capture: %4.2fms" % (1000.0 * (time() - t0)))
+                        #auto_diff = time() - last_auto_mode
+                        #if auto_diff > 180 and auto_mode < 0:
+                        #    camera.exposure_mode = 'auto'
+                        #    camera.exposure_compensation = 5
+                        #    camera.awb_mode  = 'auto'
+                        #    auto_mode = 10
+                        #    last_auto_mode = time()
+                        #    print("auto_mode: on")
 
                     # check for USB stick every 60 seconds
 
