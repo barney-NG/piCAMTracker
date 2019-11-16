@@ -49,7 +49,7 @@ default_config = \
     "redLEDPort": 27,
     "statusLEDPort": 23,
     "ledActiveLow": False,
-    "fps": 0,
+    "exposure": 0,
     "signalLength": 300.0,
     "quitAppByGPIO": False,
     "minArea": 1,

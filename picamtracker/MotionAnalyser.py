@@ -232,6 +232,14 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 self.fobj.close()
                 self.fobj = None
 
+    def set_exposure(self, value):
+        """
+        callback setting camera exposure compensation
+        """
+        if value >= 0 and value <= 20:
+            print("MotionAnalyser::exposure_compensation: %d" % value)
+            self.camera.exposure_compensation = int(value)
+            
     def set_baseB(self,mode):
         """
         callback setting baseB mode
