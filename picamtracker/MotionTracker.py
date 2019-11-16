@@ -561,27 +561,29 @@ class Track:
         """
 
         if self.updates >= 3:
-
+            delta = int(Track.maxDist / 2) + 1
             if Track.xCross > 0:
                 x0 = int(self.tr[0][0])
                 x1 = int(self.tr[2][0])
-                xc = int(Track.maxX / 2)
+                #xc = int(Track.maxX / 2)
                 #- if the first occurence is right from center movement must be negative
-                if x0 >= xc and (x1-x0) <= 0:
+                #- objects occuring too near to the center are rejected
+                if x0 > (Track.xCross + delta) and x1 < x0:
                     return True
                 #- if the first occurence is left from center movement must be positive
-                if x0 < xc and (x1-x0) >= 0:
+                if x0 < (Track.xCross - delta) and x1 >= x0:
                     return True
 
             if Track.yCross > 0:
                 y0 = int(self.tr[0][1])
                 y1 = int(self.tr[2][1])
-                yc = int(Track.maxY / 2)
+                #yc = int(Track.maxY / 2)
                 #- if the first occurence is above center movement must be negative
-                if y0 >= yc and (y1-y0) <= 0:
+                #- objects occuring too near to the center are rejected
+                if y0 > (Track.yCross + delta) and y1 < y0:
                     return True
                 #- if the first occurence is below center movement must be positive
-                if y0 < yc and (y1-y0) >= 0:
+                if y0 < (Track.yCross - delta) and y1 > y0:
                     return True
 
                 #print("[%s](%d) start failed: yc: %d dy: %d" % (self.name, self.updates, y0, (y1-y0)))
@@ -807,9 +809,6 @@ class Track:
         
         cxn,cyn = self.leadingEdge(rn)
 
-        # estimating via the object center produces very much noise. (??? I didn't think much about that)
-        # estimation is done via the upper left corner (until I have something better)
-
         #cxn  = rn[0]
         #cyn  = rn[1]
 
@@ -820,39 +819,37 @@ class Track:
             #print "[%s] double hit" % self.name
             return self.id
 
+        
+        
+        # reject objects which change area too much from frame to frame
+        area  = rn[2] * rn[3]
+        if self.old_area is None:
+            self.old_area = area
+        if area > self.old_area:
+            delta_area = area/self.old_area
+        else:
+            delta_area = self.old_area/area
+        if delta_area > 15.0 and self.updates > 2:
+            return 0x00000000
+        self.old_area = area
+        found = 0x00000000
+
         # try to append new coordinates to track
-        # TODO: use vx/vy to improve accuracy
         dx    = cxn - self.cx
         dy    = cyn - self.cy
         vx    = -vn[0]
         vy    = -vn[1]
         dist  = hypot(dx,dy)
         speed = hypot(vx,vy)
-        area  = rn[2] * rn[3]
-
-        if self.old_area is None:
-            self.old_area = area
-
-        # reject objects which change area too much from frame to frame
-        if area > self.old_area:
-            delta_area = area/self.old_area
-        else:
-            delta_area = self.old_area/area
-
-        # reject too big area changes
-        if delta_area > 15.0 and self.updates > 2:
-            return 0x00000000
-
-        self.old_area = area
-        found = 0x00000000
-
+        
         # poor mans perspective
         # big nearby objects may move fast --- far away objects may move slow
         # max_dist = m*x + b
         max_dist = Track.maxDist
         fill_grade = area / Track.maxArea
         
-        if(fill_grade > 0.3 and self.updates > 1):
+        # fast crossing check
+        if(fill_grade > 0.3 and self.updates > 2):
             # fast crossing check
             if Track.yCross > 0:
                 if vy > 5.0 and cyn >= Track.yCross and (cyn - rn[3]) < Track.yCross:
