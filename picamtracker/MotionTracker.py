@@ -192,7 +192,7 @@ class Tracker(threading.Thread):
             ym = int(self.rows / 2)
             #         [target_rect    ]         [bounding_rect          ]
             motion = [[xm-5,ym-5,10,10],[10,10],[xm-10,ym-10,xm+10,ym+10]]
-            
+
             frame = self.camera.frame.index
             self.crossed(99,time(),frame,motion)
 
@@ -486,25 +486,25 @@ class Track:
                 self.reset()
 
     def leadingEdge(self,rn):
-        
+
         # right to left -> left edge is leading
         if self.direction == 1:
              return rn[0], rn[1] + rn[3]/2
         # left to right -> right edge is leading
         if self.direction == 2:
              return rn[0] + rn[2], rn[1] + rn[3]/2
-             
+
         # up to down -> lower edge is leading
         if self.direction == 4:
              return rn[0] + rn[2]/2, rn[1] + rn[3]
         # down to up -> upper edge is leading
         if self.direction == 3:
              return rn[0] + rn[2]/2, rn[1]
-        
+
         # unknown
         return rn[0] + rn[2]/2, rn[1] + rn[3]/2
-        
-             
+
+
     def new_track(self,timestamp,frame,rn,vn):
         """
         start a new track
@@ -516,28 +516,28 @@ class Track:
         #if rn[0] + rn[2] + vn[0] > Track.maxX or rn[1] + rn[3] + vn[1] > Track.maxY:
         #    #print("[%s]: %d/%d %3.1f/%3.1f new track rejected (too high)" % (self.name, rn[0]+rn[2],rn[1]+rn[3],vn[0],vn[1]))
         #    return 0
-        
+
         # determine followup type
         # xCross > 0 and x > xmax / 2 -> right_to_left
         # xCross > 0 and x < xmax / 2 -> left_to_right
         # yCross > 0 and y > ymax / 2 -> up_to_down
         # yCross > 0 and y < ymax / 2 -> down_to_up
-        
+
         if Track.xCross > 0:
             if rn[0] > int(Track.maxX / 2):
                 self.direction = 1
             else:
                 self.direction = 2
-        
+
         if Track.yCross > 0:
             if rn[1] > int(Track.maxY / 2):
                 self.direction = 3
             else:
                 self.direction = 4
-            
+
 
         cxn,cyn = self.leadingEdge(rn)
-        
+
         #cxn  = rn[0]+rn[2]/2 #xn+wn/2
         #cyn  = rn[1]+rn[3]/2 #yn+hn/2
 
@@ -561,7 +561,7 @@ class Track:
         """
 
         if self.updates >= 3:
-            delta = int(Track.maxDist / 2) + 1
+            delta = Track.maxDist
             if Track.xCross > 0:
                 x0 = int(self.tr[0][0])
                 x1 = int(self.tr[2][0])
@@ -694,7 +694,7 @@ class Track:
     def detectCrossing(self, dx, dy, r):
         delta = 3
 
-        if Track.yCross > 0:
+        if Track.yCross > 0 and self.crossedY == False and self.progressy:
             # track is crossing target line in Y direction
             #  x0,y0 +--------------+
             #        |              |
@@ -706,36 +706,58 @@ class Track:
             #print("   [%s](%02d) x0/y0:%d/%d x1/y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d maturity: %d"
             #        % (self.name,self.updates,r[0],r[1],r[0]+r[2],r[1]+r[3],-self.vv[0],-self.vv[1],dy,dx, self.maturity))
             #print("   %4.2f > 0.4?" % (self.distance[1] / self.deltaY))
-            if self.updates >= self.maturity and self.progressy == True and self.crossedY == False:
-                # develope indicators
-                vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
-                x0 = r[0]; y0 = r[1]
-                y1 = r[1] + r[3]
 
-                # for low speeds take distance as indicator
-                vy_ = abs(vy)
-                if vy_ < 0.1:
-                    vy = float(dy)
-                if vy_ > delta:
-                    delta = int(vy_) + 1
+            # develope indicators
+            crossedYPositive = crossedYNegative = False
+            vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
+            x0 = r[0]; y0 = r[1]
+            y1 = r[1] + r[3]
+            # for low speeds take distance as indicator
+            vy_ = abs(vy)
+            if vy_ < 0.1:
+                vy = float(dy)
+            if vy_ > delta:
+                delta = int(vy_) + 1
+            # moving quality
+            coverage = self.distance[1] / self.deltaY
 
+
+            # mature check
+            if self.updates >= self.maturity:
                 # this model uses a simple >= limit to detect a crossing event
-                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and self.deltaY > self.maturity #and self.distance[1] / self.deltaY > 0.4
-                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and self.deltaY > self.maturity #and -self.distance[1] / self.deltaY > 0.4
+                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and coverage > 0.4
+                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and coverage < -0.4
+            else:
+                # fast crossing check for big and fast objects
+                fill_grade = r[3] / Track.maxY / 2
+                #yold = self.tr[1][1]
+                if self.updates < 5 and fill_grade > 0.25 and y0 <= Track.yCross and y1 >= Track.yCross:
+                    crossedYPositive = vy > 5.0 #and yold < Track.yCross
+                    crossedYNegative = vy < -5.0 #and yold > Track.yCross
+                    
+                    #if crossedYPositive:
+                    #    print("FASTBEEP ++++")
+                    #    print(">>>>>> [%s](%d) grade: %5.2f  speed: %4.1f dist: %4.2f yo: %d" % (self.name,self.updates,fill_grade, vy, self.distance[1], yold))
+                        
+                    #if crossedYNegative:
+                    #    print("FASTBEEP ----")
+                    #    print(">>>>>> [%s](%d) grade: %5.2f  speed: %4.1f dist: %4.2f yo: %d" % (self.name,self.updates,fill_grade, vy, self.distance[1], yold))
+                        
+            if crossedYPositive:
+                delay = (time() - self.timestamp) * 1000.0
+                print("[%s](%02d/%4.1f) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d deltaY:%d dist:%d cov:%4.1f Y-CROSSED++++++++++++++++++++"
+                    % (self.name,self.updates,delay,y1,x0,vy,vx,dy,dx,self.deltaY,self.distance[1],coverage))
+                self.crossedY = True
+                self.crossed(positive=True)
 
-                if crossedYPositive:
-                    delay = (time() - self.timestamp) * 1000.0
-                    print("[%s](%02d/%4.1f) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d deltaY:%d dist:%d Y-CROSSED++++++++++++++++++++"
-                        % (self.name,self.updates,delay,y1,x0,vy,vx,dy,dx,self.deltaY,self.distance[1]))
-                    self.crossedY = True
-                    self.crossed(positive=True)
+            if crossedYNegative:
+                delay = (time() - self.timestamp) * 1000.0
+                print("[%s](%02d/%4.1f) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d deltaY:%d dist:%d cov:%4.1f Y-CROSSED--------------------"
+                    % (self.name,self.updates,delay,y0,x0,vy,vx,dy,dx,self.deltaY,self.distance[1],coverage))
+                self.crossedY = True
+                self.crossed(positive=False)
 
-                if crossedYNegative:
-                    delay = (time() - self.timestamp) * 1000.0
-                    print("[%s](%02d/%4.1f) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d deltaY:%d dist:%d Y-CROSSED--------------------"
-                        % (self.name,self.updates,delay,y0,x0,vy,vx,dy,dx,self.deltaY,self.distance[1]))
-                    self.crossedY = True
-                    self.crossed(positive=False)
+
 
         if Track.xCross > 0:
             # track is crossing target line in X direction
@@ -760,9 +782,12 @@ class Track:
                 if vx_ > delta:
                     delta = int(vx_) + 1
 
+                # moving quality
+                coverage = self.distance[0] / self.deltaX
+
                 # this model uses a simple >= limit to detect a crossing event
-                crossedXPositive =  vx >  0.1 and x1 >= Track.xCross and (x1 - delta) < Track.xCross and self.minx < Track.xCross and self.deltaX > self.maturity
-                crossedXNegative =  vx < -0.1 and x0 <= Track.xCross and (x0 + delta) > Track.xCross and self.maxx > Track.xCross and self.deltaX > self.maturity
+                crossedXPositive =  vx >  0.1 and x1 >= Track.xCross and (x1 - delta) < Track.xCross and self.minx < Track.xCross and coverage > 0.4
+                crossedXNegative =  vx < -0.1 and x0 <= Track.xCross and (x0 + delta) > Track.xCross and self.maxx > Track.xCross and coverage < -0.4
 
                 if crossedXPositive:
                     delay = (time() - self.timestamp) * 1000.0
@@ -806,7 +831,7 @@ class Track:
         # PiMotionAnalysis.analyse may be called more than once per frame -> double hit?
         #cxn  = rn[0]+rn[2]/2.0
         #cyn  = rn[1]+rn[3]/2.0
-        
+
         cxn,cyn = self.leadingEdge(rn)
 
         #cxn  = rn[0]
@@ -819,8 +844,8 @@ class Track:
             #print "[%s] double hit" % self.name
             return self.id
 
-        
-        
+
+
         # reject objects which change area too much from frame to frame
         area  = rn[2] * rn[3]
         if self.old_area is None:
@@ -840,27 +865,16 @@ class Track:
         vx    = -vn[0]
         vy    = -vn[1]
         dist  = hypot(dx,dy)
-        speed = hypot(vx,vy)
-        
+
         # poor mans perspective
         # big nearby objects may move fast --- far away objects may move slow
         # max_dist = m*x + b
         max_dist = Track.maxDist
         fill_grade = area / Track.maxArea
-        
+
         # fast crossing check
         if(fill_grade > 0.3 and self.updates > 2):
-            # fast crossing check
-            if Track.yCross > 0:
-                if vy > 5.0 and cyn >= Track.yCross and (cyn - rn[3]) < Track.yCross:
-                    print("FASTBEEP ++++")
-                    print(">>>>>> [%s](%d) grade: %5.2f  speed: %4.1f dist: %4.2f" % (self.name,self.updates,fill_grade, speed, dist))
-            
-                if vy < -5.0 and cyn <= Track.yCross and (cyn + rn[3]) > Track.yCross:
-                    print("FASTBEEP ----")
-                    print(">>>>>> [%s](%d) grade: %5.2f  speed: %4.1f dist: %4.2f" % (self.name,self.updates,fill_grade, speed, dist))
-            
-                    
+            speed = hypot(vx,vy)
             m_factor = 10. if (fill_grade > 0.9) else 1.0 / (1.0 - fill_grade)
             #- enhace distance for big objects (just an empiric estimation)
             max_dist *= int(2.0 * m_factor)
@@ -902,12 +916,7 @@ class Track:
             else:
                 cos_delta = 1.0
 
-            # >>> debug
-            #print("%s,%5d,%2d,%2d,%2d,%2d,%2d,%4.2f,%4.2f" %
-            #      (self.name,frame,self.updates,rn[0],rn[1],rn[2],rn[3],cos_delta,dist))
-            # <<< debug
-            # reject all tracks out of direction
-            #if self.updates < 3 or dist <= 1.1 or abs(cos_delta) > Track.minCosDelta:
+            # check direction. (the first three tracks may have a wron direction)
             if self.updates < 3 or abs(cos_delta) > Track.minCosDelta:
                 #- update base data
                 found = self.id
@@ -919,14 +928,14 @@ class Track:
                 self.cy = cyn
                 self.updates += 1
                 self.tr.append([cxn,cyn])
-                if(len(self.tr) > 24):
+                if(len(self.tr) > 36):
                     del self.tr[0]
 
                 #- stop investigation if object is moving in the wrong direction
                 if self.updates == 3:
                     if not self.checkStartingConditions():
                         self.reset()
-                        return self.id
+                        return 0x00000000
 
                 #- is the coverered area still growing?
                 self.updateGrowingStatus(rn)
@@ -934,11 +943,11 @@ class Track:
                 #- does the track leave the playground?
                 if self.isLeaving(dx,dy):
                     self.reset()
-                    return self.id
-
+                    return 0x00000000
 
                 # crossing status
-                self.detectCrossing(dx,dy,rn)
+                if self.updates >= 2:
+                    self.detectCrossing(dx,dy,rn)
 
                 # turning status (disabled for now)
                 # self.detectTurn(dx,dy,rn)

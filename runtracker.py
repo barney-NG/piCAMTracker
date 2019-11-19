@@ -186,7 +186,7 @@ def main(ashow=True, debug=False):
         camera.exposure_mode = 'auto'
         #camera.exposure_mode = 'sports'
         #camera.exposure_mode = 'backlight
-        #camera.contrast = 10
+        #camera.contrast = 25
         
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
         if 'IPUDPBEEP' in config.conf and re.match('.*\.255$', config.conf['IPUDPBEEP']):
@@ -281,7 +281,7 @@ def main(ashow=True, debug=False):
                         writer.takeSnapshot(delay, frame, motion)
                         tracker.releaseLock()
                         
-                        print("capture: %4.2fms" % (1000.0 * (time() - t0)))
+                        #print("capture: %4.2fms" % (1000.0 * (time() - t0)))
                         #auto_diff = time() - last_auto_mode
                         #if auto_diff > 180 and auto_mode < 0:
                         #    camera.exposure_mode = 'auto'
