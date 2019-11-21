@@ -692,7 +692,10 @@ class Track:
     #-- TODO: make the same for x direction
     #--------------------------------------------------------------------
     def detectCrossing(self, dx, dy, r):
-        delta = 3
+        delta = 3 # validate this!
+        min_coverage = 0.4 # validate this!
+        min_fill_grade = 0.25 # validate this!
+        speed_limit = 5.0 # validate this!
 
         if Track.yCross > 0 and self.crossedY == False and self.progressy:
             # track is crossing target line in Y direction
@@ -703,12 +706,8 @@ class Track:
             #  v > 0 |          --->|
             #        |              |
             #  v < 0 |<---          |
-            #print("   [%s](%02d) x0/y0:%d/%d x1/y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d maturity: %d"
-            #        % (self.name,self.updates,r[0],r[1],r[0]+r[2],r[1]+r[3],-self.vv[0],-self.vv[1],dy,dx, self.maturity))
-            #print("   %4.2f > 0.4?" % (self.distance[1] / self.deltaY))
-
-            # develope indicators
-            crossedYPositive = crossedYNegative = False
+            
+            # variables
             vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
             x0 = r[0]; y0 = r[1]
             y1 = r[1] + r[3]
@@ -721,39 +720,38 @@ class Track:
             # moving quality
             coverage = self.distance[1] / self.deltaY
 
-
             # mature check
+            crossedYPositive = crossedYNegative = False
+            fastText = ''
             if self.updates >= self.maturity:
                 # this model uses a simple >= limit to detect a crossing event
-                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and coverage > 0.4
-                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and coverage < -0.4
+                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and coverage > min_coverage
+                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and coverage < -min_coverage
             else:
                 # fast crossing check for big and fast objects
+                # a) object is faster than speed limit
+                # b) object is longer than half of the distance side to turn
+                # c) object front is over the turn line
+                # d) object end is behind the turn line 
                 fill_grade = r[3] / Track.maxY / 2
-                #yold = self.tr[1][1]
-                if self.updates < 5 and fill_grade > 0.25 and y0 <= Track.yCross and y1 >= Track.yCross:
-                    crossedYPositive = vy > 5.0 #and yold < Track.yCross
-                    crossedYNegative = vy < -5.0 #and yold > Track.yCross
-                    
-                    #if crossedYPositive:
-                    #    print("FASTBEEP ++++")
-                    #    print(">>>>>> [%s](%d) grade: %5.2f  speed: %4.1f dist: %4.2f yo: %d" % (self.name,self.updates,fill_grade, vy, self.distance[1], yold))
-                        
-                    #if crossedYNegative:
-                    #    print("FASTBEEP ----")
-                    #    print(">>>>>> [%s](%d) grade: %5.2f  speed: %4.1f dist: %4.2f yo: %d" % (self.name,self.updates,fill_grade, vy, self.distance[1], yold))
+                if fill_grade > min_fill_grade and y0 <= Track.yCross and y1 >= Track.yCross:
+                    crossedYPositive = vy > speed_limit
+                    crossedYNegative = vy < -speed_limit
+                    if crossedYPositive or crossedYNegative:
+                        fastText = 'FAST-'
                         
             if crossedYPositive:
                 delay = (time() - self.timestamp) * 1000.0
-                print("[%s](%02d/%4.1f) y1:%d/%d vy:%3.1f/%3.1f dy:%d/%d deltaY:%d dist:%d cov:%4.1f Y-CROSSED++++++++++++++++++++"
-                    % (self.name,self.updates,delay,y1,x0,vy,vx,dy,dx,self.deltaY,self.distance[1],coverage))
+                
+                print("[%s](%02d/%4.1f) y1:%2d/%2d vy:%+5.1f/%+5.1f dy:%2d/%2d deltaY:%2d dist:%3d cov:%4.1f %sY-CROSSED++++++++++++++++++++"
+                    % (self.name,self.updates,delay,y1,x0,vy,vx,dy,dx,self.deltaY,self.distance[1],coverage,fastText))
                 self.crossedY = True
                 self.crossed(positive=True)
 
             if crossedYNegative:
                 delay = (time() - self.timestamp) * 1000.0
-                print("[%s](%02d/%4.1f) y0:%d/%d vy:%3.1f/%3.1f dy:%d/%d deltaY:%d dist:%d cov:%4.1f Y-CROSSED--------------------"
-                    % (self.name,self.updates,delay,y0,x0,vy,vx,dy,dx,self.deltaY,self.distance[1],coverage))
+                print("[%s](%02d/%4.1f) y0:%2d/%2d vy:%+5.1f/%+5.1f dy:%2d/%2d deltaY:%2d dist:%3d cov:%4.1f %sY-CROSSED--------------------"
+                    % (self.name,self.updates,delay,y0,x0,vy,vx,dy,dx,self.deltaY,self.distance[1],coverage,fastText))
                 self.crossedY = True
                 self.crossed(positive=False)
 
