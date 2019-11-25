@@ -105,7 +105,7 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     #-- constructor
     #--------------------------------------------------------------------
-    def __init__(self, camera, greenLed=None, redLed=None, udpThread=None, config=None, writer=None):
+    def __init__(self, camera, greenLed=None, redLed=None, udpThread=None, config=None):
         super(Tracker,self).__init__()
         self.lock = threading.Lock()
         self.config = config
@@ -129,7 +129,6 @@ class Tracker(threading.Thread):
         self.cols = 0
         self.rows = 0
         self.direction = 0
-        self.imageWriter = writer
         self.detectionDelay = -0.999
         prctl.set_name('ptrk.Tracker')
 
@@ -755,8 +754,65 @@ class Track:
                 self.crossedY = True
                 self.crossed(positive=False)
 
+        if Track.xCross > 0 and self.crossedX == False and self.progressx:
+            # track is crossing target line in Y direction
+            #  x0,y0 +--------------+
+            #        |              |
+            #        +--------------+ x1,y1
+            #
+            #  v > 0 |          --->|
+            #        |              |
+            #  v < 0 |<---          |
+            
+            # variables
+            vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
+            x0 = r[0]; y0 = r[1]
+            x1 = r[0] + r[2]
+            # for low speeds take distance as indicator
+            vx_ = abs(vx)
+            if vx_ < 0.1:
+                vx = float(dx)
+            if vx_ > delta:
+                delta = int(vx_) + 1
+            # moving quality
+            coverage = self.distance[0] / self.deltaX
 
+            # mature check
+            crossedXPositive = crossedXNegative = False
+            fastText = ''
+            if self.updates >= self.maturity:
+                # this model uses a simple >= limit to detect a crossing event
+                crossedXPositive =  vx >  0.1 and x1 >= Track.xCross and (x1 - delta) < Track.xCross and self.minx < Track.xCross and coverage > min_coverage
+                crossedXNegative =  vx < -0.1 and x0 <= Track.xCross and (x0 + delta) > Track.xCross and self.maxx > Track.xCross and coverage < -min_coverage
+            else:
+                # fast crossing check for big and fast objects
+                # a) object is faster than speed limit
+                # b) object is longer than half of the distance side to turn
+                # c) object front is over the turn line
+                # d) object end is behind the turn line 
+                fill_grade = r[2] / Track.maxX / 2
+                if fill_grade > min_fill_grade and x0 <= Track.xCross and x1 >= Track.xCross:
+                    crossedXPositive = vx > speed_limit
+                    crossedXNegative = vx < -speed_limit
+                    if crossedXPositive or crossedXNegative:
+                        fastText = 'FAST-'
+                        
+            if crossedXPositive:
+                delay = (time() - self.timestamp) * 1000.0
+                
+                print("[%s](%02d/%4.1f) x1:%2d/%2d vx:%+5.1f/%+5.1f dx:%2d/%2d deltaX:%2d dist:%3d cov:%4.1f %sX-CROSSED++++++++++++++++++++"
+                    % (self.name,self.updates,delay,x1,y0,vx,vy,dx,dy,self.deltaX,self.distance[0],coverage,fastText))
+                self.crossedX = True
+                self.crossed(positive=True)
 
+            if crossedXNegative:
+                delay = (time() - self.timestamp) * 1000.0
+                print("[%s](%02d/%4.1f) x0:%2d/%2d vx:%+5.1f/%+5.1f dx:%2d/%2d deltaX:%2d dist:%3d cov:%4.1f %sY-CROSSED--------------------"
+                    % (self.name,self.updates,delay,x0,y0,vx,vy,dx,dy,self.deltaX,self.distance[0],coverage,fastText))
+                self.crossedY = True
+                self.crossed(positive=False)
+
+        """
         if Track.xCross > 0:
             # track is crossing target line in X direction
             #  x0,y0 +--------------+
@@ -800,7 +856,8 @@ class Track:
                         % (self.name,self.updates,delay,x0,y0,vx,vy,dx,dy))
                     self.crossedX = True
                     self.crossed(positive=False)
-
+        """
+        
     #--------------------------------------------------------------------
     #-- does the track leave the tracking area?
     #--------------------------------------------------------------------

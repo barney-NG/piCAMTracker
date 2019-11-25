@@ -44,11 +44,13 @@ def get_raspi_revision():
         line = os.read(fd,256)
         os.close(fd)
         #             Raspberry Pi 4 Model B Rev 1.1
-        m = re.match('Raspberry Pi (\d+) Model (\w(?: Plus)?) Rev ([\d\.]+)', line)
+        #m = re.match('Raspberry Pi (\d+) Model (\w(?: Plus)?) Rev ([\d\.]+)', line)
+        line = line.decode()
+        m = re.match('Raspberry Pi (\d+) Model ([A-Z]+(: Plus)?) Rev (\d+(\.\d+)?)', line)
         if m:
             info['pi'] = m.group(1)
             info['model'] = m.group(2)
-            info['rev'] = m.group(3)
+            info['rev'] = m.group(4)
     except:
         pass
 
@@ -89,14 +91,14 @@ def main(ashow=True, debug=False):
         if revision == 'OV5647':
             # V1 module
             # 1280x720 has a bug. (wrong center value)
-            resx = 1280
-            resy = 960
+            resx = 1280 # 80
+            resy = 960 # 60
             fps  = 42
             mode = 4
         elif revision == 'IMX219':
             # V2 module
-            resx = 1632
-            resy = 896
+            resx = 1632 # 102
+            resy = 896 # 56
             fps  = 40
             mode = 5
             #resx = 1280
@@ -111,7 +113,7 @@ def main(ashow=True, debug=False):
             print("WARNING: Y crossing %d expected but %d given!" % (resy/32, config.conf['yCross']))
 
         if config.conf['xCross'] > 0 and config.conf['xCross'] != (resx/32):
-            print("WARNING: X crossing bar is not in the center of the screen!")
+            print("WARNING: X crossing %d expected but %d given!" % (resx/32, config.conf['xCross']))
 
         #if 'fps' in config.conf and config.conf['fps'] > 0 and config.conf['fps'] < fps:
         #    fps = config.conf['fps']
@@ -197,7 +199,8 @@ def main(ashow=True, debug=False):
             udpThread = None
 
         writer = picamtracker.Writer(camera, stream=vstream, config=config)
-        tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, udpThread=udpThread, writer=writer)
+        vwriter = picamtracker.vWriter(stream=vstream, config=config)        
+        tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, udpThread=udpThread)
         cmds = picamtracker.CommandInterface(config=config)
         cmds.subscribe(tracker.set_maxDist, 'maxDist')
         cmds.subscribe(tracker.set_trackMaturity, 'trackMaturity')
@@ -205,7 +208,7 @@ def main(ashow=True, debug=False):
         cmds.subscribe(config.set_storeParams, 'storeParams')
 
 
-        with picamtracker.MotionAnalyser(camera, tracker, display, show, config) as output:
+        with picamtracker.MotionAnalyser(camera, tracker, display, show, config, vwriter) as output:
             loop = 0
             t_wait = 0.5
             old_frames = 0
@@ -279,6 +282,7 @@ def main(ashow=True, debug=False):
                         #camera.capture(reader, format='rgb', use_video_port=True)
                         
                         writer.takeSnapshot(delay, frame, motion)
+                        #vstream.copy_to('before.h264',seconds=15)
                         tracker.releaseLock()
                         
                         #print("capture: %4.2fms" % (1000.0 * (time() - t0)))
@@ -315,6 +319,7 @@ def main(ashow=True, debug=False):
                 cmds.stop()
                 tracker.stop()
                 writer.stop()
+                vwriter.stop()
                 # wait and join threads
                 sleep(0.5)
                 if display is not None:
@@ -327,6 +332,7 @@ def main(ashow=True, debug=False):
                 cmds.join()
                 tracker.join()
                 writer.join()
+                vwriter.join()
                 picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=False)
                 #config.write()
 

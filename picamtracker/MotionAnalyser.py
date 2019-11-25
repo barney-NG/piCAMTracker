@@ -44,6 +44,7 @@ import threading
 import cv2
 from time import sleep,time
 from math import degrees,atan2,pi
+from struct import pack,calcsize
 
 class MotionAnalyser(picamera.array.PiMotionAnalysis):
     """
@@ -51,11 +52,12 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
     Reduce the motion_block array by couple of characteristics:
 
     """
-    def __init__(self,camera, tracker, display, show=0, config=None):
+    def __init__(self,camera, tracker, display, show=0, config=None, vwriter=None):
         super(MotionAnalyser, self).__init__(camera)
         self.camera = camera
         self.tracker = tracker
         self.display = display
+        self.vwriter = vwriter
         self.t0  = time()
         self.config = config
         self.minArea = config.conf['minArea']
@@ -76,10 +78,11 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.debug = False
         self.fobj = None
         self.max_debugged_frames = 1200 # 30 secs at 40f/s
-        self.max_debugged_files = 50
+        self.max_debugged_files = 10
         self.debugged_frames = 0
         self.filenb = 0
         self.name_template = '/run/picamtracker/debug_motion_%03d.data'
+        
         self.checkY = 0
         self.checkX = 0
         if self.ycross > 0 and config.conf["baseB"] == "left":
@@ -104,6 +107,11 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             self.debugged_frames = 0
             try:
                 self.fobj = open(deb_filename, "wb")
+                header = pack('Lll', 
+                    0xa1a1a1a1, 
+                    self.camera.resolution[0],
+                    self.camera.resolution[1])
+                self.fobj.write(header)
             except:
                 raise
 
@@ -115,6 +123,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             self.debug = False
             self.fobj.close()
             self.fobj = None
+            if self.vwriter:
+                self.vwriter.write(self.filenb)
 
     def intersects(self,rects,xn,yn,wn,hn):
         """
@@ -333,6 +343,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             self.started = True
             return
 
+        # save the motion blocks
         if self.debug:
             self.debug_out(a)
         
