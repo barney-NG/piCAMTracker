@@ -8,6 +8,7 @@ import numpy as np
 import picamtracker.MotionTracker
 import picamtracker.ConfigReader
 import cv2
+from struct import unpack_from,calcsize
 
 motion_dtype = np.dtype([
     ('x',   np.int8),
@@ -59,6 +60,22 @@ def cv_getNumber():
 def main(fobj=None,width=1280,height=960,video=False):
     global config
     writer = None
+    #          0xa1a1a1a1WH
+    headerfmt = 'Lll'
+    headersz = calcsize(headerfmt)
+
+    try:
+        header = fobj.read(headersz)
+        magic,w,h = unpack_from(headerfmt, header)
+        if magic == 0xa1a1a1a1:
+            print("width=%d, height=%d" % (w,h))
+            height = h
+            width = w
+        else:
+            fobj.seek(0)
+            print("old format data file")
+    except:
+        raise
 
     #width  = 1632
     #height = 896

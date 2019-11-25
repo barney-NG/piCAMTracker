@@ -77,6 +77,7 @@ class Writer(threading.Thread):
         self.resy = camera.resolution[1]
         self.imgtemplate = '/run/picamtracker/mjpeg%03d.jpg'
         self.imgctrl_file = '/run/picamtracker/act_image.name'
+        self.video_template = '/home/pi/piCAMTracker/media/videos/video%03d.h264'
 
         #self.display = Display('Debug',10,10)
         self.image = np.ones((self.resx,self.resy,3), dtype=np.uint8) * 220
@@ -91,6 +92,8 @@ class Writer(threading.Thread):
         self.k = 0
         self.nimages = config.conf['maxSnapshots']
         self.nbimage = 0
+        self.nvideos = 10
+        self.nbvideo = 0
         gc.disable()
         if config.conf['viewAngle'] == 90:
             self.k = -1
