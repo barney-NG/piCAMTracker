@@ -347,6 +347,9 @@ if __name__ == '__main__':
     config = picamtracker.Configuration('config.json')
     config.write()
     os.system("[ ! -d /run/picamtracker ] && sudo mkdir -p /run/picamtracker && sudo chown pi:www-data /run/picamtracker && sudo chmod 775 /run/picamtracker")
+    if 'ssid' in config.conf and len(config.conf['ssid']) >= 3:
+            cmd = "sudo /home/pi/piCAMTracker/etc/start-access-point.sh --ssid %s" % config.conf['ssid']
+            os.system(cmd.encode())
     os.system("/home/pi/piCAMTracker/etc/background_service.sh </dev/null&")
     out = shell('/usr/bin/vcgencmd', 'measure_temp')
     print("Actual core %s" % out)
