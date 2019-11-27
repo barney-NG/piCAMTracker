@@ -8,7 +8,7 @@ import cv2
 import prctl
 
 class Display(threading.Thread):
-    def __init__(self, caption="Display", x=0, y=0,w=640,h=480):
+    def __init__(self, name="Display", caption="Display", x=0, y=0,w=640,h=480):
         super(Display, self).__init__()
         self.terminated = False
         self.event      = threading.Event()

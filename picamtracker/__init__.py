@@ -35,6 +35,7 @@ from __future__ import (
 from .MotionAnalyser import MotionAnalyser
 from .MotionDisplay import Display
 from .MotionWriter import Writer
+from .VideoWriter import vWriter
 from .GPIOPort import gpioPort
 from .MotionTracker import Tracker
 from .CommandInterface import CommandInterface

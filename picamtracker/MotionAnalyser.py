@@ -44,6 +44,7 @@ import threading
 import cv2
 from time import sleep,time
 from math import degrees,atan2,pi
+from struct import pack,calcsize
 
 class MotionAnalyser(picamera.array.PiMotionAnalysis):
     """
@@ -51,11 +52,12 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
     Reduce the motion_block array by couple of characteristics:
 
     """
-    def __init__(self,camera, tracker, display, show=0, config=None):
+    def __init__(self,camera, tracker, display, show=0, config=None, vwriter=None):
         super(MotionAnalyser, self).__init__(camera)
         self.camera = camera
         self.tracker = tracker
         self.display = display
+        self.vwriter = vwriter
         self.t0  = time()
         self.config = config
         self.minArea = config.conf['minArea']
@@ -76,10 +78,11 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.debug = False
         self.fobj = None
         self.max_debugged_frames = 1200 # 30 secs at 40f/s
-        self.max_debugged_files = 50
+        self.max_debugged_files = 10
         self.debugged_frames = 0
         self.filenb = 0
         self.name_template = '/run/picamtracker/debug_motion_%03d.data'
+        
         self.checkY = 0
         self.checkX = 0
         if self.ycross > 0 and config.conf["baseB"] == "left":
@@ -104,6 +107,11 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             self.debugged_frames = 0
             try:
                 self.fobj = open(deb_filename, "wb")
+                header = pack('Lll', 
+                    0xa1a1a1a1, 
+                    self.camera.resolution[0],
+                    self.camera.resolution[1])
+                self.fobj.write(header)
             except:
                 raise
 
@@ -115,6 +123,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             self.debug = False
             self.fobj.close()
             self.fobj = None
+            if self.vwriter:
+                self.vwriter.write(self.filenb)
 
     def intersects(self,rects,xn,yn,wn,hn):
         """
@@ -232,6 +242,14 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 self.fobj.close()
                 self.fobj = None
 
+    def set_exposure(self, value):
+        """
+        callback setting camera exposure compensation
+        """
+        if value >= 0 and value <= 20:
+            print("MotionAnalyser::exposure_compensation: %d" % value)
+            self.camera.exposure_compensation = int(value)
+            
     def set_baseB(self,mode):
         """
         callback setting baseB mode
@@ -325,6 +343,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             self.started = True
             return
 
+        # save the motion blocks
         if self.debug:
             self.debug_out(a)
         
@@ -335,11 +354,12 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #-- IDENTIFY MOVEMENT
         #---------------------------------------------------------------
         mag = np.abs(a['x']) + np.abs(a['y'])
-        has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax, a['sad'] > self.sadThreshold)
-        #has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
+        #has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax, a['sad'] > self.sadThreshold)
+        has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
 
-        #- reject if more than 33% of the macro blocks are moving
+        #- reject if more than 80% of the macro blocks are moving
         moving_elements = np.count_nonzero(has_movement)
+        #print("moving elements: %d" % moving_elements)
         if moving_elements > self.maxMovements:
             print("MAXMOVEMENT! (%d)" % moving_elements)
             return
@@ -378,8 +398,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #-- MARK MOVING REGIONS
         #---------------------------------------------------------------
         #_, mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        #contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        _,contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # opencv-4.X
+        _,contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # opencv-3.X
         
         rects = self.removeIntersections(contours)
 
@@ -395,7 +415,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             #-- reject areas which are too big
             area = w*h
             if area > self.maxArea:
-                print( "MAXAEREA! (%d %d/%d)" % (area,w,h))
+                print( "MAXAEREA! %d > %d (%d/%d)" % (area,self.maxArea,w,h))
                 rejects += 1
                 continue
             #-- reject areas which are too small
@@ -419,7 +439,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 #    rejects += 1
                 #    continue
 
-	        #-- add points to list
+	        #-- check baseB option (allow movement from one direction only)
             append = True
             if self.checkX:
                 append = False
@@ -429,6 +449,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 append = False
                 if self.checkY > 0 and vy >= 0: append = True
                 if self.checkY < 0 and vy <= 0: append = True                
+            #-- add points to list
             if append:
                 new_points.append([[x0,y0,w,h],[vx,vy]])
 

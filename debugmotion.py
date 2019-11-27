@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: set et sw=4 sts=4 fileencoding=utf-8:
 from time import sleep,time
 #from argparse import ArgumentParser
@@ -8,6 +8,7 @@ import numpy as np
 import picamtracker.MotionTracker
 import picamtracker.ConfigReader
 import cv2
+from struct import unpack_from,calcsize
 
 motion_dtype = np.dtype([
     ('x',   np.int8),
@@ -59,6 +60,22 @@ def cv_getNumber():
 def main(fobj=None,width=1280,height=960,video=False):
     global config
     writer = None
+    #          0xa1a1a1a1WH
+    headerfmt = 'Lll'
+    headersz = calcsize(headerfmt)
+
+    try:
+        header = fobj.read(headersz)
+        magic,w,h = unpack_from(headerfmt, header)
+        if magic == 0xa1a1a1a1:
+            print("width=%d, height=%d" % (w,h))
+            height = h
+            width = w
+        else:
+            fobj.seek(0)
+            print("old format data file")
+    except:
+        raise
 
     #width  = 1632
     #height = 896
@@ -75,7 +92,7 @@ def main(fobj=None,width=1280,height=960,video=False):
 
     caption = 'piCAMTracker::cv2'
     camera = faked_camera(resx=width, resy=height)
-    image = np.ones((height/2,width/2,3), np.uint8) * 220
+    image = np.ones((int(height/2),int(width/2),3), np.uint8) * 220
     rot_img = np.flipud(np.rot90(np.flipud(image),k=1))
     tracker = picamtracker.MotionTracker.Tracker(camera, greenLed=None, redLed=None, config=config)
     tracker.setup_sizes(height/16, width/16)

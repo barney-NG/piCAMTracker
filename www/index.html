@@ -106,7 +106,7 @@
                         <input type="range" name="slider-MinArea" id="slider-MinArea" value="1" min="1" max="25" step="1" data-highlight="true"
                                onchange="fifo_command('minArea:',$('#slider-MinArea').val()) ;" />
                         <label for="slider-MaxArea">Maximum Area: (larger objects are ignored)</label>
-                        <input type="range" name="slider-MaxArea" id="slider-MaxArea" value="2000" min="500" max="5000" step="500" data-highlight="true"
+                        <input type="range" name="slider-MaxArea" id="slider-MaxArea" value="2000" min="500" max="6000" step="500" data-highlight="true"
                                onchange="fifo_command('maxArea:',$('#slider-MaxArea').val()) ;" />
                         <label for="slider-MaxMotionDistance">Maximum Motion Distance: (maximal object distance between two frames)</label>
                         <input type="range" name="slider-MaxMotionDistance" id="slider-MaxMotionDistance" value="4" min="1" max="8" step="2" data-highlight="true"
@@ -114,6 +114,9 @@
                         <label for="slider-DetectionMaturity">Detection Maturity: (number of frames to enable crossing detection)</label>
                         <input type="range" name="slider-DetectionMaturity" id="slider-DetectionMaturity" value="7" min="4" max="10" step="1" data-highlight="true"
                                onchange="fifo_command('trackMaturity:',$('#slider-DetectionMaturity').val()) ;" />
+			<label for="slider-ExposureCompensation">Exposure Compensation: (make the picture lighter)</label>
+                        <input type="range" name="slider-ExposureCompensation" id="slider-ExposureCompensation" value="0" min="0" max="20" step="1" data-highlight="true"
+                               onchange="fifo_command('exposure:',$('#slider-ExposureCompensation').val()) ;" />
                 </div><!-- /content -->
         </div><!-- /page -->
 
@@ -239,6 +242,7 @@
 	    $('#slider-NoiseLevel').val(cfg.sadThreshold).slider('refresh');
 	    $('#slider-MaxMotionDistance').val(cfg.maxDist).slider('refresh');
 	    $('#slider-DetectionMaturity').val(cfg.trackMaturity).slider('refresh');
+	    $('#slider-ExposureCompensation').val(cfg.exposure).slider('refresh');
 	    // set checkbox status
 	    if(cfg.baseB == 'right') {
 		document.getElementById("right").click();

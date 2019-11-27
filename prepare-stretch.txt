@@ -14,6 +14,7 @@ System:
 2.) apt-get
  sudo apt-get update
  sudo rpi-update
+ sudo rpi-eeprom-update
  sudo apt-get upgrade
  sudo apt-get install libboost-dev
  sudo apt-get install libboost-python1.62.0

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: set et sw=4 sts=4 fileencoding=utf-8:
 import picamera
 import picamera.array
@@ -43,11 +43,14 @@ def get_raspi_revision():
         fd = os.open(rev_file, os.O_RDONLY)
         line = os.read(fd,256)
         os.close(fd)
-        m = re.match('Raspberry Pi (\d+) Model (\w(?: Plus)?) Rev ([\d\.]+)', line)
+        #             Raspberry Pi 4 Model B Rev 1.1
+        #m = re.match('Raspberry Pi (\d+) Model (\w(?: Plus)?) Rev ([\d\.]+)', line)
+        line = line.decode()
+        m = re.match('Raspberry Pi (\d+) Model ([A-Z]+(: Plus)?) Rev (\d+(\.\d+)?)', line)
         if m:
             info['pi'] = m.group(1)
             info['model'] = m.group(2)
-            info['rev'] = m.group(3)
+            info['rev'] = m.group(4)
     except:
         pass
 
@@ -88,16 +91,20 @@ def main(ashow=True, debug=False):
         if revision == 'OV5647':
             # V1 module
             # 1280x720 has a bug. (wrong center value)
-            resx = 1280
-            resy = 960
+            resx = 1280 # 80
+            resy = 960 # 60
             fps  = 42
             mode = 4
         elif revision == 'IMX219':
             # V2 module
-            resx = 1632
-            resy = 896
-            fps  = 38
+            resx = 1632 # 102
+            resy = 896 # 56
+            fps  = 40
             mode = 5
+            #resx = 1280
+            #resy = 720
+            #fps  = 90
+            #mode = 6 # this mode does not use the full FOV!            
         else:
             raise ValueError('Unknown camera device')
 
@@ -106,7 +113,10 @@ def main(ashow=True, debug=False):
             print("WARNING: Y crossing %d expected but %d given!" % (resy/32, config.conf['yCross']))
 
         if config.conf['xCross'] > 0 and config.conf['xCross'] != (resx/32):
-            print("WARNING: X crossing bar is not in the center of the screen!")
+            print("WARNING: X crossing %d expected but %d given!" % (resx/32, config.conf['xCross']))
+
+        #if 'fps' in config.conf and config.conf['fps'] > 0 and config.conf['fps'] < fps:
+        #    fps = config.conf['fps']
 
         camera.resolution = (resx,resy)
 
@@ -119,8 +129,10 @@ def main(ashow=True, debug=False):
         else:
             display = None
             camera.sensor_mode = mode
-            camera.framerate   = fps
+            camera.framerate_range = (25, fps)
 
+        act_fps = fps
+        
         print("warm-up 2 seconds...")
         #serialPort = picamtracker.SerialIO.SerialCommunication(port=config.conf['serialPort'],options=config.conf['serialConf'])
         greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
@@ -157,46 +169,52 @@ def main(ashow=True, debug=False):
                 camera.preview.alpha = 255
 
             rotation = config.conf['viewAngle']
-            camera.preview.window = (px,py,resy/2,resx/2)
+            camera.preview.window = (px,py,int(resy/2),int(resx/2))
             camera.preview.rotation = rotation
 
             #- overlay settings
-            overlay = camera.add_overlay(source=np.getbuffer(cl),
-                                         size=(resx,resy),format='rgb')
+            overlay = camera.add_overlay(source=cl.tobytes(),size=(resx,resy),format='rgb')
+            
+            #overlay = camera.add_overlay(source=np.getbuffer(cl),
+            #                             size=(resx,resy),format='rgb')
             overlay.fullscreen = False
             overlay.alpha = 32
             overlay.layer = 3
-            overlay.window = (px,py,resy/2,resx/2)
+            overlay.window = (px,py,int(resy/2),int(resx/2))
             overlay.rotation= rotation
 
-        #- disable auto (exposure + white balance)
-        #camera.shutter_speed = camera.exposure_speed
+        #- set exposure mode
         camera.exposure_compensation = 5
-        camera.exposure_mode = 'backlight'
-        #g = camera.awb_gains
-        #camera.awb_mode  = 'off'
-        #camera.awb_gains = g
-
+        camera.exposure_mode = 'auto'
+        #camera.exposure_mode = 'sports'
+        #camera.exposure_mode = 'backlight
+        #camera.contrast = 25
+        
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
-        if 'IPUDPBEEP' in config.conf:
+        if 'IPUDPBEEP' in config.conf and re.match('.*\.255$', config.conf['IPUDPBEEP']):
+            print("setup UDP Broadcast")
             udpThread = picamtracker.UDPBeep.udpBeep(config.conf['IPUDPBEEP'], 4445)
             udpThread.event.set ()
         else:
             udpThread = None
 
-        tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, udpThread=udpThread)
         writer = picamtracker.Writer(camera, stream=vstream, config=config)
+        vwriter = picamtracker.vWriter(stream=vstream, config=config)        
+        tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, udpThread=udpThread)
         cmds = picamtracker.CommandInterface(config=config)
         cmds.subscribe(tracker.set_maxDist, 'maxDist')
         cmds.subscribe(tracker.set_trackMaturity, 'trackMaturity')
         cmds.subscribe(tracker.testCrossing, 'testBeep')
         cmds.subscribe(config.set_storeParams, 'storeParams')
-        #cmds.subscribe(greenLED.check, 'testBeep')
 
-        with picamtracker.MotionAnalyser(camera, tracker, display, show, config) as output:
+
+        with picamtracker.MotionAnalyser(camera, tracker, display, show, config, vwriter) as output:
             loop = 0
             t_wait = 0.5
             old_frames = 0
+            #auto_mode = 10
+            auto_mode = -1
+            last_auto_mode = time()
             camera.annotate_text_size = 24
             camera.start_recording(output=vstream, format='h264', level='4.2', motion_output=output)
             cmds.subscribe(output.set_vMax, 'vMax')
@@ -206,11 +224,14 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_sadThreshold, 'sadThreshold')
             cmds.subscribe(output.set_debug, 'debug')
             cmds.subscribe(output.set_baseB, 'baseB')
+            cmds.subscribe(output.set_exposure, 'exposure')
+            
             if config.conf['debugInputPort']:
                 picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)
             prctl.set_name('python')
 
             try:
+            
                 while True:
                     global temp
                     loop += 1
@@ -235,11 +256,23 @@ def main(ashow=True, debug=False):
                         fs = (frames - old_frames)  / (2 * t_wait)
                         old_frames = frames
                         camera.annotate_text = "%s (%3.1f f/s) %s" % (dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), fs, add_text)
+                        
+                        # exposure mode
+                        if auto_mode >= 0:
+                            auto_mode -= 1
+                            if auto_mode == 0:
+                                print("auto_mode: off")
+                                camera.exposure_mode = 'off'
+                                camera.shutter_speed = camera.exposure_speed
+                                g = camera.awb_gains
+                                camera.awb_mode  = 'off'
+                                camera.awb_gains = g
 
 
                     delay,frame,motion = tracker.getStatus()
                     if frame != 0:
-                        #t0 = time()
+                        #print("crossing for frame: %d" % frame)
+                        t0 = time()
                         #camera.split_recording('after.h264')
                         #vstream.copy_to('before.h264',size=2147483648)
                         #vstream.copy_to('before.h264',size=1073741824)
@@ -247,9 +280,20 @@ def main(ashow=True, debug=False):
                         #camera.split_recording(vstream)
                         #name = "AAA-%d.jpg" % loop
                         #camera.capture(reader, format='rgb', use_video_port=True)
+                        
                         writer.takeSnapshot(delay, frame, motion)
+                        #vstream.copy_to('before.h264',seconds=15)
                         tracker.releaseLock()
+                        
                         #print("capture: %4.2fms" % (1000.0 * (time() - t0)))
+                        #auto_diff = time() - last_auto_mode
+                        #if auto_diff > 180 and auto_mode < 0:
+                        #    camera.exposure_mode = 'auto'
+                        #    camera.exposure_compensation = 5
+                        #    camera.awb_mode  = 'auto'
+                        #    auto_mode = 10
+                        #    last_auto_mode = time()
+                        #    print("auto_mode: on")
 
                     # check for USB stick every 60 seconds
 
@@ -257,13 +301,14 @@ def main(ashow=True, debug=False):
 
             except KeyboardInterrupt:
                 pass
-            finally:
 
+            finally:
                 # stop camera and preview
                 #serialPort.terminated = True
                 greenLED.terminated = True
                 redLED.terminated = True
-                udpThread.terminated = True
+                if udpThread:
+                    udpThread.terminated = True
                 camera.stop_recording()
                 if preview:
                     camera.stop_preview()
@@ -274,16 +319,20 @@ def main(ashow=True, debug=False):
                 cmds.stop()
                 tracker.stop()
                 writer.stop()
+                vwriter.stop()
                 # wait and join threads
                 sleep(0.5)
                 if display is not None:
                     display.join()
                 #serialPort.join()
+                if udpThread:
+                    udpThread.join()
                 greenLED.join()
                 redLED.join()
                 cmds.join()
                 tracker.join()
                 writer.join()
+                vwriter.join()
                 picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=False)
                 #config.write()
 
@@ -296,7 +345,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     global config
     config = picamtracker.Configuration('config.json')
+    config.write()
     os.system("[ ! -d /run/picamtracker ] && sudo mkdir -p /run/picamtracker && sudo chown pi:www-data /run/picamtracker && sudo chmod 775 /run/picamtracker")
+    if 'ssid' in config.conf and len(config.conf['ssid']) >= 3:
+            cmd = "sudo /home/pi/piCAMTracker/etc/start-access-point.sh --ssid %s" % config.conf['ssid']
+            os.system(cmd.encode())
     os.system("/home/pi/piCAMTracker/etc/background_service.sh </dev/null&")
     out = shell('/usr/bin/vcgencmd', 'measure_temp')
     print("Actual core %s" % out)

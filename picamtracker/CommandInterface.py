@@ -52,6 +52,7 @@ class CommandInterface(threading.Thread):
     #--------------------------------------------------------------------
     def __init__(self, config=None, buff_size=128):
         super(CommandInterface,self).__init__()
+        self.name = 'CommandInterface'
         self.config    = config
         self.fd        = None
         self.buff_size = buff_size
@@ -91,8 +92,9 @@ class CommandInterface(threading.Thread):
     #-- interprete the command
     #--------------------------------------------------------------------
     def interprete(self, cmd):
-         m = self.keyval.match(cmd)
-         if m:
+        #print("cmd: <%s>" % (cmd))
+        m = self.keyval.match(cmd)
+        if m:
             key = m.group(1)
             val = int(m.group(2))
             #TODO: make this more pythonic!
@@ -115,7 +117,7 @@ class CommandInterface(threading.Thread):
                     else:
                         raise e
                 if cmd:
-                    self.interprete(cmd)
+                    self.interprete(cmd.decode())
                 else:
                     # pipe is not a socket
                     os.close(self.fd)
