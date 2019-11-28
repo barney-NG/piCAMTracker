@@ -398,8 +398,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #-- MARK MOVING REGIONS
         #---------------------------------------------------------------
         #_, mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        # contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # opencv-4.X
-        _,contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # opencv-3.X
+        contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) 
+        #_,contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # opencv-3.X
         
         rects = self.removeIntersections(contours)
 
