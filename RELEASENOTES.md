@@ -1,9 +1,9 @@
-# Version 0.6
+# Version 0.6: 2019-11-28
 * Raspberry 4 Support
   * New OS version (Buster)
 * Python-3.8
   * Latest picamera version installed (1.14)
-  * opencv-3.4.9
+  * opencv-4.1.2
 * tracking is bypassed for very fast and big objects
 * exposure compensation implementated (amount of backlighting)
 * framerate adapts to lightning conditions automatically
