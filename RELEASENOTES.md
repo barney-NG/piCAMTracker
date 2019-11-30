@@ -1,3 +1,5 @@
+# Version 0.6.1: 2019-11-30
+* Disable wifi access point by default. (problems with wifi client setup)
 # Version 0.6: 2019-11-28
 * Raspberry 4 Support
   * New OS version (Buster)
