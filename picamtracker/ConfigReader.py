@@ -41,7 +41,7 @@ import json
 
 default_config = \
 {
-    "IPUDPBEEP": "255.255.255.0",
+    "IPUDPBEEP": "255.255.255.255",
     "baseB": "none",
     "debug": False,
     "debugInputPort": 0,
