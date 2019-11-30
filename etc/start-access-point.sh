@@ -29,10 +29,26 @@ while true; do
   esac
 done
 
+
+#------------------------------------------------------------------------
+#- determine country and channel
+#- Raspberry3 phys interface has one channel only
+#------------------------------------------------------------------------
+country=$(awk -F '=' '/^country/ {print $2}' /etc/wpa_supplicant/wpa_supplicant.conf)
+channel=$(iwlist $parent_device channel | awk '/Current Frequency/ { sub(/\)$/,"",$NF); print $NF }')
+
+# is country a valid 2 character code?
+[[ "$country" =~ ^[A-Z][A-Z]$ ]] || country='US'
+# is channel a valid integer?
+[[ "$channel" =~ ^[0-9]+$ ]] || channel=7
+
+#echo "channel: $channel"
+#echo "country: $country"
+
 #------------------------------------------------------------------------
 #- exclude ap0 from dhcp service
 #------------------------------------------------------------------------
-grep -q 'denyinterfaces ap0' /etc/dhcpcd.conf || echo 'denyinterfaces ap0' >> /etc/dhcpcd.conf
+#grep -q 'denyinterfaces ap0' /etc/dhcpcd.conf || echo 'denyinterfaces ap0' >> /etc/dhcpcd.conf
 
 #------------------------------------------------------------------------
 #- Populate hostapd.conf
@@ -40,7 +56,7 @@ grep -q 'denyinterfaces ap0' /etc/dhcpcd.conf || echo 'denyinterfaces ap0' >> /e
 grep -q "ssid=${ssid}"  /etc/hostapd/hostapd.conf 2>/dev/null
 if [[ $? -ne 0 ]]
 then
-  cat > /etc/hostapd/hostapd.conf <<EOF
+ cat > /etc/hostapd/hostapd.conf <<EOF
 interface=ap0
 driver=nl80211
 ssid=${ssid}
@@ -85,15 +101,24 @@ fi
 
 #------------------------------------------------------------------------
 # setup ap0
+# iwlist scan
+# iw list
 #------------------------------------------------------------------------
 ip a s dev ap0 > /dev/null 2>&1
 if [[ $? -ne 0 ]]
 then
   echo "Setting up AP: $ssid"
   macaddr=$(cat /sys/class/net/$parent_device/address)
+  #systemctl stop hostapd
+  #systemctl stop dnsmasq
+  #systemctl stop dhcpcd
+  #ip link set ${parent_device} down
+  #iw dev ${parent_device} del
+  #iw phy phy0 interface add ${parent_device} type station
   iw phy phy0 interface add ap0 type __ap
   ip link set ap0 address $macaddr
   ip address add ${ipaddress} dev ap0
+  #ip link set ${parent_device} up
   ip link set ap0 up
   systemctl start hostapd
   systemctl restart dnsmasq

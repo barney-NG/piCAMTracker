@@ -61,7 +61,7 @@ default_config = \
     "xCross": -1,
     "yCross": 30,
     "vMin": 1,
-    "vMax": 100,
+    "vMax": 25,
     "minDist": 0,
     "maxDist": 8,
     "maxTracks" : 16,
@@ -80,6 +80,7 @@ default_config = \
     "serialPort": "/dev/serial0",
     "serialConf": "9600 8N1",
     "ssid": "PICAM",
+    "accessPoint": False,
     "streamServer": True
 }
 
@@ -99,6 +100,10 @@ class Configuration:
             print("I/O error: {0}".format(err))
         except:
             raise
+        # insert new default keys
+        for key in default_config:
+            if not key in self.conf:
+                self.conf[key] = default_config[key]
 
     def set_storeParams(self,value):
         self.write()
