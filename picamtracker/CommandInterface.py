@@ -66,7 +66,7 @@ class CommandInterface(threading.Thread):
 
 
         # precompile some regular expressions
-        self.keyval = re.compile('(\w+)\:(\w+);$')
+        self.keyval = re.compile('(\w+)\:([\-]?\w+);$')
 
 
         # start thread

@@ -246,7 +246,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         """
         callback setting camera exposure compensation
         """
-        if value >= 0 and value <= 20:
+        if value >= -20 and value <= 20:
             print("MotionAnalyser::exposure_compensation: %d" % value)
             self.camera.exposure_compensation = int(value)
             
