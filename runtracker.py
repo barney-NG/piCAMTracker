@@ -184,8 +184,8 @@ def main(ashow=True, debug=False):
             overlay.rotation= rotation
 
         #- set exposure mode
-        camera.exposure_compensation = 5
         camera.exposure_mode = 'auto'
+        camera.exposure_compensation = config.conf["exposure"]
         #camera.exposure_mode = 'sports'
         #camera.exposure_mode = 'backlight
         #camera.contrast = 25
