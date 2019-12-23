@@ -12,6 +12,9 @@
 * track creation conditions are more strict now
 * allow more moving elements in one frame to enable bigger objects
 * wifi access point started in parallel to wifi connection. (very alpha!)
+* short video sequences (h264) are stored in parallel to motion vectors when debugging is enabled.
+  * stored under: /home/pi/piCAMTracker/media/videos
+  * the VLC player should be able to play back this files
 # Version 0.5.1: 2019-02-20
 * handling of webpage enhanced
 * test button in screen page implemented
