@@ -249,6 +249,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         if value >= -20 and value <= 20:
             print("MotionAnalyser::exposure_compensation: %d" % value)
             self.camera.exposure_compensation = int(value)
+            self.config.conf['exposure'] = int(value)
             
     def set_baseB(self,mode):
         """
@@ -409,6 +410,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         new_points = []
         noise   = False
         rejects = 0
+    
         num_rects = len(rects)
         #- walk through all rects
         for x0,y0,w,h in rects:
