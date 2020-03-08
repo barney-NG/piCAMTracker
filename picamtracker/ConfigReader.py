@@ -69,7 +69,7 @@ default_config = \
     "videoLength" : 20,
     "viewAngle": 90,
     "preview": True,
-    "previewX": 1,
+    "previewX": 8,
     "previewY": 30,
     "previewW": 640,
     "previewH": 480,

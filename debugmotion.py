@@ -60,6 +60,17 @@ def cv_getNumber():
 def main(fobj=None,width=1280,height=960,video=False):
     global config
     writer = None
+    
+    k = 0
+    config.conf['debug'] = False
+    if config.conf['viewAngle'] == 90:
+        k = -1
+    if config.conf['viewAngle'] == 180:
+        k = 2
+    if config.conf['viewAngle'] == 270:
+        k = 1
+
+    
     #          0xa1a1a1a1WH
     headerfmt = 'Lll'
     headersz = calcsize(headerfmt)
@@ -93,12 +104,13 @@ def main(fobj=None,width=1280,height=960,video=False):
     caption = 'piCAMTracker::cv2'
     camera = faked_camera(resx=width, resy=height)
     image = np.ones((int(height/2),int(width/2),3), np.uint8) * 220
-    rot_img = np.flipud(np.rot90(np.flipud(image),k=1))
+    #rot_img = np.flipud(np.rot90(np.flipud(image),k=1))
+    rot_img = np.rot90(image,k=k)
     tracker = picamtracker.MotionTracker.Tracker(camera, greenLed=None, redLed=None, config=config)
     tracker.setup_sizes(height/16, width/16)
     x_disp = config.conf['previewX'] + config.conf['offsetX']
     y_disp = config.conf['previewY'] + config.conf['offsetY']
-    display = picamtracker.Display(caption='piCAMTracker::debug',x=x_disp,y=y_disp,w=height/2,h=width/2)
+    display = picamtracker.Display(caption='piCAMTracker::debugDisplay',x=x_disp,y=y_disp,w=width/2,h=height/2)
     analyser = picamtracker.MotionAnalyser(camera, tracker, display, 0xff, config)
     analyser.rows = rows
     analyser.cols = cols
@@ -121,8 +133,10 @@ def main(fobj=None,width=1280,height=960,video=False):
             
             
             if writer and chunks_read > 1:
-                writer.write(np.flipud(np.rot90(np.flipud(analyser.big),k=1)))
-            
+                writer.write(np.rot90(analyser.big,k=k))
+                #writer.write(np.flipud(np.rot90(np.flipud(analyser.big),k=k)))
+                
+            # show input window
             cv2.imshow(caption,rot_img)
             
                 
@@ -190,7 +204,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     config = picamtracker.ConfigReader.Configuration(args.cfg)
-    config.conf['debug'] = False
-
+    
     #curses.wrapper(main)
     main(args.input,args.width,args.height,args.video)

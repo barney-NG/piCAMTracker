@@ -36,6 +36,19 @@ def shell(cmd, *argv):
 
     return out.strip()
 
+def get_screen_resolution():
+    w = h = 0
+    cmd = "/home/pi/piCAMTracker/etc/get_screen_resolution.sh"
+    output = shell(cmd)
+    m = re.match('(\d+) (\d+)', output.decode())
+    if m:
+        w = int(m.group(1))
+        h = int(m.group(2))
+
+    print("screen resolution: w: %d, h: %d" % (w,h))
+
+    return (w,h)
+
 def get_raspi_revision():
     rev_file = '/sys/firmware/devicetree/base/model'
     info = { 'pi': '', 'model': '', 'rev': ''}
@@ -108,15 +121,14 @@ def main(ashow=True, debug=False):
         else:
             raise ValueError('Unknown camera device')
 
+        print("camera resolution: %dx%d" % (resx,resy))
+
         #- check if the crossing line is in the center (this is not needed.)
         if config.conf['yCross'] > 0 and config.conf['yCross'] != (resy/32):
             print("WARNING: Y crossing %d expected but %d given!" % (resy/32, config.conf['yCross']))
 
         if config.conf['xCross'] > 0 and config.conf['xCross'] != (resx/32):
             print("WARNING: X crossing %d expected but %d given!" % (resx/32, config.conf['xCross']))
-
-        #if 'fps' in config.conf and config.conf['fps'] > 0 and config.conf['fps'] < fps:
-        #    fps = config.conf['fps']
 
         camera.resolution = (resx,resy)
 
@@ -130,9 +142,7 @@ def main(ashow=True, debug=False):
             display = None
             camera.sensor_mode = mode
             camera.framerate_range = (25, fps)
-
-        act_fps = fps
-        
+  
         print("warm-up 2 seconds...")
         #serialPort = picamtracker.SerialIO.SerialCommunication(port=config.conf['serialPort'],options=config.conf['serialConf'])
         greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
@@ -158,29 +168,27 @@ def main(ashow=True, debug=False):
                 cl[:,xm,:]  = 0xff  #vertical line
 
             #- preview settings
-            px = config.conf['previewX']
-            py = config.conf['previewY']
+            px = int(config.conf['previewX'])
+            py = int(config.conf['previewY'])
+            pw = int(resx/2)
+            ph = int(resy/2)
+            rotation = config.conf['viewAngle']
+            
+            print("preview w: %d, h: %d" % (pw,ph))
 
-            camera.start_preview()
-            camera.preview.fullscreen = False
+            camera.start_preview(fullscreen=False,window=(px,py,pw,ph),rotation=rotation)
+            #camera.preview.fullscreen = False
             if show:
                 camera.preview.alpha = 192
             else:
                 camera.preview.alpha = 255
 
-            rotation = config.conf['viewAngle']
-            camera.preview.window = (px,py,int(resy/2),int(resx/2))
-            camera.preview.rotation = rotation
-
             #- overlay settings
-            overlay = camera.add_overlay(source=cl.tobytes(),size=(resx,resy),format='rgb')
-            
-            #overlay = camera.add_overlay(source=np.getbuffer(cl),
-            #                             size=(resx,resy),format='rgb')
+            overlay = camera.add_overlay(source=cl.tobytes(),size=(resx,resy),format='rgb')            
             overlay.fullscreen = False
             overlay.alpha = 32
             overlay.layer = 3
-            overlay.window = (px,py,int(resy/2),int(resx/2))
+            overlay.window = (px,py,pw,ph)
             overlay.rotation= rotation
 
         #- set exposure mode
