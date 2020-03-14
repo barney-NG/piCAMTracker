@@ -172,7 +172,9 @@ def main(ashow=True, debug=False):
             py = int(config.conf['previewY'])
             pw = int(resx/2)
             ph = int(resy/2)
-            rotation = config.conf['viewAngle']
+            rotation = int(config.conf['viewAngle'])
+            if rotation == 90 or rotation == 270:
+                hh = pw; pw = ph; ph = hh
             
             print("preview w: %d, h: %d" % (pw,ph))
 
@@ -233,6 +235,7 @@ def main(ashow=True, debug=False):
             cmds.subscribe(output.set_debug, 'debug')
             cmds.subscribe(output.set_baseB, 'baseB')
             cmds.subscribe(output.set_exposure, 'exposure')
+            cmds.subscribe(output.set_extend, 'extension')
             
             if config.conf['debugInputPort']:
                 picamtracker.GPIOPort.addCallback(config.conf['debugInputPort'], output.debug_button)

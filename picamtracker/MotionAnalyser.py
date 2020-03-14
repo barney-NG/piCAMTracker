@@ -62,6 +62,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.config = config
         self.minArea = config.conf['minArea']
         self.maxArea = config.conf['maxArea']
+        self.extension = config.conf['extension']
         # 32768 is absolute maximum ; 8192 is maximum
         self.sadThreshold = config.conf['sadThreshold']
         self.big = None
@@ -131,7 +132,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         find rects which intersect a new one
         """
         i = 0
-        extend = 3
+        extend = self.extension
         append = True
         #print("=====")
         #print("new: x1/y1: %2d/%2d, x2/y2: %2d/%2d  w/h %d/%d" % (xn,yn,xn+wn,yn+hn,wn,hn))
@@ -241,6 +242,15 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             if self.fobj:
                 self.fobj.close()
                 self.fobj = None
+
+    def set_extend(self, value):
+        """
+        callback setting collection extension
+        """
+        if value >= 1 and value <= 20:
+            print("MotionAnalyser::object extension: %d" % value)
+            self.extension = int(value)
+            self.config.conf['extension'] = int(value)
 
     def set_exposure(self, value):
         """

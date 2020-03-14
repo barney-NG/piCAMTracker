@@ -50,6 +50,7 @@ default_config = \
     "statusLEDPort": 23,
     "ledActiveLow": False,
     "exposure": 0,
+    "extension": 3,
     "signalLength": 300.0,
     "quitAppByGPIO": False,
     "minArea": 2,
