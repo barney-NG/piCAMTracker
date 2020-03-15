@@ -209,7 +209,7 @@ class Writer(threading.Thread):
                     cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
                     
                 #txt = "%4.1fms" % (delay*1000.0)
-                txt = "%4.1f" % (np.linalg.norm(motion[1]))
+                txt = "v:%4.1f" % (np.linalg.norm(motion[1]))
                 cv2.putText(image,txt,(int(x0), int(y0)),cv2.FONT_HERSHEY_SIMPLEX,0.5,(20,220,20),1)
                 xm = int((x1+x0) / 2)
                 ym = int((y1+y0) / 2)
