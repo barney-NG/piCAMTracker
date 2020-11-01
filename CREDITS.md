@@ -20,3 +20,4 @@ Thank you to all who gave input and ideas to improve the concepts, the hardware 
 * Jorgen Busk
 * William Fourie
 * Sylvain Pfefferkorn
+* Robert Rucinski
