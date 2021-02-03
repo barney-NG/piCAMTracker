@@ -496,4 +496,5 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             if self.display:
               self.display.imshow( self.big )
 
-        #print("--- %4.2fms (%d)" % (1000.0 * (time() - self.t0), num_rects))
+        #if self.processed_frames % 10 == 0:
+        #    print("--- %4.2fms (%d)" % (1000.0 * (time() - self.t0), num_rects))

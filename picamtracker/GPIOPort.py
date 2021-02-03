@@ -4,6 +4,9 @@ from time import sleep
 import RPi.GPIO as GPIO
 import prctl
 
+def cleanup():
+    GPIO.cleanup()
+    
 def statusLED(port, on=True):
     """
     enable the status led

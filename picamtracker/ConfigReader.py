@@ -51,6 +51,7 @@ default_config = \
     "ledActiveLow": False,
     "exposure": 0,
     "extension": 7,
+    "fastMode": False,
     "signalLength": 300.0,
     "quitAppByGPIO": False,
     "minArea": 2,

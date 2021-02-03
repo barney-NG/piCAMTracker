@@ -6,7 +6,7 @@
         <!--<meta name="viewport" content="width=448, initial-scale=1"/>-->
         <meta name="viewport" content="width=device-width, initial-scale=0.68">
         <meta name="format-detection" content="telephone=no">
-        <title>Fxx Crossing Detection</title>
+        <title>piCAMTracker Crossing Detection</title>
         <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css"/>
         <!-- link rel="icon" sizes="128x128" href="favicon.icns"/ -->
         <script src="js/jquery-2.2.0.min.js"></script>
@@ -117,7 +117,7 @@
 			<label for="slider-ObjectExtension">ObjectExtension: (defines how much one object is extended to be joined into a bigger one)</label>
 			<input type="range" name="slider-ObjectExtension" id="slider-ObjectExtension" value="3" min="3" max="18" step="3" data-highlight="true"
                                onchange="fifo_command('extension:',$('#slider-ObjectExtension').val()) ;" />
-			<label for="slider-ExposureCompensation">Exposure Compensation: (make the picture lighter)</label>
+			<label for="slider-ExposureCompensation">Exposure Compensation: (negative values for frontal sun; positive values to enlighten dark areas)</label>
                         <input type="range" name="slider-ExposureCompensation" id="slider-ExposureCompensation" value="0" min="-20" max="20" step="1" data-highlight="true"
                                onchange="fifo_command('exposure:',$('#slider-ExposureCompensation').val()) ;" />
                 </div><!-- /content -->
@@ -143,7 +143,7 @@
                         <div style="float: right">
                           <input type="submit" id = "debug" value="Start Debugging (30s)" onclick="fifo_command('debug:',30) ;">
                         </div>
-			<div style="min-height: 20px"></div>
+			<div style="min-height: 40px"></div>
                         <div data-role="fieldcontain">
 			    <form>
 				<fieldset data-role="controlgroup" data-type="vertical">
@@ -154,14 +154,17 @@
 				    <label for="left">right only</label>
 				    <input type="radio" name="baseB" id="right" value="2" onclick="fifo_command('baseB:',2) ;">
 				    <label for="right">left only</label>
-				    <!--<input type="radio" name="rbCmd" id="replay" value="6" onclick="submitCmd();">
-				    <label for="replay">Replay Raw Video (no beep!)</label>
-				    <input type="radio" name="rbCmd" id="recmpeg" value="7" onclick="submitCmd();">
-				    <label for="recmpeg">Record MPEG Video (no beep!)</label>
-				    <input type="radio" name="rbCmd" id="repmpeg" value="8" onclick="submitCmd();">
-				    <label for="repmpeg">Replay MPEG Video (no beep!)</label>
-				    <input type="radio" name="rbCmd" id="psave" value="9" onclick="submitCmd();">
-				    <label for="psave">Sleep Mode (no beep!)</label>-->
+				</fieldset>
+			    </form>
+                        </div><!-- /fieldcontain -->
+			<div data-role="fieldcontain">
+			    <form>
+				<fieldset data-role="controlgroup" data-type="vertical">
+				    <legend>Fast Mode:</legend>
+				    <input type="radio" name="fastM" id="fm_off" value="0" checked="checked" onclick="fifo_command('fastMode:',0) ;">
+				    <label for="fm_off">Off</label>
+				    <input type="radio" name="fastM" id="fm_on" value="1" onclick="fifo_command('fastMode:',1) ;">
+				    <label for="fm_on">On</label>
 				</fieldset>
 			    </form>
                         </div><!-- /fieldcontain -->
@@ -238,16 +241,13 @@
 	if(this.readyState == 4 && this.status == 200) {
 	    var cfg = JSON.parse(this.responseText);
 	    console.log("CFG: " + JSON.stringify(cfg));
-	    $('#slider-vMin').val(cfg.vMin).slider('refresh');
-	    $('#slider-vMax').val(cfg.vMax).slider('refresh');
-	    $('#slider-MinArea').val(cfg.minArea).slider('refresh');
-	    $('#slider-MaxArea').val(cfg.maxArea).slider('refresh');
-	    $('#slider-NoiseLevel').val(cfg.sadThreshold).slider('refresh');
-	    $('#slider-MaxMotionDistance').val(cfg.maxDist).slider('refresh');
-	    $('#slider-DetectionMaturity').val(cfg.trackMaturity).slider('refresh');
-	    $('#slider-ObjectExtension').val(cfg.extension).slider('refresh');
-	    $('#slider-ExposureCompensation').val(cfg.exposure).slider('refresh');
-	    // set checkbox status
+	    // set fastmode checkbox status
+	    if(cfg.fastMode == true) {
+		document.getElementById("fm_on").click();
+	    } else {
+		document.getElementById("fm_off").click();
+	    }
+	    // set baseB checkbox status
 	    if(cfg.baseB == 'right') {
 		document.getElementById("right").click();
 	    } else if(cfg.baseB == 'left') {
@@ -255,6 +255,18 @@
 	    } else {
 		document.getElementById("both").click();
 	    }
+
+	    // set slider values
+	    document.getElementById("slider-vMin").value = cfg.vMin;
+	    document.getElementById("slider-vMax").value = cfg.vMax;
+	    document.getElementById("slider-MinArea").value = cfg.minArea;
+	    document.getElementById("slider-MaxArea").value = cfg.maxArea;
+	    //document.getElementById("slider-NoiseLevel").value = cfg.sadThreshold;
+	    document.getElementById("slider-MaxMotionDistance").value = cfg.maxDist;
+	    document.getElementById("slider-DetectionMaturity").value = cfg.trackMaturity;
+	    document.getElementById("slider-ObjectExtension").value = cfg.extension;
+	    document.getElementById("slider-ExposureCompensation").value = cfg.exposure;
+	    
 	    // link status (green) on
 	    document.getElementById("ledG1").style.visibility = "visible";
 	    document.getElementById("ledG2").style.visibility = "visible";

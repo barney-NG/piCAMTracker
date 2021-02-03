@@ -17,6 +17,10 @@
 		var thresholdValue = '2';
 		var mpegFileName = '---';
 		var datetime = '';
+		
+		var vminValue = $( '#slider-vMin' ).val();
+		var vmaxValue = $( '#slider-vMax' ).val();
+		
 		var minareaValue = $( '#slider-MinArea' ).val();
 		var maxareaValue = $( '#slider-MaxArea' ).val();
 		var minmotionValue = $( '#slider-MinMotionDistance' ).val();
