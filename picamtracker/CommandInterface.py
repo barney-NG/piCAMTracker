@@ -50,7 +50,7 @@ class CommandInterface(threading.Thread):
     #--------------------------------------------------------------------
     #-- constructor
     #--------------------------------------------------------------------
-    def __init__(self, config=None, buff_size=128):
+    def __init__(self, config=None, buff_size=128, pipe="/home/pi/piCAMTracker/www/FIFO"):
         super(CommandInterface,self).__init__()
         self.name = 'CommandInterface'
         self.config    = config
@@ -58,16 +58,13 @@ class CommandInterface(threading.Thread):
         self.buff_size = buff_size
         self.tokenDict    = {}
         prctl.set_name('ptrk.CommandInterface')
-        self.pipe = None
-
-        if config:
-            self.pipe = config.conf['cmdFIFO']
-            self.open()
-
-
+        self.pipe = pipe
+        
         # precompile some regular expressions
         self.keyval = re.compile('(\w+)\:([\-]?\w+);$')
 
+        # open command interface
+        self.open()
 
         # start thread
         if self.fd:

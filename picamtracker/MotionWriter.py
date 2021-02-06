@@ -110,7 +110,6 @@ class Writer(threading.Thread):
 
         #- do things according configuration
         if config is not None:
-            self.doStreaming = config.conf['streamServer']
             self.ycross = config.conf['yCross'] * 16
             self.xcross = config.conf['xCross'] * 16
 

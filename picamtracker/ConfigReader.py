@@ -53,7 +53,7 @@ default_config = \
     "extension": 7,
     "fastMode": False,
     "signalLength": 300.0,
-    "quitAppByGPIO": False,
+    # "quitAppByGPIO": False,
     "minArea": 2,
     "maxArea": 5712,
     "maxSnapshots": 100,
@@ -68,7 +68,7 @@ default_config = \
     "maxDist": 8,
     "maxTracks" : 16,
     "minCosDelta" : 0.5,
-    "videoLength" : 20,
+    "videoLength" : 30,
     "viewAngle": 90,
     "preview": True,
     "previewX": 8,
@@ -78,12 +78,12 @@ default_config = \
     "previewR": 0,
     "offsetX": 0,
     "offsetY": 0,
-    "cmdFIFO": "/home/pi/piCAMTracker/www/FIFO",
-    "serialPort": "/dev/serial0",
-    "serialConf": "9600 8N1",
+    # "cmdFIFO": "/home/pi/piCAMTracker/www/FIFO",
+    # "serialPort": "/dev/serial0",
+    # "serialConf": "9600 8N1",
     "ssid": "PICAM",
-    "accessPoint": False,
-    "streamServer": True
+    "accessPoint": False
+    # "streamServer": True
 }
 
 class Configuration:
@@ -106,6 +106,13 @@ class Configuration:
         for key in default_config:
             if not key in self.conf:
                 self.conf[key] = default_config[key]
+        # remove old/unused keys
+        delkeys = []
+        for key in self.conf:
+            if key not in default_config:
+                delkeys.append(key)
+        for key in delkeys:
+            del self.conf[key]
 
     def set_storeParams(self,value):
         self.write()
