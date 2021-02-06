@@ -13,6 +13,7 @@ import subprocess
 from argparse import ArgumentParser
 import picamtracker
 import prctl
+from websock import WebUtilities
 
 max_temp = 75.0
 temp = 20.0
@@ -275,6 +276,7 @@ def main(ashow=True, debug=False, fastmode=False):
         writer = picamtracker.Writer(camera, stream=vstream, config=config)
         vwriter = picamtracker.vWriter(stream=vstream, config=config)        
         tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, udpThread=udpThread)
+        wserver = WebUtilities.TrackerWS(config=config, port=8084)
 
         # assign external command interface
         cmds = picamtracker.CommandInterface(config=config)
@@ -402,6 +404,7 @@ def main(ashow=True, debug=False, fastmode=False):
                 tracker.stop()
                 writer.stop()
                 vwriter.stop()
+                wserver.stop()
                 # wait and join threads
                 sleep(0.5)
                 if display is not None:
@@ -415,6 +418,7 @@ def main(ashow=True, debug=False, fastmode=False):
                 tracker.join()
                 writer.join()
                 vwriter.join()
+                wserver.close_server()
                 picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=False)
                 picamtracker.GPIOPort.cleanup()
                 #config.write()
