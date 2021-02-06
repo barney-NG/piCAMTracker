@@ -6,7 +6,7 @@
         <!--<meta name="viewport" content="width=448, initial-scale=1"/>-->
         <meta name="viewport" content="width=device-width, initial-scale=0.68">
         <meta name="format-detection" content="telephone=no">
-        <title>piCAMTracker Crossing Detection</title>
+        <title>piCAMTracker</title>
         <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css"/>
         <!-- link rel="icon" sizes="128x128" href="favicon.icns"/ -->
         <script src="js/jquery-2.2.0.min.js"></script>
@@ -14,14 +14,7 @@
         <!--<script src="js/awesome-websocket.js"></script>-->
         <!-- this awsome page originally comes from fcd (C) Juergen Burghardt -->
 	<script>
-
-	    function pikrellcam(start_stop)
-	    {
-		sys_cmd.open("PUT", "sys_command.php?cmd=pikrellcam_" + start_stop, true);
-		sys_cmd.send();
-	    }
-
-
+	    //window.addEventListener("touchmove", function(event) { event.preventDefault(); }, false);
 	    var mjpeg;
 	    var url = window.location.search;
 	    var refreshtime = url.substring(url.lastIndexOf("=")+1);
@@ -30,14 +23,18 @@
 	    function mjpeg_read()
 	    {
 		setTimeout("mjpeg.src = 'mjpeg_read.php?time=' + new Date().getTime();", refreshtime);
+		showGreenLed(true)
 	    }
-
+	    function mjpeg_error()
+	    {
+		showGreenLed(false);
+	    }
 	    function mjpeg_start()
 	    {
 		read_config.send()
 		mjpeg = document.getElementById("mjpeg_image");
 		mjpeg.onload = mjpeg_read;
-		mjpeg.onerror = mjpeg_read;
+		mjpeg.onerror = mjpeg_error;
 		mjpeg_read();
 	    }
 
@@ -172,10 +169,6 @@
 			<input type="submit" id= "storeParams2" value="Store Params"
 				onclick="fifo_command('storeParams:',1) ;" />
                         </div>
-			<!--<div data-role="fieldcontain">
-			    <label for="txt2">Video File:</label>
-			    <input type="text" name="text" id="txt2" value="">
-			</div><!-- /fieldcontain -->
                 </div><!-- /content -->
         </div><!-- /page -->
 
@@ -205,18 +198,6 @@
     <link rel="stylesheet" href="css/fcd.css"/>
     <script>
     // TEST ONLY
-    // show websocket link status; initial value is red, i.e. hide green led
-    //document.getElementById("ledG1").style.visibility = "hidden";
-    //document.getElementById("ledG2").style.visibility = "hidden";
-    //document.getElementById("ledG3").style.visibility = "hidden";
-    // replay/record-LED (blue) initially off
-    document.getElementById("ledB1").style.visibility = "hidden";
-    document.getElementById("ledB2").style.visibility = "hidden";
-    document.getElementById("ledB3").style.visibility = "hidden";
-    // replay/record-LED (blue) initially off
-    //document.getElementById("ledR1").style.visibility = "visible";
-    //document.getElementById("ledR2").style.visibility = "visible";
-    //document.getElementById("ledR3").style.visibility = "visible";
     function create_XMLHttpRequest()
     {
 	if (window.XMLHttpRequest)
@@ -226,6 +207,11 @@
     }
 
     var fifo_cmd = create_XMLHttpRequest();
+    fifo_cmd.timeout = 5000;
+    fifo_command.ontimeout =  function (e) {
+	// XMLHttpRequest timed out. Do something here.
+	showGreenLed(false);
+    }
 
     function fifo_command (cmd, val)
     {
@@ -257,38 +243,52 @@
 	    }
 
 	    // set slider values
-	    document.getElementById("slider-vMin").value = cfg.vMin;
-	    document.getElementById("slider-vMax").value = cfg.vMax;
-	    document.getElementById("slider-MinArea").value = cfg.minArea;
-	    document.getElementById("slider-MaxArea").value = cfg.maxArea;
-	    //document.getElementById("slider-NoiseLevel").value = cfg.sadThreshold;
-	    document.getElementById("slider-MaxMotionDistance").value = cfg.maxDist;
-	    document.getElementById("slider-DetectionMaturity").value = cfg.trackMaturity;
-	    document.getElementById("slider-ObjectExtension").value = cfg.extension;
-	    document.getElementById("slider-ExposureCompensation").value = cfg.exposure;
-	    
+	    $('#slider-vMin').val(cfg.vMin).slider('refresh');
+	    $('#slider-vMax').val(cfg.vMax).slider('refresh');
+	    $('#slider-MinArea').val(cfg.minArea).slider('refresh');
+	    $('#slider-MaxArea').val(cfg.maxArea).slider('refresh');
+	    //$('#slider-NoiseLevel').val(cfg.sadThreshold).slider('refresh');
+	    $('#slider-MaxMotionDistance').val(cfg.maxDist).slider('refresh');
+	    $('#slider-DetectionMaturity').val(cfg.trackMaturity).slider('refresh');
+	    $('#slider-ObjectExtension').val(cfg.extension).slider('refresh');
+	    $('#slider-ExposureCompensation').val(cfg.exposure).slider('refresh');
+	    // show green status
+	    showGreenLed(true);
+	} else {
+	    // show red status
+	    showGreenLed(false);
+	}
+    }
+
+    function showGreenLed(on)
+    {
+	// blue led off so far
+	document.getElementById("ledB1").style.visibility = "hidden";
+	document.getElementById("ledB2").style.visibility = "hidden";
+	document.getElementById("ledB3").style.visibility = "hidden";
+
+	if(on) {
 	    // link status (green) on
 	    document.getElementById("ledG1").style.visibility = "visible";
 	    document.getElementById("ledG2").style.visibility = "visible";
 	    document.getElementById("ledG3").style.visibility = "visible";
-	    // link status (red) off
+	    // link status (red) of
 	    document.getElementById("ledR1").style.visibility = "hidden";
 	    document.getElementById("ledR2").style.visibility = "hidden";
 	    document.getElementById("ledR3").style.visibility = "hidden";
 	} else {
-	  // link status (green) of
-	  document.getElementById("ledG1").style.visibility = "hidden";
-	  document.getElementById("ledG2").style.visibility = "hidden";
-	  document.getElementById("ledG3").style.visibility = "hidden";
-	  // link status (red) on
-	  document.getElementById("ledR1").style.visibility = "visible";
-	  document.getElementById("ledR2").style.visibility = "visible";
-	  document.getElementById("ledR3").style.visibility = "visible";
+	    // link status (green) of
+	    document.getElementById("ledG1").style.visibility = "hidden";
+	    document.getElementById("ledG2").style.visibility = "hidden";
+	    document.getElementById("ledG3").style.visibility = "hidden";
+	    // link status (red) on
+	    document.getElementById("ledR1").style.visibility = "visible";
+	    document.getElementById("ledR2").style.visibility = "visible";
+	    document.getElementById("ledR3").style.visibility = "visible";
 	}
     }
-
+    
     $(document).ready(function() {
-	console.log("ready");
 	read_config.open("GET","config.json",true);
     });
     </script>

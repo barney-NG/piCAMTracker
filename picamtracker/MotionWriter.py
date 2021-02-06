@@ -229,9 +229,7 @@ class Writer(threading.Thread):
                     fs.write(imagepath)
                     fs.close()
                 except:
-                    print(
-                    
-                    "cannot write %s" % self.imgctrl_file)
+                    print("cannot write %s" % self.imgctrl_file)
                     pass
 
                 #- do garbage collection here!
