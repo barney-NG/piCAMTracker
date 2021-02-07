@@ -1,296 +1,156 @@
 <html>
 <head>
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="apple-touch-fullscreen" content="yes">
-        <!--<meta name="viewport" content="width=448, initial-scale=1"/>-->
-        <meta name="viewport" content="width=device-width, initial-scale=0.68">
-        <meta name="format-detection" content="telephone=no">
-        <title>piCAMTracker</title>
-        <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css"/>
-        <!-- link rel="icon" sizes="128x128" href="favicon.icns"/ -->
-        <script src="js/jquery-2.2.0.min.js"></script>
-        <script src="js/jquery.mobile-1.4.5.min.js"></script>
-        <!--<script src="js/awesome-websocket.js"></script>-->
-        <!-- this awsome page originally comes from fcd (C) Juergen Burghardt -->
-	<script>
-	    //window.addEventListener("touchmove", function(event) { event.preventDefault(); }, false);
-	    var mjpeg;
-	    var url = window.location.search;
-	    var refreshtime = url.substring(url.lastIndexOf("=")+1);
-	    if (refreshtime == "") { refreshtime = 970; }
-
-	    function mjpeg_read()
-	    {
-		setTimeout("mjpeg.src = 'mjpeg_read.php?time=' + new Date().getTime();", refreshtime);
-		showGreenLed(true)
-	    }
-	    function mjpeg_error()
-	    {
-		showGreenLed(false);
-	    }
-	    function mjpeg_start()
-	    {
-		read_config.send()
-		mjpeg = document.getElementById("mjpeg_image");
-		mjpeg.onload = mjpeg_read;
-		mjpeg.onerror = mjpeg_error;
-		mjpeg_read();
-	    }
-
-	    // How to do with websocket
-	    //function onMessage(evt)
-	    //    {
-	    //        if (evt.data instanceof ArrayBuffer) {
-	    //            var length = evt.data.byteLength;
-	    //            var blob = new Blob([evt.data],{type:'image/png'});
-	    //            var url = URL.createObjectURL(blob);
-	    //            var image = document.getElementById("image");
-	    //            var img = new Image();
-	    //            img.onload = function(){
-	    //                var ctx = image.getContext("2d");
-	    //                ctx.drawImage(img, 0, 0);
-	    //            }
-	    //            img.src = url;
-	    //    }
-    </script>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <!--<meta name="viewport" content="width=448, initial-scale=1"/>-->
+    <meta name="viewport" content="width=device-width, initial-scale=0.68">
+    <meta name="format-detection" content="telephone=no">
+    <title>piCAMTracker</title>
+    <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css"/>
+    <!-- link rel="icon" sizes="128x128" href="favicon.icns"/ -->
+    <script src="js/jquery-2.2.0.min.js"></script>
+    <script src="js/jquery.mobile-1.4.5.min.js"></script>
+    <!--<script src="js/awesome-websocket.js"></script>-->
+    <!-- this awsome page originally comes from fcd (C) Juergen Burghardt -->
     <style>
-    #centered {
-	    width:  960;
-	    height: 1280;
-	    margin: 0px auto;
-	    border: 1px solid grey;
-    }
+	#centered {
+		width:  960;
+		height: 1280;
+		margin: 0px auto;
+		border: 1px solid grey;
+	}
     </style>
 </head>
 
 <body onload="mjpeg_start();">
-	<!-- The Canvas size specified here is the "initial" internal resolution. jsmpeg will
-                change this internal resolution to whatever the source provides. The size the
-                canvas is displayed on the website is dictated by the CSS style.
-        -->
-	<!-- Start of first page -->
-        <div data-role="page" id="page1" data-theme='b'>
-                <div style="min-height: 30px"></div>
-                <div data-role="header">
-                        <div class="led-green" id="ledG3"></div>
-                        <div class="led-red"   id="ledR3"></div>
-                        <div class="led-blue"  id="ledB3"></div>
-                        <h1>Parameters</h1>
-                        <a href="#page2" data-transition="flip" class="ui-btn-right">Config</a>
-                        <a href="#page3" data-transition="flip" class="ui-btn-left">Crossing</a>
-                </div><!-- /header -->
-                <div role="main" class="ui-content">
-                        <!--<div style="float: left">-->
-			<!--<div style="float: left">
-                                <input type="checkbox" id="check3" onclick="abaseCmd() ;"><label id="label3" for="check3">Plane from Left</label>
-                        </div>-->
-                        <div style="float: right">
-			<input type="submit" id= "storeParams" value="Store Params"
-				onclick="fifo_command('storeParams:',1) ;" />
-                        </div>
-                        <div style="min-height: 70px"></div>
-                        <label for="slider-vMin">Minimum Speed: (slower objects are ignored)</label>
-                        <input type="range" id="slider-vMin" value="1" min="1" max="25" step="2" data-highlight="true"
-                               onchange="fifo_command('vMin:',$('#slider-vMin').val()) ;" />
-                        <label for="slider-vMax">Maximum Speed: (faster objects are ignored)</label>
-                        <input type="range" id="slider-vMax" value="50" min="50" max="200" step="50" data-highlight="true"
-                               onchange="fifo_command('vMax:',$('#slider-vMax').val()) ;" />
-                        <!--label for="slider-NoiseLevel">Noise Level:</label>
-                        <input type="range" id="slider-NoiseLevel" value="0" min="0" max="8192" step="1024" data-highlight="true"
-                               onchange="fifo_command('sadThreshold:',$('#slider-NoiseLevel').val()) ;" /-->
-                        <label for="slider-MinArea">Minimum Area: (smaller objects are ignored)</label>
-                        <input type="range" name="slider-MinArea" id="slider-MinArea" value="1" min="1" max="25" step="1" data-highlight="true"
-                               onchange="fifo_command('minArea:',$('#slider-MinArea').val()) ;" />
-                        <label for="slider-MaxArea">Maximum Area: (larger objects are ignored)</label>
-                        <input type="range" name="slider-MaxArea" id="slider-MaxArea" value="2000" min="500" max="6000" step="500" data-highlight="true"
-                               onchange="fifo_command('maxArea:',$('#slider-MaxArea').val()) ;" />
-                        <label for="slider-MaxMotionDistance">Maximum Motion Distance: (maximal object distance between two frames)</label>
-                        <input type="range" name="slider-MaxMotionDistance" id="slider-MaxMotionDistance" value="4" min="1" max="10" step="2" data-highlight="true"
-                               onchange="fifo_command('maxDist:',$('#slider-MaxMotionDistance').val()) ;" />
-                        <label for="slider-DetectionMaturity">Detection Maturity: (number of frames to enable crossing detection)</label>
-                        <input type="range" name="slider-DetectionMaturity" id="slider-DetectionMaturity" value="7" min="4" max="10" step="1" data-highlight="true"
-                               onchange="fifo_command('trackMaturity:',$('#slider-DetectionMaturity').val()) ;" />
-			<label for="slider-ObjectExtension">ObjectExtension: (defines how much one object is extended to be joined into a bigger one)</label>
-			<input type="range" name="slider-ObjectExtension" id="slider-ObjectExtension" value="3" min="3" max="18" step="3" data-highlight="true"
-                               onchange="fifo_command('extension:',$('#slider-ObjectExtension').val()) ;" />
-			<label for="slider-ExposureCompensation">Exposure Compensation: (negative values for frontal sun; positive values to enlighten dark areas)</label>
-                        <input type="range" name="slider-ExposureCompensation" id="slider-ExposureCompensation" value="0" min="-20" max="20" step="1" data-highlight="true"
-                               onchange="fifo_command('exposure:',$('#slider-ExposureCompensation').val()) ;" />
-                </div><!-- /content -->
-        </div><!-- /page -->
+    <!-- The Canvas size specified here is the "initial" internal resolution. jsmpeg will
+	    change this internal resolution to whatever the source provides. The size the
+	    canvas is displayed on the website is dictated by the CSS style.
+    -->
+    <!-- Start of first page -->
+    <div data-role="page" id="page1" data-theme='b'>
+	<div style="min-height: 30px"></div>
+	<div data-role="header">
+	    <div class="led-green" id="ledG3"></div>
+	    <div class="led-red"   id="ledR3"></div>
+	    <div class="led-blue"  id="ledB3"></div>
+	    <h1>Parameters</h1>
+	    <a href="#page2" data-transition="flip" class="ui-btn-right">Config</a>
+	    <a href="#page3" data-transition="flip" class="ui-btn-left">Crossing</a>
+	</div><!-- /header -->
+	<div role="main" class="ui-content">
+	    <div style="float: right">
+		<input type="submit" id= "storeParams" value="Store Params"
+		    onclick="fifo_command('storeParams:',1) ;" />
+	    </div>
+	    <div style="min-height: 70px"></div>
+	    <label for="slider-vMin">Minimum Speed: (slower objects are ignored)</label>
+	    <input type="range" id="slider-vMin" value="1" min="1" max="25" step="2" data-highlight="true"
+		   onchange="fifo_command('vMin:',$('#slider-vMin').val()) ;" />
+	    <label for="slider-vMax">Maximum Speed: (faster objects are ignored)</label>
+	    <input type="range" id="slider-vMax" value="50" min="50" max="200" step="50" data-highlight="true"
+		   onchange="fifo_command('vMax:',$('#slider-vMax').val()) ;" />
+	    <!--label for="slider-NoiseLevel">Noise Level:</label>
+	    <input type="range" id="slider-NoiseLevel" value="0" min="0" max="8192" step="1024" data-highlight="true"
+		   onchange="fifo_command('sadThreshold:',$('#slider-NoiseLevel').val()) ;" /-->
+	    <label for="slider-MinArea">Minimum Area: (smaller objects are ignored)</label>
+	    <input type="range" name="slider-MinArea" id="slider-MinArea" value="1" min="1" max="25" step="1" data-highlight="true"
+		   onchange="fifo_command('minArea:',$('#slider-MinArea').val()) ;" />
+	    <label for="slider-MaxArea">Maximum Area: (larger objects are ignored)</label>
+	    <input type="range" name="slider-MaxArea" id="slider-MaxArea" value="2000" min="500" max="6000" step="500" data-highlight="true"
+		   onchange="fifo_command('maxArea:',$('#slider-MaxArea').val()) ;" />
+	    <label for="slider-MaxMotionDistance">Maximum Motion Distance: (maximal object distance between two frames)</label>
+	    <input type="range" name="slider-MaxMotionDistance" id="slider-MaxMotionDistance" value="4" min="1" max="10" step="2" data-highlight="true"
+		   onchange="fifo_command('maxDist:',$('#slider-MaxMotionDistance').val()) ;" />
+	    <label for="slider-DetectionMaturity">Detection Maturity: (number of frames to enable crossing detection)</label>
+	    <input type="range" name="slider-DetectionMaturity" id="slider-DetectionMaturity" value="7" min="4" max="10" step="1" data-highlight="true"
+		   onchange="fifo_command('trackMaturity:',$('#slider-DetectionMaturity').val()) ;" />
+	    <label for="slider-ObjectExtension">ObjectExtension: (defines how much one object is extended to be joined into a bigger one)</label>
+	    <input type="range" name="slider-ObjectExtension" id="slider-ObjectExtension" value="3" min="3" max="18" step="3" data-highlight="true"
+		   onchange="fifo_command('extension:',$('#slider-ObjectExtension').val()) ;" />
+	    <label for="slider-ExposureCompensation">Exposure Compensation: (negative values for frontal sun; positive values to enlighten dark areas)</label>
+	    <input type="range" name="slider-ExposureCompensation" id="slider-ExposureCompensation" value="0" min="-20" max="20" step="1" data-highlight="true"
+		   onchange="fifo_command('exposure:',$('#slider-ExposureCompensation').val()) ;" />
+	</div><!-- /content -->
+    </div><!-- /page -->
 
-        <!-- Start of second page -->
-        <div data-role="page" id="page2" data-theme='b'>
-                <div style="min-height: 30px"></div>
-                <div data-role="header">
-                        <div class="led-green" id="ledG1"></div>
-                        <div class="led-red"   id="ledR1"></div>
-                        <div class="led-blue"  id="ledB1"></div>
-                        <h1>Configuration</h1>
-                        <a href="#page3" data-transition="flip" class="ui-btn-right">Crossing</a>
-                        <a href="#page1" data-transition="flip" class="ui-btn-left">Params</a>
-                </div><!-- /header -->
-                <div role="main" class="ui-content">
-                        <div style="min-height: 10px"></div>
-                        <!--div style="min-height: 60px"></div-->
-                        <div style="float: left">
-                          <input type="submit" id = "test" value="Test Crossing Beep" onclick="fifo_command('testBeep:',1) ;">
-                        </div>
-                        <div style="float: right">
-                          <input type="submit" id = "debug" value="Start Debugging (30s)" onclick="fifo_command('debug:',30) ;">
-                        </div>
-			<div style="min-height: 40px"></div>
-                        <div data-role="fieldcontain">
-			    <form>
-				<fieldset data-role="controlgroup" data-type="vertical">
-				    <legend>Plane from:</legend>
-				    <input type="radio" name="baseB" id="both" value="0" checked="checked" onclick="fifo_command('baseB:',0) ;">
-				    <label for="both">left and right</label>
-				    <input type="radio" name="baseB" id="left" value="1" onclick="fifo_command('baseB:',1) ;">
-				    <label for="left">right only</label>
-				    <input type="radio" name="baseB" id="right" value="2" onclick="fifo_command('baseB:',2) ;">
-				    <label for="right">left only</label>
-				</fieldset>
-			    </form>
-                        </div><!-- /fieldcontain -->
-			<div data-role="fieldcontain">
-			    <form>
-				<fieldset data-role="controlgroup" data-type="vertical">
-				    <legend>Fast Mode:</legend>
-				    <input type="radio" name="fastM" id="fm_off" value="0" checked="checked" onclick="fifo_command('fastMode:',0) ;">
-				    <label for="fm_off">Off</label>
-				    <input type="radio" name="fastM" id="fm_on" value="1" onclick="fifo_command('fastMode:',1) ;">
-				    <label for="fm_on">On</label>
-				</fieldset>
-			    </form>
-                        </div><!-- /fieldcontain -->
-			<div style="min-height: 20px"></div>
-			<input type="submit" id= "storeParams2" value="Store Params"
-				onclick="fifo_command('storeParams:',1) ;" />
-                        </div>
-                </div><!-- /content -->
-        </div><!-- /page -->
+    <!-- Start of second page -->
+    <div data-role="page" id="page2" data-theme='b'>
+	<div style="min-height: 30px"></div>
+	<div data-role="header">
+	    <div class="led-green" id="ledG1"></div>
+	    <div class="led-red"   id="ledR1"></div>
+	    <div class="led-blue"  id="ledB1"></div>
+	    <h1>Configuration</h1>
+	    <a href="#page3" data-transition="flip" class="ui-btn-right">Crossing</a>
+	    <a href="#page1" data-transition="flip" class="ui-btn-left">Params</a>
+	</div><!-- /header -->
+	<div role="main" class="ui-content">
+	    <div style="min-height: 10px"></div>
+	    <!--div style="min-height: 60px"></div-->
+	    <div style="float: left">
+	      <input type="submit" id = "test" value="Test Crossing Beep" onclick="fifo_command('testBeep:',1) ;">
+	    </div>
+	    <div style="float: right">
+	      <input type="submit" id = "debug" value="Start Debugging (30s)" onclick="fifo_command('debug:',30) ;">
+	    </div>
+	    <div style="min-height: 40px"></div>
+	    <div data-role="fieldcontain">
+		<form>
+		    <fieldset data-role="controlgroup" data-type="vertical">
+			<legend>Plane from:</legend>
+			<input type="radio" name="baseB" id="both" value="0" checked="checked" onclick="fifo_command('baseB:',0) ;">
+			<label for="both">left and right</label>
+			<input type="radio" name="baseB" id="left" value="1" onclick="fifo_command('baseB:',1) ;">
+			<label for="left">right only</label>
+			<input type="radio" name="baseB" id="right" value="2" onclick="fifo_command('baseB:',2) ;">
+			<label for="right">left only</label>
+		    </fieldset>
+		</form>
+	    </div><!-- /fieldcontain -->
+	    <div data-role="fieldcontain">
+		<form>
+		    <fieldset data-role="controlgroup" data-type="vertical">
+			<legend>Fast Mode:</legend>
+			<input type="radio" name="fastM" id="fm_off" value="0" checked="checked" onclick="fifo_command('fastMode:',0) ;">
+			<label for="fm_off">Off</label>
+			<input type="radio" name="fastM" id="fm_on" value="1" onclick="fifo_command('fastMode:',1) ;">
+			<label for="fm_on">On</label>
+		    </fieldset>
+		</form>
+	    </div><!-- /fieldcontain -->
+	    <div style="min-height: 20px"></div>
+	    <input type="submit" id= "storeParams2" value="Store Params"
+		    onclick="fifo_command('storeParams:',1) ;" />
+	    </div>
+	</div><!-- /content -->
+    </div><!-- /page -->
 
-        <!-- Start of third page -->
-        <div data-role="page" id="page3" data-theme='b'>
-                <div style="min-height: 30px"></div>
-                <div data-role="header">
-                        <div class="led-green" id="ledG2"></div>
-                        <div class="led-red"   id="ledR2"></div>
-                        <div class="led-blue"  id="ledB2"></div>
-                        <h1>Crossing</h1>
-                        <a href="#page2" data-transition="flip" class="ui-btn-left">Config</a>
-                        <a href="#page1" data-transition="flip" class="ui-btn-right">Params</a>
-                </div><!-- /header -->
-                <div role="main" class="ui-content">
-		    <!-- <?php echo '<img src="image.jpg?m=' . filemtime('image.jpg') . '"  width="100%" style="border: 1px white" alt="web server not runnig?">'; ?> -->
-		    <img id="mjpeg_image" width="100%" style="border: 1px white" alt="web server not runnig?"/>
-		    <!-- canvas id="videoCanvas" width="360" height="640"></canvas -->
-                </div><!-- /content -->
-		<input type="submit" id = "test" value="Test Crossing Beep" onclick="fifo_command('testBeep:',1) ;">
-        </div><!-- /page -->
+    <!-- Start of third page -->
+    <div data-role="page" id="page3" data-theme='b'>
+	    <div style="min-height: 30px"></div>
+	    <div data-role="header">
+		    <div class="led-green" id="ledG2"></div>
+		    <div class="led-red"   id="ledR2"></div>
+		    <div class="led-blue"  id="ledB2"></div>
+		    <h1>Crossing</h1>
+		    <a href="#page2" data-transition="flip" class="ui-btn-left">Config</a>
+		    <a href="#page1" data-transition="flip" class="ui-btn-right">Params</a>
+	    </div><!-- /header -->
+	    <div role="main" class="ui-content">
+		<!-- <?php echo '<img src="image.jpg?m=' . filemtime('image.jpg') . '"  width="100%" style="border: 1px white" alt="web server not runnig?">'; ?> -->
+		<img id="mjpeg_image" width="100%" style="border: 1px white" alt="web server not runnig?"/>
+		<!-- canvas id="videoCanvas" width="360" height="640"></canvas -->
+	    </div><!-- /content -->
+	    <input type="submit" id = "test" value="Test Crossing Beep" onclick="fifo_command('testBeep:',1) ;">
+    </div><!-- /page -->
 
 
     <!-- script type="text/javascript" src="js/jsmpg.js"></script -->
     <!-- script type="text/javascript" src="js/reconnecting-websocket.min.js"></script -->
-    <!-- script type="text/javascript" src="js/fcd.js"></scripti -->
+    <script type="text/javascript" src="js/pctrk.js"></script>
     <link rel="stylesheet" href="css/fcd.css"/>
-    <script>
-    // TEST ONLY
-    function create_XMLHttpRequest()
-    {
-	if (window.XMLHttpRequest)
-	    return new XMLHttpRequest();    // IE7+, Firefox, Chrome, Opera, Safari
-	else
-	    return new ActiveXObject("Microsoft.XMLHTTP");  // IE6, IE5
-    }
-
-    var fifo_cmd = create_XMLHttpRequest();
-    fifo_cmd.timeout = 5000;
-    fifo_command.ontimeout =  function (e) {
-	// XMLHttpRequest timed out. Do something here.
-	showGreenLed(false);
-    }
-
-    function fifo_command (cmd, val)
-    {
-	var text = cmd + val + ";"
-	fifo_cmd.open("PUT", "fifo_command.php?cmd=" + text, true);
-	fifo_cmd.send();
-    }
-
-    var sys_cmd = create_XMLHttpRequest();
-    var read_config = create_XMLHttpRequest();
-    read_config.onreadystatechange = function()
-    {
-	if(this.readyState == 4 && this.status == 200) {
-	    var cfg = JSON.parse(this.responseText);
-	    console.log("CFG: " + JSON.stringify(cfg));
-	    // set fastmode checkbox status
-	    if(cfg.fastMode == true) {
-		document.getElementById("fm_on").click();
-	    } else {
-		document.getElementById("fm_off").click();
-	    }
-	    // set baseB checkbox status
-	    if(cfg.baseB == 'right') {
-		document.getElementById("right").click();
-	    } else if(cfg.baseB == 'left') {
-		document.getElementById("left").click();
-	    } else {
-		document.getElementById("both").click();
-	    }
-
-	    // set slider values
-	    $('#slider-vMin').val(cfg.vMin).slider('refresh');
-	    $('#slider-vMax').val(cfg.vMax).slider('refresh');
-	    $('#slider-MinArea').val(cfg.minArea).slider('refresh');
-	    $('#slider-MaxArea').val(cfg.maxArea).slider('refresh');
-	    //$('#slider-NoiseLevel').val(cfg.sadThreshold).slider('refresh');
-	    $('#slider-MaxMotionDistance').val(cfg.maxDist).slider('refresh');
-	    $('#slider-DetectionMaturity').val(cfg.trackMaturity).slider('refresh');
-	    $('#slider-ObjectExtension').val(cfg.extension).slider('refresh');
-	    $('#slider-ExposureCompensation').val(cfg.exposure).slider('refresh');
-	    // show green status
-	    showGreenLed(true);
-	} else {
-	    // show red status
-	    showGreenLed(false);
-	}
-    }
-
-    function showGreenLed(on)
-    {
-	// blue led off so far
-	document.getElementById("ledB1").style.visibility = "hidden";
-	document.getElementById("ledB2").style.visibility = "hidden";
-	document.getElementById("ledB3").style.visibility = "hidden";
-
-	if(on) {
-	    // link status (green) on
-	    document.getElementById("ledG1").style.visibility = "visible";
-	    document.getElementById("ledG2").style.visibility = "visible";
-	    document.getElementById("ledG3").style.visibility = "visible";
-	    // link status (red) of
-	    document.getElementById("ledR1").style.visibility = "hidden";
-	    document.getElementById("ledR2").style.visibility = "hidden";
-	    document.getElementById("ledR3").style.visibility = "hidden";
-	} else {
-	    // link status (green) of
-	    document.getElementById("ledG1").style.visibility = "hidden";
-	    document.getElementById("ledG2").style.visibility = "hidden";
-	    document.getElementById("ledG3").style.visibility = "hidden";
-	    // link status (red) on
-	    document.getElementById("ledR1").style.visibility = "visible";
-	    document.getElementById("ledR2").style.visibility = "visible";
-	    document.getElementById("ledR3").style.visibility = "visible";
-	}
-    }
-    
-    $(document).ready(function() {
-	read_config.open("GET","config.json",true);
-    });
-    </script>
+   
 </body>
 </html>
