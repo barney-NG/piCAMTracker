@@ -65,13 +65,14 @@ class Writer(threading.Thread):
     #--------------------------------------------------------------------
     #-- constructor
     #--------------------------------------------------------------------
-    def __init__(self, camera, stream=None, config=None):
+    def __init__(self, camera, stream=None, config=None, wsserver=None):
         super(Writer,self).__init__()
         self.name = 'Writer'
         self.config = config
         self.doStreaming = False
         self.stream = stream
         self.camera = camera
+        self.wsserver = wsserver
         self.lastFrame = 0
         self.resx = camera.resolution[0]
         self.resy = camera.resolution[1]
@@ -230,6 +231,8 @@ class Writer(threading.Thread):
                 except:
                     print("cannot write %s" % self.imgctrl_file)
                     pass
+                if self.wsserver:
+                    self.wsserver.broadcast(imagepath)
 
                 #- do garbage collection here!
                 c0,c1,c2 = gc.get_count()

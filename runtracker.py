@@ -101,7 +101,7 @@ def setFastMode(value):
                 set_fastmode = False
                 rerun_main = True
 
-def main(ashow=True, debug=False, fastmode=False):
+def main(ashow=True, debug=False, fastmode=False, wsserver=None):
     global config
     global rerun_main
     rerun_main = False
@@ -273,10 +273,10 @@ def main(ashow=True, debug=False, fastmode=False):
 
         # setup used objects 
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
-        writer = picamtracker.Writer(camera, stream=vstream, config=config)
+        writer = picamtracker.Writer(camera, stream=vstream, config=config, wsserver=wsserver)
         vwriter = picamtracker.vWriter(stream=vstream, config=config)        
         tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, udpThread=udpThread)
-        wserver = WebUtilities.TrackerWS(config=config, port=8084)
+       
 
         # assign external command interface
         cmds = picamtracker.CommandInterface(config=config)
@@ -404,7 +404,6 @@ def main(ashow=True, debug=False, fastmode=False):
                 tracker.stop()
                 writer.stop()
                 vwriter.stop()
-                wserver.stop()
                 # wait and join threads
                 sleep(0.5)
                 if display is not None:
@@ -418,7 +417,7 @@ def main(ashow=True, debug=False, fastmode=False):
                 tracker.join()
                 writer.join()
                 vwriter.join()
-                wserver.close_server()
+
                 picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=False)
                 picamtracker.GPIOPort.cleanup()
                 #config.write()
@@ -447,6 +446,10 @@ if __name__ == '__main__':
     out = shell('/usr/bin/vcgencmd', 'measure_temp')
     print("Actual core %s" % out)
 
-
-    while main(args.show, args.debug, args.fast):
+    wserver = WebUtilities.TrackerWS(config=config, port=8084)
+    
+    while main(args.show, args.debug, args.fast, wsserver=wserver):
         args.fast = set_fastmode
+
+    wserver.stop()
+    wserver.close_server()

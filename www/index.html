@@ -11,8 +11,6 @@
     <!-- link rel="icon" sizes="128x128" href="favicon.icns"/ -->
     <script src="js/jquery-2.2.0.min.js"></script>
     <script src="js/jquery.mobile-1.4.5.min.js"></script>
-    <!--<script src="js/awesome-websocket.js"></script>-->
-    <!-- this awsome page originally comes from fcd (C) Juergen Burghardt -->
     <style>
 	#centered {
 		width:  960;
@@ -40,6 +38,10 @@
 	    <a href="#page3" data-transition="flip" class="ui-btn-left">Crossing</a>
 	</div><!-- /header -->
 	<div role="main" class="ui-content">
+	    <!--div style="float: left">
+		<input type="submit" id= "testWS" value="Test WS"
+		    onclick="send2WS('<<button>>');" />
+	    </div-->
 	    <div style="float: right">
 		<input type="submit" id= "storeParams" value="Store Params"
 		    onclick="fifo_command('storeParams:',1) ;" />
@@ -146,9 +148,6 @@
 	    <input type="submit" id = "test" value="Test Crossing Beep" onclick="fifo_command('testBeep:',1) ;">
     </div><!-- /page -->
 
-
-    <!-- script type="text/javascript" src="js/jsmpg.js"></script -->
-    <!-- script type="text/javascript" src="js/reconnecting-websocket.min.js"></script -->
     <script type="text/javascript" src="js/pctrk.js"></script>
     <link rel="stylesheet" href="css/fcd.css"/>
    

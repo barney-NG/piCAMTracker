@@ -1,5 +1,36 @@
-//
 
+
+// websocket stuff
+var clientWS
+function connectWS() {
+    clientWS = new WebSocket( 'ws://'+location.host+':8084/' );
+
+    clientWS.onopen = function() {
+        //console.log('WebSocket opened');
+        showGreenLed(true);
+        clearTimeout()
+    }
+
+    clientWS.onerror = function(err) {
+        console.error('WebSocket encountered error -> Closing socket');
+        clientWS.close();
+        showGreenLed(false);
+    }
+
+    clientWS.onclose = function(e) {
+        console.log('WebSocket is closed. Reconnect will be attempted in 5 second.', e.reason);
+        showGreenLed(false);
+        setTimeout(function() { connectWS(); }, 5000);
+    }
+
+    clientWS.onmessage = function(e) {
+        var msg = e.data;
+        mjpeg.src = 'mjpeg_read.php?time=' + new Date().getTime() + "&image=" + msg;
+    }
+}
+//function send2WS( text ) {
+//    clientWS.send(text);
+//}
 
 
 // How to create an HTTP request
@@ -31,9 +62,9 @@ function mjpeg_start()
 {
     read_config.send()
     mjpeg = document.getElementById("mjpeg_image");
-    mjpeg.onload = mjpeg_read;
+    //mjpeg.onload = mjpeg_read;
     mjpeg.onerror = mjpeg_error;
-    mjpeg_read();
+    //mjpeg_read();
 }
 
 
@@ -45,12 +76,19 @@ fifo_command.ontimeout =  function (e) {
     showGreenLed(false);
 }
 
+var readingConfig = false
 function fifo_command (cmd, val)
 {
-    var text = cmd + val + ";"
-    fifo_cmd.open("PUT", "fifo_command.php?cmd=" + text, true);
-    fifo_cmd.send();
+    
+    if( !readingConfig ) {
+        var text = cmd + val + ";"
+        console.log("fifo cmd: " + text);
+        fifo_cmd.open("PUT", "fifo_command.php?cmd=" + text, true);
+        fifo_cmd.send();
+    }
 }
+
+connectWS();
 
 //var sys_cmd = create_XMLHttpRequest();
 
@@ -59,6 +97,7 @@ var read_config = create_XMLHttpRequest();
 read_config.onreadystatechange = function()
 {
     if(this.readyState == 4 && this.status == 200) {
+        readingConfig = true
         var cfg = JSON.parse(this.responseText);
         console.log("CFG: " + JSON.stringify(cfg));
         // set fastmode checkbox status
@@ -88,6 +127,7 @@ read_config.onreadystatechange = function()
         $('#slider-ExposureCompensation').val(cfg.exposure).slider('refresh');
         // show green status
         showGreenLed(true);
+        readingConfig = false
     } else {
         // show red status
         showGreenLed(false);

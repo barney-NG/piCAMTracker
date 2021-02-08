@@ -52,6 +52,7 @@ class WebSocketServer:
     def serve_forever(self, timeout=None):
         """Just like serve_once but forever.
         """
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((self.ip, self.port))
         self.server.listen(5)
         if timeout:
@@ -174,6 +175,16 @@ class WebSocketServer:
         data = WebSocketServer._encode_data_frame(data_type, data)
         client.send(data)
 
+    def broadcast(self, data, echo=False):
+        """Send a string of data to all clients.
+
+        :param data: A string of data formatted as ASCII
+        :param echo: A boolean that indicates whether 'client' 
+        should receive an echo of the message they are initiating.
+        """
+        for endpoint in self.clients.values():
+            self.send(endpoint, data)
+                
     def send_all(self, client, data, echo=False):
         """Send a string of data to all clients.
 

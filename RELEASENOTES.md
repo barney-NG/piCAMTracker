@@ -1,3 +1,8 @@
+# next version
+* full cleanup of the html/js part
+  * endless loop which GETs the actual image every 500ms has been replaced by:
+  * a websocket based approach which syncs the snapshots only when a new one has arrived
+* fastMode: 640x480@90fps V1 camera and 640x480@120fps V2 camera. (in shiny conditions)
 # Version 0.6.1: 2019-11-30
 * Disable wifi access point by default. (problems with wifi client setup)
 # Version 0.6: 2019-11-28

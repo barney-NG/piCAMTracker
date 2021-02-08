@@ -63,14 +63,18 @@ class TrackerWS(WebSocketServer):
         self.server_thread.join()
         
     def on_data_receive(self, client, data):
-        pass
+        print("Got data", data)
+
     def on_connection_open(self, client):
-        pass
+        print("New client", client)
+
     def on_connection_close(self, client):
-        pass
+        print("Client close")
+
     def on_server_destruct(self):
         pass
     def on_error(self, exception):
+        print("WebSocket::error", exception)
         pass
         
 if __name__ == '__main__':
