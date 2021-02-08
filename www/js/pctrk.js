@@ -1,7 +1,9 @@
-
-
 // websocket stuff
 var clientWS
+function loadImage( name ) {
+    mjpeg.src = 'mjpeg_read.php?time=' + new Date().getTime() + "&image=" + name;
+}
+
 function connectWS() {
     clientWS = new WebSocket( 'ws://'+location.host+':8084/' );
 
@@ -25,9 +27,12 @@ function connectWS() {
 
     clientWS.onmessage = function(e) {
         var msg = e.data;
-        mjpeg.src = 'mjpeg_read.php?time=' + new Date().getTime() + "&image=" + msg;
+        loadImage(msg);
     }
 }
+
+connectWS();
+
 //function send2WS( text ) {
 //    clientWS.send(text);
 //}
@@ -49,15 +54,12 @@ var url = window.location.search;
 var refreshtime = url.substring(url.lastIndexOf("=")+1);
 if (refreshtime == "") { refreshtime = 970; }
 
-function mjpeg_read()
-{
-    setTimeout("mjpeg.src = 'mjpeg_read.php?time=' + new Date().getTime();", refreshtime);
-    showGreenLed(true)
-}
+
 function mjpeg_error()
 {
     showGreenLed(false);
 }
+
 function mjpeg_start()
 {
     read_config.send()
@@ -78,8 +80,7 @@ fifo_command.ontimeout =  function (e) {
 
 var readingConfig = false
 function fifo_command (cmd, val)
-{
-    
+{    
     if( !readingConfig ) {
         var text = cmd + val + ";"
         console.log("fifo cmd: " + text);
@@ -88,46 +89,56 @@ function fifo_command (cmd, val)
     }
 }
 
-connectWS();
-
-//var sys_cmd = create_XMLHttpRequest();
-
 // read config file and update document elements
 var read_config = create_XMLHttpRequest();
 read_config.onreadystatechange = function()
 {
-    if(this.readyState == 4 && this.status == 200) {
-        readingConfig = true
-        var cfg = JSON.parse(this.responseText);
-        console.log("CFG: " + JSON.stringify(cfg));
-        // set fastmode checkbox status
-        if(cfg.fastMode == true) {
-            document.getElementById("fm_on").click();
-        } else {
-            document.getElementById("fm_off").click();
-        }
-        // set baseB checkbox status
-        if(cfg.baseB == 'right') {
-            document.getElementById("right").click();
-        } else if(cfg.baseB == 'left') {
-            document.getElementById("left").click();
-        } else {
-            document.getElementById("both").click();
+    if(this.readyState == 4 && this.status == 200 ) {
+        var activePage = $.mobile.activePage.attr('id');
+        if(activePage == 'page1') {
+            readingConfig = true
+            var cfg = JSON.parse(this.responseText);
+            console.log("CFG: " + JSON.stringify(cfg));
+            
+            // set fastmode checkbox status
+            if(cfg.fastMode == true) {
+                document.getElementById("fm_on").click();
+            } else {
+                document.getElementById("fm_off").click();
+            }
+            // set baseB checkbox status
+            if(cfg.baseB == 'right') {
+                document.getElementById("right").click();
+            } else if(cfg.baseB == 'left') {
+                document.getElementById("left").click();
+            } else {
+                document.getElementById("both").click();
+            }
+
+            // set slider values
+            $('#slider-vMin').val(cfg.vMin).slider('refresh');
+            $('#slider-vMax').val(cfg.vMax).slider('refresh');
+            $('#slider-MinArea').val(cfg.minArea).slider('refresh');
+            $('#slider-MaxArea').val(cfg.maxArea).slider('refresh');
+            //$('#slider-NoiseLevel').val(cfg.sadThreshold).slider('refresh');
+            $('#slider-MaxMotionDistance').val(cfg.maxDist).slider('refresh');
+            $('#slider-DetectionMaturity').val(cfg.trackMaturity).slider('refresh');
+            $('#slider-ObjectExtension').val(cfg.extension).slider('refresh');
+            $('#slider-ExposureCompensation').val(cfg.exposure).slider('refresh');
+
+            readingConfig = false
         }
 
-        // set slider values
-        $('#slider-vMin').val(cfg.vMin).slider('refresh');
-        $('#slider-vMax').val(cfg.vMax).slider('refresh');
-        $('#slider-MinArea').val(cfg.minArea).slider('refresh');
-        $('#slider-MaxArea').val(cfg.maxArea).slider('refresh');
-        //$('#slider-NoiseLevel').val(cfg.sadThreshold).slider('refresh');
-        $('#slider-MaxMotionDistance').val(cfg.maxDist).slider('refresh');
-        $('#slider-DetectionMaturity').val(cfg.trackMaturity).slider('refresh');
-        $('#slider-ObjectExtension').val(cfg.extension).slider('refresh');
-        $('#slider-ExposureCompensation').val(cfg.exposure).slider('refresh');
+        // fill page3 with something
+        loadImage('empty.jpg');
+        
         // show green status
-        showGreenLed(true);
-        readingConfig = false
+        if(clientWS.readyState == 1) {
+            showGreenLed(true);
+        } else {
+            showGreenLed(false);
+        }
+        
     } else {
         // show red status
         showGreenLed(false);
