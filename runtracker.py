@@ -123,6 +123,8 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
 
     print(get_raspi_revision())
 
+    scxreen_w, screen_h = get_screen_resolution()
+    
     #- open picamera device
     with picamera.PiCamera() as camera:
         #- determine camera module

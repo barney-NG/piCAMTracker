@@ -5,5 +5,5 @@ if [[ $hasmonitor -gt 0 ]]
 then
     /usr/bin/xrandr | /usr/bin/awk -F'[ x]+' '/\*/ { print $2,$3 }'
 else
-    echo "800 600"
+    echo "0 0"
 fi
