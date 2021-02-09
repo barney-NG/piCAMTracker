@@ -105,26 +105,25 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
     global config
     global rerun_main
     rerun_main = False
-    
-    ansz = 24 # annotation text size
-    preview = True
     show = 1 if ashow else 0
 
     if fastmode == False:
         fastmode = config.conf['fastMode']
         
-    try:
-        preview = config.conf['preview']
-    except:
-        raise
-
     if debug:
         config.conf['debug'] = True
 
+    # where are we
     print(get_raspi_revision())
-
-    scxreen_w, screen_h = get_screen_resolution()
-    
+    # get screen resolution (0,0) if no monitor is connected
+    screen_w,screen_h = get_screen_resolution()
+    # preview
+    preview = False if(screen_w == 0 and screen_h == 0) else config.conf['preview']
+    # annotation
+    an_height = 24
+    an_black = picamera.Color('black')
+    an_white = picamera.Color('white')
+ 
     #- open picamera device
     with picamera.PiCamera() as camera:
         #- determine camera module
@@ -138,7 +137,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                 resy = 480 # 30
                 fps  = 90
                 mode = 7
-                ansz = 12
+                an_height = 12
             else:
                 resx = 1280 # 80
                 resy = 960 # 60
@@ -151,7 +150,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                 resy = 480 # 30
                 fps  = 120
                 mode = 7
-                ansz = 12
+                an_height = 12
             else:
                 resx = 1632 # 102
                 resy = 896 # 56
@@ -164,17 +163,36 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
         else:
             raise ValueError('Unknown camera device')
 
+
+        # evaluate crossing parameters
+        ycross = config.conf['yCross']
+        xcross = config.conf['xCross']
+
+        # fastmode: if needed force x/ycross to middle of the screen
+        if fastmode:
+            if ycross > 0:
+                # force ycross to the middle
+                ycross = resy/32
+                config.conf['yCross'] = int(ycross)
+                print("fastmode: force yCross to %d" % ycross)
+            if xcross > 0:
+                # force xcross to the middle
+                xcross = resx/32
+                config.conf['xCross'] = int(xcross)
+                print("fastmode: force xCross to %d" % xcross)
+
+        #- check if the crossing line is in the center (this is not needed.
+        if ycross > 0 and ycross != (resy/32):
+            print("WARNING: Y crossing %d expected but %d given!" % (resy/32, ycross))
+
+        if xcross > 0 and xcross != (resx/32):
+            print("WARNING: X crossing %d expected but %d given!" % (resx/32, xcross))
+
+        # setup camera resolution
         print("camera resolution: %dx%d" % (resx,resy))
-
-        #- check if the crossing line is in the center (this is not needed.)
-        if config.conf['yCross'] > 0 and config.conf['yCross'] != (resy/32):
-            print("WARNING: Y crossing %d expected but %d given!" % (resy/32, config.conf['yCross']))
-
-        if config.conf['xCross'] > 0 and config.conf['xCross'] != (resx/32):
-            print("WARNING: X crossing %d expected but %d given!" % (resx/32, config.conf['xCross']))
-
         camera.resolution = (resx,resy)
 
+        # debugging mode
         if show:
             preview = True
             camera.framerate  = 25
@@ -195,7 +213,11 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                 camera.framerate_range = (25, fps)
   
         print("warm-up 2 seconds...")
+
+        # setup serial port
         #serialPort = picamtracker.SerialIO.SerialCommunication(port=config.conf['serialPort'],options=config.conf['serialConf'])
+
+        # setup GPIO
         greenLED = picamtracker.GPIOPort.gpioPort(config.conf['greenLEDPort'],
             is_active_low=config.conf['ledActiveLow'],
             duration=config.conf['signalLength'],
@@ -207,25 +229,24 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
         print("...start")
         picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=True)
 
+        # setup preview
         if preview:
             cl = np.zeros((resy,resx,3), np.uint8)
             ycross = config.conf['yCross']
+            print("preview::ycross: %d" % ycross)
+            print("resx: %d resy: %d" % (resx,resy))
             if ycross > 0:
                 if ycross >= int(resy/16):
                     ycross = int(resy/32)
-                if fastmode:
-                    ycross = int(resy/32)
-                    print("ycross forced to: %d" % ycross)
                 ym = 16 * ycross
+                print("ym: %d" % ym)
                 cl[ym,:,:] = 0xff  #horizantal line
 
             xcross = config.conf['xCross']
+            print("preview::xcross: %d" % xcross)
             if xcross > 0:
                 if xcross >= int(resx/16):
                     xcross = int(resx/32)
-                if fastmode:
-                    xcross = int(resx/32)
-                    print("xcross forced to: %d" % xcross)
                 xm = 16 * xcross
                 cl[:,xm,:]  = 0xff  #vertical line
 
@@ -264,7 +285,6 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
         camera.exposure_mode = 'auto'
         camera.exposure_compensation = config.conf["exposure"]
         
-
         # setup UDP broadcaster
         if 'IPUDPBEEP' in config.conf and re.match('.*\.255$', config.conf['IPUDPBEEP']):
             print("setup UDP Broadcast")
@@ -302,7 +322,8 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
             last_auto_mode = time()
 
             # start camera
-            camera.annotate_text_size = ansz
+            camera.annotate_text_size = an_height
+            camera.annotate_foreground = an_black
             camera.start_recording(output=vstream, format='h264', level='4.2', motion_output=output)
 
             # assign external commands to internal functions
@@ -329,6 +350,11 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                     # check temperature every minute
                     if loop % 120 == 0:
                         temp = get_temp()
+                        if camera.analog_gain > 7:
+                            camera.annotate_foreground = an_white
+                        else:
+                            camera.annotate_foreground = an_black
+
                     # update statistics every second
                     if loop & 1:
                         add_text = ""
