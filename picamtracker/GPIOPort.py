@@ -3,6 +3,7 @@ import threading
 from time import sleep
 import RPi.GPIO as GPIO
 import prctl
+import logging
 
 def cleanup():
     GPIO.cleanup()
@@ -12,7 +13,7 @@ def statusLED(port, on=True):
     enable the status led
     """
     GPIO.setmode(GPIO.BCM)
-    print("GPIOPort::statusLED::port: %d" % port)
+    logging.info("statusLED::port: %d" % port)
     GPIO.setup(port,GPIO.OUT)
     if on:
         GPIO.output(port,GPIO.HIGH)
@@ -48,7 +49,7 @@ class gpioPort(threading.Thread):
         prctl.set_name('ptrk.GPIO')
 
         GPIO.setmode(GPIO.BCM)
-        print("GPIOPort::gpioPort::port: %d" % port)
+        logging.info("port: %d" % port)
         GPIO.setup(self.port,GPIO.OUT)
 
         if is_active_low:

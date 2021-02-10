@@ -33,6 +33,7 @@ from .WebSocketServer import *
 import threading
 import socket
 from time import sleep
+import logging
 
 
 class TrackerWS(WebSocketServer):
@@ -63,19 +64,30 @@ class TrackerWS(WebSocketServer):
         self.server_thread.join()
         
     def on_data_receive(self, client, data):
-        print("Got data", data)
+        logging.debug("Got data")
 
     def on_connection_open(self, client):
-        print("New client", client)
+        logging.debug("New client %s", client)
 
     def on_connection_close(self, client):
-        print("Client close")
+        logging.debug("Client close %s", client)
 
     def on_server_destruct(self):
         pass
     def on_error(self, exception):
-        print("WebSocket::error", exception)
+        logging.error("error: %s", exception)
         pass
+
+    def broadcast(self, data, echo=False):
+        """Send a string of data to all clients.
+
+        :param data: A string of data formatted as ASCII
+        :param echo: A boolean that indicates whether 'client' 
+        should receive an echo of the message they are initiating.
+        """
+        for endpoint in self.clients.values():
+            self.send(endpoint, data)
+                
         
 if __name__ == '__main__':
     print("open ws")

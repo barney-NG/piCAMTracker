@@ -45,6 +45,7 @@ import threading
 import serial
 import sys
 import re
+import logging
 
 class SerialCommunication(threading.Thread):
     def __init__(self, port='/dev/serial0', options='9600 8N1'):
@@ -67,7 +68,7 @@ class SerialCommunication(threading.Thread):
                 # read all that is there or wait for one byte
                 data = self.serial.read(self.serial.in_waiting or 1)
                 if data:
-                    print("serial in: <%s>" % data)
+                    logging.debug("serial in: <%s>" % data)
                     
         except serial.SerialException:
             self.terminated = True

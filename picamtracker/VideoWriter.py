@@ -51,6 +51,7 @@ import numpy as np
 import cv2
 import gc
 import prctl
+import logging
 
 class vWriter(threading.Thread):
     """

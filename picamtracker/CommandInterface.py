@@ -45,6 +45,7 @@ import json
 import re
 from time import sleep
 import prctl
+import logging
 
 class CommandInterface(threading.Thread):
     #--------------------------------------------------------------------
@@ -89,7 +90,7 @@ class CommandInterface(threading.Thread):
     #-- interprete the command
     #--------------------------------------------------------------------
     def interprete(self, cmd):
-        #print("cmd: <%s>" % (cmd))
+        #logging.info("cmd: <%s>" % (cmd))
         m = self.keyval.match(cmd)
         if m:
             key = m.group(1)

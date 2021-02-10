@@ -45,9 +45,10 @@ import sys
 import threading
 from time import sleep
 from collections import deque
-from picamera.frames import PiVideoFrame, PiVideoFrameType, PiCameraMMALError
-from picamera import mmal,mmalobj as mo
+#from picamera.frames import PiVideoFrame, PiVideoFrameType, PiCameraMMALError
+#from picamera import mmal,mmalobj as mo
 import numpy as np
+import logging
 from picamtracker import Display
 if sys.version_info < (3,0):
     from picamtracker.python2 import libh264decoder as h264decoder
@@ -131,7 +132,7 @@ class Writer(threading.Thread):
 
     def check(self):
         ret_code = self.written
-        print("writer::check (%d)" % ret_code)
+        logging.info("writer::check (%d)" % ret_code)
         with self.lock:
             if self.written:
                 self.written = False
@@ -229,8 +230,9 @@ class Writer(threading.Thread):
                     fs.write(imagepath)
                     fs.close()
                 except:
-                    print("cannot write %s" % self.imgctrl_file)
+                    logging.error("cannot write %s" % self.imgctrl_file)
                     pass
+                    
                 if self.wsserver:
                     self.wsserver.broadcast(imagepath)
 
@@ -269,7 +271,7 @@ class Writer(threading.Thread):
             index = frame.index
             ftype = frame.frame_type
             #if n == 1:
-            #    print("index: %d type: %d (_%d_)" % (index,ftype,framenb))
+            #    logging.debug("index: %d type: %d (_%d_)" % (index,ftype,framenb))
             fmin = min(fmin,index)
             fmax = max(fmax,index)
             
@@ -281,13 +283,13 @@ class Writer(threading.Thread):
                 # i-frame
                 if ftype == 2:
                     diff = index - framenb
-                    #print("index: %d type 2 diff: %d" % (index,diff))
+                    #logging.debug("index: %d type 2 diff: %d" % (index,diff))
 
                 # negative diff -> frame was created before event
                 # positive diff -> frame was created after event
                 # we allow i-frames created very short before the crossing event
                 if diff > -5 and diff <= self.maxDiff:
-                    #print("found key/sps frame @ %d (type:%d delta:%d)" % (index,ftype,diff))
+                    #logging.debug("found key/sps frame @ %d (type:%d delta:%d)" % (index,ftype,diff))
                     record = True
                 # stop loop if difference is too big
                 if diff < minus_max_diff:
@@ -308,6 +310,6 @@ class Writer(threading.Thread):
                 break
 
         if record == False:
-            print("%d frames searched (%d < _%d_ < %d) no i-frame found!" % (n,fmin,framenb,fmax))
+            logging.error("%d frames searched (%d < _%d_ < %d) no i-frame found!" % (n,fmin,framenb,fmax))
         
         return record

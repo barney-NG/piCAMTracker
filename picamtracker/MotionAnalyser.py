@@ -45,6 +45,7 @@ import cv2
 from time import sleep,time
 from math import degrees,atan2,pi
 from struct import pack,calcsize
+import logging
 
 class MotionAnalyser(picamera.array.PiMotionAnalysis):
     """
@@ -120,7 +121,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         self.debugged_frames += 1
         if self.debugged_frames > self.max_debugged_frames:
-            print("MotionAnalyser:debug off")
+            logging.info("MotionAnalyser:debug off")
             self.debug = False
             self.fobj.close()
             self.fobj = None
@@ -134,18 +135,18 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         i = 0
         extend = self.extension
         append = True
-        #print("=====")
-        #print("new: x1/y1: %2d/%2d, x2/y2: %2d/%2d  w/h %d/%d" % (xn,yn,xn+wn,yn+hn,wn,hn))
+        #logging.debug("=====")
+        #logging.debug("new: x1/y1: %2d/%2d, x2/y2: %2d/%2d  w/h %d/%d" % (xn,yn,xn+wn,yn+hn,wn,hn))
         #- Loop through all existing rects
         for xo,yo,wo,ho in rects:
-            #print("  old: x1/y1: %2d/%2d, x2/y2: %2d/%2d w/h: %d/%d" % (xo,yo,xo+wo,yo+ho,wo,ho))
+            #logging.debug("  old: x1/y1: %2d/%2d, x2/y2: %2d/%2d w/h: %d/%d" % (xo,yo,xo+wo,yo+ho,wo,ho))
             # full intersection (new isin old)
             if xn >= xo and xn+wn <= xo+wo and yn >= yo and yn+hn <= yo+ho:
-                #print("new in old")
+                #logging.debug("new in old")
                 return rects
             # full intersection (old isin new)
             if xo > xn and xo+wo <= xn+wn and yo > yn and yo+ho <= yn+hn:
-                #print("  old in new delete old")
+                #logging.debug("  old in new delete old")
                 rects.pop(i)
                 i += 1
                 #append = False
@@ -159,7 +160,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             y2nn  = min(yn+hn+extend,self.rows)
 
             if xo > x1nn and xo+wo <= x2nn and yo > y1nn and yo+ho <= y2nn:
-                #print("  old in extended new")
+                #logging.debug("  old in extended new")
                 xint = yint = True
             else:
                 # find x range
@@ -181,7 +182,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 ymin = min(yo,yn)
                 ymax = max(yo+ho,yn+hn)
                 rects[i] = [xmin,ymin,xmax-xmin,ymax-ymin]
-                #print("  joi: x1/y1: %2d/%2d, x2/y2: %2d/%2d w/h: %d/%d" % (xmin,ymin,xmax,ymax,(xmax-xmin),(ymax-ymin)))
+                #logging.debug("  joi: x1/y1: %2d/%2d, x2/y2: %2d/%2d w/h: %d/%d" % (xmin,ymin,xmax,ymax,(xmax-xmin),(ymax-ymin)))
                 append = False
 
             #- continue searching for intersections
@@ -189,7 +190,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         # no intersection found -> add
         if append:
-            #print("app: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xn,yn,xn+wn,yn+hn))
+            #logging.debug("app: x1/y1: %2d/%2d, x2/y2: %2d/%2d" % (xn,yn,xn+wn,yn+hn))
             rects.append([xn,yn,wn,hn])
 
         return rects
@@ -233,7 +234,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         if value > 0:
             # only start debugging when old session has stopped
             if self.fobj == None:
-                print("MotionAnalyser:debug on (%d)" % value)
+                logging.info("MotionAnalyser:debug on (%d)" % value)
                 self.max_debugged_frames = 40 * value
                 self.debug = True
         else:
@@ -248,7 +249,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback setting collection extension
         """
         if value >= 1 and value <= 20:
-            print("MotionAnalyser::object extension: %d" % value)
+            logging.info("MotionAnalyser::object extension: %d" % value)
             self.extension = int(value)
             self.config.conf['extension'] = int(value)
 
@@ -257,7 +258,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback setting camera exposure compensation
         """
         if value >= -20 and value <= 20:
-            print("MotionAnalyser::exposure_compensation: %d" % value)
+            logging.info("MotionAnalyser::exposure_compensation: %d" % value)
             self.camera.exposure_compensation = int(value)
             self.config.conf['exposure'] = int(value)
             
@@ -265,7 +266,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         """
         callback setting baseB mode
         """
-        print("MotionAnalyser::baseB: %d" % mode)
+        logging.info("MotionAnalyser::baseB: %d" % mode)
             
         if mode == 0:
             self.config.conf['baseB'] = 'none'
@@ -289,7 +290,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback setting vMax
         """
         if value > self.vmin:
-            print("MotionAnalyser::vMax: %d" % value)
+            logging.info("MotionAnalyser::vMax: %d" % value)
             self.vmax = value
             if self.config:
                 self.config.conf['vMax'] = value
@@ -300,7 +301,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         """
         if value < 1:
             value = 1
-        print("MotionAnalyser::vMin: %d" % value)
+        logging.info("MotionAnalyser::vMin: %d" % value)
         self.vmin = value
         if self.config:
             self.config.conf['vMin'] = value
@@ -310,7 +311,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback setting max area
         """
         if value > self.minArea:
-            print("MotionAnalyser::maxArea: %d" % value)
+            logging.info("MotionAnalyser::maxArea: %d" % value)
             self.maxArea = value
             if self.config:
                 self.config.conf['maxArea'] = value
@@ -321,7 +322,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         """
         if value < 1:
             value = 1
-        print("MotionAnalyser::minArea: %d" % value)
+        logging.info("MotionAnalyser::minArea: %d" % value)
         self.minArea = value
         if self.config:
             self.config.conf['minArea'] = value
@@ -331,7 +332,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         callback setting SAD threshold
         """
         if value >=0 and value < 16384:
-            print("MotionAnalyser::sadThreshold: %d" % value)
+            logging.info("MotionAnalyser::sadThreshold: %d" % value)
             self.sadThreshold = value
             if self.config:
                 self.config.conf['sadThreshold'] = value
@@ -358,7 +359,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         if self.debug:
             self.debug_out(a)
         
-        #print("---%5.0fms ---" % (dt*1000.0))
+        #logging.debug("---%5.0fms ---" % (dt*1000.0))
         #return
 
         #---------------------------------------------------------------
@@ -370,9 +371,9 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         #- reject if more than 80% of the macro blocks are moving
         moving_elements = np.count_nonzero(has_movement)
-        #print("moving elements: %d" % moving_elements)
+        #logging.debug("moving elements: %d" % moving_elements)
         if moving_elements > self.maxMovements:
-            print("MAXMOVEMENT! (%d)" % moving_elements)
+            logging.info("MAXMOVEMENT! (%d)" % moving_elements)
             return
         #- mask out movement
         mask = has_movement.astype(np.uint8) * 255
@@ -427,7 +428,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             #-- reject areas which are too big
             area = w*h
             if area > self.maxArea:
-                print( "MAXAEREA! %d > %d (%d/%d)" % (area,self.maxArea,w,h))
+                logging.info( "MAXAEREA! %d > %d (%d/%d)" % (area,self.maxArea,w,h))
                 rejects += 1
                 continue
             #-- reject areas which are too small

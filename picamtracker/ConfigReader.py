@@ -38,6 +38,7 @@ from __future__ import (
 str = type('')
 
 import json
+import logging
 
 default_config = \
 {
@@ -99,7 +100,7 @@ class Configuration:
             self.conf = json.load(open(config_file,'r'))
             self.configFileName = config_file
         except IOError as err:
-            print("I/O error: {0}".format(err))
+            logging.error("I/O error: {0}".format(err))
         except:
             raise
         # insert new default keys
@@ -125,7 +126,7 @@ class Configuration:
 
         try:
             json.dump(self.conf, open(fn,'w'), indent=1, sort_keys=True)
-            print("config written")
+            logging.info("config written")
         except:
             raise
 

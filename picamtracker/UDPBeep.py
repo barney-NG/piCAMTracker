@@ -13,8 +13,8 @@ class udpBeep(threading.Thread):
         super(udpBeep, self).__init__()
         self.udpip = udpip
         self.port = udpport
-        logging.info("piCAMTracker: UDP IP: %s" % self.udpip)
-        logging.info("piCAMTRacker: UDP port: %d" % self.port)
+        logging.debug("UDP IP: %s" % self.udpip)
+        logging.debug("UDP port: %d" % self.port)
         self.terminated = False
         self.event = threading.Event()
         self.sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

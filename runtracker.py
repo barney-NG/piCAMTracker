@@ -14,6 +14,20 @@ from argparse import ArgumentParser
 import picamtracker
 import prctl
 from websock import WebUtilities
+import logging
+import logging.handlers
+
+# configure logging
+LOGFILENAME = '/var/log/picamtracker/picamtracker.log'
+logging.basicConfig(filename = LOGFILENAME,
+                    format='%(asctime)s: %(module)s::%(funcName)s: %(message)s',
+                    level=logging.DEBUG,
+                    datefmt='%Y/%m/%d %H:%M:%S')
+#my_logger = logging.getLogger('picamtracker')
+##my_logger.setLevel(logging.DEBUG)
+#handler = logging.handlers.RotatingFileHandler(LOGFILENAME,maxBytes = 1024, backupCount = 2)
+##logging.addHandler(handler)
+#my_logger.addHandler(handler)
 
 max_temp = 75.0
 temp = 20.0
@@ -30,9 +44,9 @@ def shell(cmd, *argv):
         p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         out,err = p.communicate()
         if(len(err)):
-            print >> sys.stderr, err
+            logging.error(err)
     except:
-        print >> sys.stderr, err
+        logging.error(err)
         out = ''
 
     return out.strip()
@@ -46,7 +60,7 @@ def get_screen_resolution():
         w = int(m.group(1))
         h = int(m.group(2))
 
-    print("screen resolution: w: %d, h: %d" % (w,h))
+    logging.debug("screen resolution: w: %d, h: %d" % (w,h))
 
     return (w,h)
 
@@ -91,12 +105,12 @@ def setFastMode(value):
         global set_fastmode
         global rerun_main
         if value > 0:
-            print("main::setFastMode:On")
+            logging.info("setFastMode:On")
             if set_fastmode == False:
                 set_fastmode = True
                 rerun_main = True
         else:
-            print("main::setFastMode:Off")
+            logging.info("setFastMode:Off")
             if set_fastmode == True:
                 set_fastmode = False
                 rerun_main = True
@@ -106,6 +120,12 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
     global rerun_main
     rerun_main = False
     show = 1 if ashow else 0
+    
+    log = logging.getLogger(__name__)
+    log.setLevel(logging.INFO)
+    handler = logging.handlers.RotatingFileHandler(LOGFILENAME,maxBytes = 3*1024*1024, backupCount = 2)
+    log.addHandler(handler)
+    log.info("<<<<<<<<<<<<<< starting tracker >>>>>>>>>>>>")
 
     if fastmode == False:
         fastmode = config.conf['fastMode']
@@ -114,7 +134,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
         config.conf['debug'] = True
 
     # where are we
-    print(get_raspi_revision())
+    log.info(get_raspi_revision())
     # get screen resolution (0,0) if no monitor is connected
     screen_w,screen_h = get_screen_resolution()
     # preview
@@ -128,7 +148,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
     with picamera.PiCamera() as camera:
         #- determine camera module
         revision = camera._revision.upper()
-        print("camera chip: %s" % revision)
+        log.info("camera chip: %s" % revision)
         if revision == 'OV5647':
             # V1 module
             # 1280x720 has a bug. (wrong center value)
@@ -174,22 +194,22 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                 # force ycross to the middle
                 ycross = resy/32
                 config.conf['yCross'] = int(ycross)
-                print("fastmode: force yCross to %d" % ycross)
+                log.warning("fastmode: force yCross to %d" % ycross)
             if xcross > 0:
                 # force xcross to the middle
                 xcross = resx/32
                 config.conf['xCross'] = int(xcross)
-                print("fastmode: force xCross to %d" % xcross)
+                log.warning("fastmode: force xCross to %d" % xcross)
 
         #- check if the crossing line is in the center (this is not needed.
         if ycross > 0 and ycross != (resy/32):
-            print("WARNING: Y crossing %d expected but %d given!" % (resy/32, ycross))
+            log.warning("Y crossing %d expected but %d given!" % (resy/32, ycross))
 
         if xcross > 0 and xcross != (resx/32):
-            print("WARNING: X crossing %d expected but %d given!" % (resx/32, xcross))
+            log.warning("X crossing %d expected but %d given!" % (resx/32, xcross))
 
         # setup camera resolution
-        print("camera resolution: %dx%d" % (resx,resy))
+        log.info("camera resolution: %dx%d" % (resx,resy))
         camera.resolution = (resx,resy)
 
         # debugging mode
@@ -212,7 +232,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
             else:
                 camera.framerate_range = (25, fps)
   
-        print("warm-up 2 seconds...")
+        log.info("warm-up 2 seconds...")
 
         # setup serial port
         #serialPort = picamtracker.SerialIO.SerialCommunication(port=config.conf['serialPort'],options=config.conf['serialConf'])
@@ -226,24 +246,21 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
             duration=config.conf['signalLength'],
             is_active_low=config.conf['ledActiveLow'])
         sleep(1.0)
-        print("...start")
         picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=True)
+
+        log.info("starting camera ...")
 
         # setup preview
         if preview:
             cl = np.zeros((resy,resx,3), np.uint8)
             ycross = config.conf['yCross']
-            print("preview::ycross: %d" % ycross)
-            print("resx: %d resy: %d" % (resx,resy))
             if ycross > 0:
                 if ycross >= int(resy/16):
                     ycross = int(resy/32)
                 ym = 16 * ycross
-                print("ym: %d" % ym)
                 cl[ym,:,:] = 0xff  #horizantal line
 
             xcross = config.conf['xCross']
-            print("preview::xcross: %d" % xcross)
             if xcross > 0:
                 if xcross >= int(resx/16):
                     xcross = int(resx/32)
@@ -264,7 +281,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
             if rotation == 90 or rotation == 270:
                 hh = pw; pw = ph; ph = hh
             
-            print("preview w: %d, h: %d" % (pw,ph))
+            log.info("preview w: %d, h: %d" % (pw,ph))
 
             camera.start_preview(fullscreen=False,window=(px,py,pw,ph),rotation=rotation)
             #camera.preview.fullscreen = False
@@ -287,7 +304,6 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
         
         # setup UDP broadcaster
         if 'IPUDPBEEP' in config.conf and re.match('.*\.255$', config.conf['IPUDPBEEP']):
-            print("setup UDP Broadcast")
             udpThread = picamtracker.UDPBeep.udpBeep(config.conf['IPUDPBEEP'], 4445)
             udpThread.event.set ()
         else:
@@ -323,7 +339,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
 
             # start camera
             camera.annotate_text_size = an_height
-            camera.annotate_foreground = an_black
+            camera.annotate_foreground = an_white if camera.analog_gain > 5 else an_black
             camera.start_recording(output=vstream, format='h264', level='4.2', motion_output=output)
 
             # assign external commands to internal functions
@@ -347,14 +363,10 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                     
                     global temp
                     loop += 1
-                    # check temperature every minute
+                    # check temperature/light every minute
                     if loop % 120 == 0:
                         temp = get_temp()
-                        if camera.analog_gain > 7:
-                            camera.annotate_foreground = an_white
-                        else:
-                            camera.annotate_foreground = an_black
-
+                        camera.annotate_foreground = an_white if camera.analog_gain > 5 else an_black
                     # update statistics every second
                     if loop & 1:
                         add_text = ""
@@ -382,7 +394,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                         #if auto_mode >= 0:
                         #    auto_mode -= 1
                         #    if auto_mode == 0:
-                        #        print("auto_mode: off")
+                        #        log.info("auto_mode: off")
                         #        camera.exposure_mode = 'off'
                         #        camera.shutter_speed = camera.exposure_speed
                         #        g = camera.awb_gains
@@ -406,12 +418,13 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                         #    camera.awb_mode  = 'auto'
                         #    auto_mode = 10
                         #    last_auto_mode = time()
-                        #    print("auto_mode: on")
+                        #    log.info("auto_mode: on")
                     # check for USB stick every 60 seconds
 
                     camera.wait_recording(t_wait)
 
             except KeyboardInterrupt:
+                log.error("Got keyborad interrupt")
                 pass
 
             finally:
@@ -450,6 +463,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                 picamtracker.GPIOPort.cleanup()
                 #config.write()
 
+    log.info("<<<<<<<<<<<< tracker ended >>>>>>>>>>>>")
     return rerun_main
 
 if __name__ == '__main__':
@@ -461,23 +475,40 @@ if __name__ == '__main__':
     parser.add_argument( '-f', '--fast', action='store_true',
                       help = 'run in 640x480 mode as fast as possible')
     args = parser.parse_args()
+
+    # update config file (or create it if it does not exists)
     global config
     global set_fastmode
     set_fastmode = False
     config = picamtracker.Configuration('config.json')
     config.write()
+    
+    # prepare OS environment
     os.system("[ ! -d /run/picamtracker ] && sudo mkdir -p /run/picamtracker && sudo chown pi:www-data /run/picamtracker && sudo chmod 775 /run/picamtracker")
+    # this does not work -> we need to creat the first logfile from outside :-/
+    logdir = '/var/log/picamtracker'
+    logfile = 'picamtracker.log'
+    mkdir_cmd = "[ ! -d %s ] && sudo mkdir -p %s && sudo chown -R pi:pi %s" % (logdir, logdir, logdir)
+    mklog_cmd = "sudo touch %s/%s && sudo chown pi:pi %s/%s" % (logdir,logfile,logdir,logfile)
+    os.system(mkdir_cmd)
+    os.system(mklog_cmd)
     if 'accessPoint' in config.conf and config.conf['accessPoint'] == True and 'ssid' in config.conf and len(config.conf['ssid']) >= 3:
             cmd = "sudo /home/pi/piCAMTracker/etc/start-access-point.sh --ssid %s" % config.conf['ssid']
             os.system(cmd.encode())
     os.system("/home/pi/piCAMTracker/etc/background_service.sh </dev/null&")
-    out = shell('/usr/bin/vcgencmd', 'measure_temp')
-    print("Actual core %s" % out)
 
+    # just a test ...
+    # out = shell('/usr/bin/vcgencmd', 'measure_temp')
+    # print("Actual core %s" % out)
+
+    # start websocket thread outside of main loop. (protect it from switching fast/normal) 
     wserver = WebUtilities.TrackerWS(config=config, port=8084)
-    
+
+    # run main part until end requested
     while main(args.show, args.debug, args.fast, wsserver=wserver):
         args.fast = set_fastmode
+        logging.info("restarting tracker...")
 
+    # stop websocket thread
     wserver.stop()
     wserver.close_server()

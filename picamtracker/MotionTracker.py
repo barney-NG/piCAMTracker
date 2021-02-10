@@ -163,7 +163,7 @@ class Tracker(threading.Thread):
     def set_trackMaturity(self, value):
         if value > 3 and value <= 10:
             self.trackMaturity = value
-            print("MotionTracker::trackMaturity: %d" % value)
+            logging.info("MotionTracker::trackMaturity: %d" % value)
             if self.config:
                 self.config.conf['trackMaturity'] = value
 
@@ -173,7 +173,7 @@ class Tracker(threading.Thread):
     def set_maxDist(self, value):
         if value > 0 and value < 25:
             Track.maxDist = value
-            print("MotionTracker::maxDist: %d" % value)
+            logging.info("MotionTracker::maxDist: %d" % value)
             if self.config:
                 self.config.conf['maxDist'] = value
 
@@ -224,7 +224,7 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     def crossed(self, updates, timestamp, frame, motion, positive_direction=False):
         if self.locked:
-            print("blocked")
+            logging.debug("blocked")
             return False
 
         with self.lock:
@@ -247,7 +247,7 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     def turned(self, updates, timestamp, frame, motion, positive_direction=False):
         if self.locked:
-            print("blocked")
+            logging.debug("blocked")
             return False
 
         with self.lock:
@@ -651,7 +651,7 @@ class Track:
             if self.noprogressy > backward_maturiy and self.diryOK and self.distyOK:
                 self.turned()
                 self.turnedY = True
-                print("[%s](%02d) y:%d/%d Y-TURN"
+                logging.info("[%s](%02d) y:%d/%d Y-TURN"
                       % (self.name,self.updates,rn[1],rn[0]))
 
         #- check for X-Turn
@@ -671,7 +671,7 @@ class Track:
             if self.noprogressx > backward_maturiy and self.dirxOK and self.distxOK:
                 self.turned()
                 self.turnedX = True
-                print("[%s](%02d) x:%d/%d X-TURN"
+                logging.info("[%s](%02d) x:%d/%d X-TURN"
                       % (self.name,self.updates,rn[0],rn[1]))
 
     #--------------------------------------------------------------------
@@ -711,14 +711,23 @@ class Track:
             x0 = r[0]; y0 = r[1]
             y1 = r[1] + r[3]
             # for low speeds take distance as indicator
+            
             vy_ = abs(vy)
             if vy_ < 0.1:
                 vy = float(dy)
+            
             if vy_ > delta:
                 delta = int(vy_) + 1
+
+            #@@print("vy: %6.2f (%6.2f) dy: %3d delta: %3d" % (vy,-self.vv[1], dy,delta))
             # moving quality
             coverage = self.distance[1] / self.deltaY
 
+            # for my memory:
+            # deltaY = maxy - miny
+            # distance[1] = sum of all dy
+            # dy = actual step in y
+            
             # mature check
             crossedYPositive = crossedYNegative = False
             fastText = ''
@@ -742,14 +751,14 @@ class Track:
             if crossedYPositive:
                 delay = (time() - self.timestamp) * 1000.0
                 
-                print("[%s](%02d/%4.1f) y1:%2d/%2d vy:%+5.1f/%+5.1f dy:%2d/%2d deltaY:%2d dist:%3d cov:%4.1f %sY-CROSSED++++++++++++++++++++"
+                logging.info("[%s](%02d/%4.1fms) y1:%2d/%2d vy:%+5.1f/%+5.1f dy:%2d/%2d deltaY:%2d dist:%3d cov:%4.1f %sY-CROSSED++++++++++++++++++++"
                     % (self.name,self.updates,delay,y1,x0,vy,vx,dy,dx,self.deltaY,self.distance[1],coverage,fastText))
                 self.crossedY = True
                 self.crossed(positive=True)
 
             if crossedYNegative:
                 delay = (time() - self.timestamp) * 1000.0
-                print("[%s](%02d/%4.1f) y0:%2d/%2d vy:%+5.1f/%+5.1f dy:%2d/%2d deltaY:%2d dist:%3d cov:%4.1f %sY-CROSSED--------------------"
+                logging.info("[%s](%02d/%4.1fms) y0:%2d/%2d vy:%+5.1f/%+5.1f dy:%2d/%2d deltaY:%2d dist:%3d cov:%4.1f %sY-CROSSED--------------------"
                     % (self.name,self.updates,delay,y0,x0,vy,vx,dy,dx,self.deltaY,self.distance[1],coverage,fastText))
                 self.crossedY = True
                 self.crossed(positive=False)
@@ -800,14 +809,14 @@ class Track:
             if crossedXPositive:
                 delay = (time() - self.timestamp) * 1000.0
                 
-                print("[%s](%02d/%4.1f) x1:%2d/%2d vx:%+5.1f/%+5.1f dx:%2d/%2d deltaX:%2d dist:%3d cov:%4.1f %sX-CROSSED++++++++++++++++++++"
+                logging.info("[%s](%02d/%4.1f) x1:%2d/%2d vx:%+5.1f/%+5.1f dx:%2d/%2d deltaX:%2d dist:%3d cov:%4.1f %sX-CROSSED++++++++++++++++++++"
                     % (self.name,self.updates,delay,x1,y0,vx,vy,dx,dy,self.deltaX,self.distance[0],coverage,fastText))
                 self.crossedX = True
                 self.crossed(positive=True)
 
             if crossedXNegative:
                 delay = (time() - self.timestamp) * 1000.0
-                print("[%s](%02d/%4.1f) x0:%2d/%2d vx:%+5.1f/%+5.1f dx:%2d/%2d deltaX:%2d dist:%3d cov:%4.1f %sY-CROSSED--------------------"
+                logging.info("[%s](%02d/%4.1f) x0:%2d/%2d vx:%+5.1f/%+5.1f dx:%2d/%2d deltaX:%2d dist:%3d cov:%4.1f %sY-CROSSED--------------------"
                     % (self.name,self.updates,delay,x0,y0,vx,vy,dx,dy,self.deltaX,self.distance[0],coverage,fastText))
                 self.crossedY = True
                 self.crossed(positive=False)
@@ -896,7 +905,7 @@ class Track:
         if self.cx == cxn and self.cy == cyn and self.re[2] == rn[2] and self.re[3] == rn[3]:
             self.updates += 1
             self.updateGrowingStatus(rn)
-            #print "[%s] double hit" % self.name
+            #logging.info "[%s] double hit" % self.name
             return self.id
 
 
@@ -939,7 +948,7 @@ class Track:
         vlength = 0.0
         oodir = self.old_dir
         # >>> debug
-        #print("[%s](%d) xn/yn: %2d/%2d, vx/vy: %2d/%2d dist: %4.2f, delta_area: %4.2f" %
+        #logging.debug("[%s](%d) xn/yn: %2d/%2d, vx/vy: %2d/%2d dist: %4.2f, delta_area: %4.2f" %
         #      (self.name,self.updates,rn[0],rn[1],vx,vy,dist,delta_area))
         # <<< debug
 
@@ -1008,7 +1017,7 @@ class Track:
                 # self.detectTurn(dx,dy,rn)
 
                 # >>> debug
-                #print("%s[%d] append %2d/%2d" %
+                #logging.debug("%s[%d] append %2d/%2d" %
                 #      (self.name,self.updates-1,rn[0],rn[1]))
                 # <<< debug
             else:
@@ -1016,14 +1025,14 @@ class Track:
                 #if oodir is not None:
                 #    dxo = oodir[0]
                 #    dyo = oodir[1]
-                #    print("[%s](%d) delta-: (%4.2f) dx/dy: %4.2f/%4.2f dxo/dyo %4.2f/%4.2f dist: %4.2f, vlength: %4.2f" %
+                #    logging.info("[%s](%d) delta-: (%4.2f) dx/dy: %4.2f/%4.2f dxo/dyo %4.2f/%4.2f dist: %4.2f, vlength: %4.2f" %
                 #        (self.name, self.updates,degrees(acos(cos_delta)),dx,dy,dxo,dyo,dist,vlength))
-                #print("     vx:%3d->%3d, vy:%3d->%3d dist: %4.2f" % (self.vv[0],vn[0], self.vv[1],vn[1],dist))
+                #logging.debug("     vx:%3d->%3d, vy:%3d->%3d dist: %4.2f" % (self.vv[0],vn[0], self.vv[1],vn[1],dist))
                 # <<< debug
                 ii = 0
         else:
             #if delta_area < 10.0:
-            #print("[%s] dist: %4.2f > %4.2f delta_area: %4.2f" % (self.name,dist,max_dist,delta_area))
+            #logging.info("[%s] dist: %4.2f > %4.2f delta_area: %4.2f" % (self.name,dist,max_dist,delta_area))
             ii = 0
 
         return found
@@ -1083,7 +1092,7 @@ class Track:
             sys.stdout.write("[%s]:" %(self.name))
             for x,y in self.tr[-4:]:
                 sys.stdout.write("  %02d,%02d -> " %(x,y))
-            print("(#%2d vx:%02d vy:%02d) age:%d" % (self.updates,int(-self.vv[0]),int(-self.vv[1]),frame-self.lastFrame))
+            logging.info("(#%2d vx:%02d vy:%02d) age:%d" % (self.updates,int(-self.vv[0]),int(-self.vv[1]),frame-self.lastFrame))
 
 if __name__ == '__main__':
 

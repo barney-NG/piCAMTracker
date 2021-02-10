@@ -44,6 +44,7 @@ except NameError:
 import sys
 import os
 from time import time, strftime
+import logging
 
 class nameGenerator(object):
     """

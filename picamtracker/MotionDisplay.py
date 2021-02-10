@@ -6,6 +6,7 @@ import os
 import pygame
 import cv2
 import prctl
+import logging
 
 class Display(threading.Thread):
     def __init__(self, name="Display", caption="Display", x=0, y=0,w=640,h=480):
