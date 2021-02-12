@@ -53,9 +53,6 @@
 	    <label for="slider-vMax">Maximum Speed: (faster objects are ignored)</label>
 	    <input type="range" id="slider-vMax" value="50" min="50" max="200" step="50" data-highlight="true"
 		   onchange="fifo_command('vMax:',$('#slider-vMax').val()) ;" />
-	    <!--label for="slider-NoiseLevel">Noise Level:</label>
-	    <input type="range" id="slider-NoiseLevel" value="0" min="0" max="8192" step="1024" data-highlight="true"
-		   onchange="fifo_command('sadThreshold:',$('#slider-NoiseLevel').val()) ;" /-->
 	    <label for="slider-MinArea">Minimum Area: (smaller objects are ignored)</label>
 	    <input type="range" name="slider-MinArea" id="slider-MinArea" value="1" min="1" max="25" step="1" data-highlight="true"
 		   onchange="fifo_command('minArea:',$('#slider-MinArea').val()) ;" />

@@ -1,9 +1,6 @@
 // websocket stuff
-var clientWS
-function loadImage( name ) {
-    mjpeg.src = 'mjpeg_read.php?time=' + new Date().getTime() + "&image=" + name;
-}
 
+var clientWS
 function connectWS() {
     clientWS = new WebSocket( 'ws://'+location.host+':8084/' );
 
@@ -54,6 +51,12 @@ var url = window.location.search;
 var refreshtime = url.substring(url.lastIndexOf("=")+1);
 if (refreshtime == "") { refreshtime = 970; }
 
+function loadImage( name ) {
+    mjpeg.src = 'mjpeg_read.php?time=' + new Date().getTime() + "&image=" + name;
+}
+function loadLastImage( name ) {
+    mjpeg.src = 'mjpeg_read.php';
+}
 
 function mjpeg_error()
 {
@@ -129,8 +132,8 @@ read_config.onreadystatechange = function()
             readingConfig = false
         }
 
-        // fill page3 with something
-        loadImage('empty.jpg');
+        // fill page3 with last image
+        loadLastImage();
         
         // show green status
         if(clientWS.readyState == 1) {
