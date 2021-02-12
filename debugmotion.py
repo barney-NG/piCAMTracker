@@ -9,7 +9,15 @@ import picamtracker.MotionTracker
 import picamtracker.ConfigReader
 import cv2
 from struct import unpack_from,calcsize
+import logging
 
+# configure logging
+LOGFILENAME = '/var/log/picamtracker/picamtracker.log'
+logging.basicConfig(filename = LOGFILENAME,
+                    format='%(asctime)s: %(module)s::%(funcName)s: %(message)s',
+                    level=logging.DEBUG,
+                    datefmt='%Y/%m/%d %H:%M:%S')
+                    
 motion_dtype = np.dtype([
     ('x',   np.int8),
     ('y',   np.int8),

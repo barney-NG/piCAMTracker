@@ -17,18 +17,14 @@ from websock import WebUtilities
 import logging
 import logging.handlers
 
-# configure logging
-LOGFILENAME = '/var/log/picamtracker/picamtracker.log'
-logging.basicConfig(filename = LOGFILENAME,
-                    format='%(asctime)s: %(module)s::%(funcName)s: %(message)s',
-                    level=logging.DEBUG,
-                    datefmt='%Y/%m/%d %H:%M:%S')
-#my_logger = logging.getLogger('picamtracker')
-##my_logger.setLevel(logging.DEBUG)
-#handler = logging.handlers.RotatingFileHandler(LOGFILENAME,maxBytes = 1024, backupCount = 2)
-##logging.addHandler(handler)
-#my_logger.addHandler(handler)
-
+logging.basicConfig(filename = 'ws.log')
+#handler = logging.handlers.RotatingFileHandler(LOGFILENAME,maxBytes = 3*1024*1024, backupCount = 2)
+#logging.basicConfig(filename = LOGFILENAME,
+#                format='%(asctime)s: %(module)s::%(funcName)s: %(message)s',
+#                handlers = [handler],
+#                level=logging.DEBUG,
+#                datefmt='%Y/%m/%d %H:%M:%S')
+                
 max_temp = 75.0
 temp = 20.0
 
@@ -115,17 +111,23 @@ def setFastMode(value):
                 set_fastmode = False
                 rerun_main = True
 
-def main(ashow=True, debug=False, fastmode=False, wsserver=None):
+def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=None):
     global config
     global rerun_main
     rerun_main = False
     show = 1 if ashow else 0
     
-    log = logging.getLogger(__name__)
-    log.setLevel(logging.INFO)
-    handler = logging.handlers.RotatingFileHandler(LOGFILENAME,maxBytes = 3*1024*1024, backupCount = 2)
-    log.addHandler(handler)
-    log.info("<<<<<<<<<<<<<< starting tracker >>>>>>>>>>>>")
+    # configure logging
+    if logfilename:
+        log_root = logging.getLogger() 
+        log_handler = logging.handlers.RotatingFileHandler(logfilename, maxBytes = 3*1024*1024, backupCount = 2)
+        log_formatter = logging.Formatter('%(asctime)s: %(module)s::%(funcName)s: %(message)s',datefmt='%Y/%m/%d %H:%M:%S')
+        log_handler.setFormatter(log_formatter)
+        log_root.addHandler(log_handler)
+        log_root.setLevel(logging.INFO)
+
+    # here we go
+    logging.info("<<<<<<<<<<<<<< starting tracker >>>>>>>>>>>>")
 
     if fastmode == False:
         fastmode = config.conf['fastMode']
@@ -134,11 +136,13 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
         config.conf['debug'] = True
 
     # where are we
-    log.info(get_raspi_revision())
+    logging.info(get_raspi_revision())
     # get screen resolution (0,0) if no monitor is connected
     screen_w,screen_h = get_screen_resolution()
     # preview
-    preview = False if(screen_w == 0 and screen_h == 0) else config.conf['preview']
+    #preview = False if(screen_w == 0 and screen_h == 0) else config.conf['preview']
+    preview = config.conf['preview']
+    
     # annotation
     an_height = 24
     an_black = picamera.Color('black')
@@ -148,17 +152,19 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
     with picamera.PiCamera() as camera:
         #- determine camera module
         revision = camera._revision.upper()
-        log.info("camera chip: %s" % revision)
+        logging.info("camera chip: %s" % revision)
         if revision == 'OV5647':
             # V1 module
             # 1280x720 has a bug. (wrong center value)
             if fastmode:
+                # Full FOV! Area = 1200
                 resx = 640 # 40
                 resy = 480 # 30
                 fps  = 90
                 mode = 7
-                an_height = 12
+                an_height = 16
             else:
+                # Full FOV Area = 4800
                 resx = 1280 # 80
                 resy = 960 # 60
                 fps  = 42
@@ -166,20 +172,23 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
         elif revision == 'IMX219':
             # V2 module
             if fastmode:
-                resx = 640 # 40
-                resy = 480 # 30
-                fps  = 120
-                mode = 7
-                an_height = 12
+                # 50% FOV :-/ Area = 1200
+                #resx = 640 # 40
+                #resy = 480 # 30
+                #fps  = 120
+                #mode = 7 
+                #an_height = 16
+                # 80% FOV
+                resx = 928 # 960 # 60 # 58 Area = 2552
+                resy = 704 # 720 # 45 # 44
+                fps  = 90
+                mode = 6
             else:
+                # full FOV Area = 102x56 = 5712
                 resx = 1632 # 102
                 resy = 896 # 56
                 fps  = 40
                 mode = 5
-                #resx = 1280
-                #resy = 720
-                #fps  = 90
-                #mode = 6 # this mode does not use the full FOV!
         else:
             raise ValueError('Unknown camera device')
 
@@ -194,22 +203,22 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                 # force ycross to the middle
                 ycross = resy/32
                 config.conf['yCross'] = int(ycross)
-                log.warning("fastmode: force yCross to %d" % ycross)
+                logging.warning("fastmode: force yCross to %d" % ycross)
             if xcross > 0:
                 # force xcross to the middle
                 xcross = resx/32
                 config.conf['xCross'] = int(xcross)
-                log.warning("fastmode: force xCross to %d" % xcross)
+                logging.warning("fastmode: force xCross to %d" % xcross)
 
         #- check if the crossing line is in the center (this is not needed.
         if ycross > 0 and ycross != (resy/32):
-            log.warning("Y crossing %d expected but %d given!" % (resy/32, ycross))
+            logging.warning("Y crossing %d expected but %d given!" % (resy/32, ycross))
 
         if xcross > 0 and xcross != (resx/32):
-            log.warning("X crossing %d expected but %d given!" % (resx/32, xcross))
+            logging.warning("X crossing %d expected but %d given!" % (resx/32, xcross))
 
         # setup camera resolution
-        log.info("camera resolution: %dx%d" % (resx,resy))
+        logging.info("camera resolution: %dx%d" % (resx,resy))
         camera.resolution = (resx,resy)
 
         # debugging mode
@@ -232,7 +241,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
             else:
                 camera.framerate_range = (25, fps)
   
-        log.info("warm-up 2 seconds...")
+        logging.info("warm-up 2 seconds...")
 
         # setup serial port
         #serialPort = picamtracker.SerialIO.SerialCommunication(port=config.conf['serialPort'],options=config.conf['serialConf'])
@@ -248,7 +257,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
         sleep(1.0)
         picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=True)
 
-        log.info("starting camera ...")
+        logging.info("starting camera ...")
 
         # setup preview
         if preview:
@@ -281,7 +290,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
             if rotation == 90 or rotation == 270:
                 hh = pw; pw = ph; ph = hh
             
-            log.info("preview w: %d, h: %d" % (pw,ph))
+            logging.info("preview w: %d, h: %d" % (pw,ph))
 
             camera.start_preview(fullscreen=False,window=(px,py,pw,ph),rotation=rotation)
             #camera.preview.fullscreen = False
@@ -299,7 +308,8 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
             overlay.rotation= rotation
 
         # set exposure mode
-        camera.exposure_mode = 'auto'
+        #camera.exposure_mode = 'auto'
+        camera.exposure_mode = 'sports'
         camera.exposure_compensation = config.conf["exposure"]
         
         # setup UDP broadcaster
@@ -336,7 +346,8 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
             #if fastmode:
             #    auto_mode = 10
             last_auto_mode = time()
-
+            fps = 25.0
+            
             # start camera
             camera.annotate_text_size = an_height
             camera.annotate_foreground = an_white if camera.analog_gain > 5 else an_black
@@ -367,6 +378,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                     if loop % 120 == 0:
                         temp = get_temp()
                         camera.annotate_foreground = an_white if camera.analog_gain > 5 else an_black
+                        logging.debug("analog_gain: %3.1f exposure_speed: %d (%3.1f fps)" % (float(camera.analog_gain),camera.exposure_speed,fps))
                     # update statistics every second
                     if loop & 1:
                         add_text = ""
@@ -382,9 +394,9 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                             add_text += " !"
 
                         frames = output.processed_frames
-                        fs = (frames - old_frames)  / (2 * t_wait)
+                        fps = (frames - old_frames)  / (2 * t_wait)
                         old_frames = frames
-                        camera.annotate_text = "%s (%3.1f f/s) %s" % (dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), fs, add_text)
+                        camera.annotate_text = "%s (%3.1f fps) %s" % (dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), fps, add_text)
 
                         # check for restart
                         if rerun_main:
@@ -418,13 +430,13 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                         #    camera.awb_mode  = 'auto'
                         #    auto_mode = 10
                         #    last_auto_mode = time()
-                        #    log.info("auto_mode: on")
+                        #    logging.info("auto_mode: on")
                     # check for USB stick every 60 seconds
 
                     camera.wait_recording(t_wait)
 
             except KeyboardInterrupt:
-                log.error("Got keyborad interrupt")
+                logging.error("Got keyborad interrupt")
                 pass
 
             finally:
@@ -463,7 +475,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None):
                 picamtracker.GPIOPort.cleanup()
                 #config.write()
 
-    log.info("<<<<<<<<<<<< tracker ended >>>>>>>>>>>>")
+    logging.info("<<<<<<<<<<<< tracker ended >>>>>>>>>>>>")
     return rerun_main
 
 if __name__ == '__main__':
@@ -497,6 +509,9 @@ if __name__ == '__main__':
             os.system(cmd.encode())
     os.system("/home/pi/piCAMTracker/etc/background_service.sh </dev/null&")
 
+    # configure logging
+    logfilename = "%s/%s" % (logdir,logfile)
+        
     # just a test ...
     # out = shell('/usr/bin/vcgencmd', 'measure_temp')
     # print("Actual core %s" % out)
@@ -505,9 +520,10 @@ if __name__ == '__main__':
     wserver = WebUtilities.TrackerWS(config=config, port=8084)
 
     # run main part until end requested
-    while main(args.show, args.debug, args.fast, wsserver=wserver):
+    while main(args.show, args.debug, args.fast, wsserver=wserver, logfilename=logfilename):
         args.fast = set_fastmode
         logging.info("restarting tracker...")
+        logfilename = None
 
     # stop websocket thread
     wserver.stop()

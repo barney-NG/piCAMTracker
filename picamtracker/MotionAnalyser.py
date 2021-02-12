@@ -371,13 +371,22 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         #- reject if more than 80% of the macro blocks are moving
         moving_elements = np.count_nonzero(has_movement)
-        #logging.debug("moving elements: %d" % moving_elements)
-        if moving_elements > self.maxMovements:
-            logging.info("MAXMOVEMENT! (%d)" % moving_elements)
+
+        #- STOP HERE IF THERE IS NO MOVEMENT! (NEW)
+        if moving_elements == 0:
             return
+
+        # >> debug    
+        ##if moving_elements > 0: logging.debug("%6d %3d moving elements" % (self.processed_frames, moving_elements))
+        
+        if moving_elements > self.maxMovements:
+            logging.warning("MAXMOVEMENT! (%d)" % moving_elements)
+            return
+
         #- mask out movement
         mask = has_movement.astype(np.uint8) * 255
 
+        # prepare background image 
         if self.show:
             if self.big is None:
                 #self.big = np.ones((8*(self.cols-1),8*self.rows,3), np.uint8) * 220
@@ -385,6 +394,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             else:
                 self.big.fill(200)
 
+        # show movement vectors and sad values
         if self.show & 0x0002:
             #- thats's slow!
             coords =  np.transpose(np.nonzero(mask))
@@ -428,7 +438,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             #-- reject areas which are too big
             area = w*h
             if area > self.maxArea:
-                logging.info( "MAXAEREA! %d > %d (%d/%d)" % (area,self.maxArea,w,h))
+                logging.warning( "MAXAEREA! %d > %d (%d/%d)" % (area,self.maxArea,w,h))
                 rejects += 1
                 continue
             #-- reject areas which are too small
@@ -469,6 +479,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         # insert/update new movements
         self.tracker.update_tracks(t1,self.frame,new_points)
 
+        # crate image with objects
         if self.show:
             self.tracker.showTracks(self.frame, self.big)
             # create header

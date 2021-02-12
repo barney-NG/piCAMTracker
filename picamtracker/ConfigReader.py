@@ -56,7 +56,7 @@ default_config = \
     "signalLength": 300.0,
     # "quitAppByGPIO": False,
     "minArea": 2,
-    "maxArea": 5712,
+    "maxArea": 4200,
     "maxSnapshots": 100,
     "sadThreshold": 0,
     "trackLifeTime": 17,

@@ -207,6 +207,14 @@ class Writer(threading.Thread):
                     cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(20,20,220),1)
                 else:
                     cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(200,200,200),1)
+                    # >> debug
+                    #if xmax - xmin > 32:
+                    #    for x in range(xmin+16,xmax,16):
+                    #        cv2.line(image,(x,ymin),(x,ymax),(200,200,200),1,cv2.LINE_4)
+                    #if ymax - ymin > 32:
+                    #    for y in range(ymin+16,ymax,16):
+                    #        cv2.line(image,(xmin,y),(xmax,y),(200,200,200),1)
+                    # << debug        
                     cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
                     
                 #txt = "%4.1fms" % (delay*1000.0)

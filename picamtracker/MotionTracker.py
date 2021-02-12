@@ -77,7 +77,7 @@ def weighted_distance(t,p):
         divisor = 100.0
     if dist > 0.0:
         val = 100.0 * (dist - t.updates / divisor)
-    #print("   >%s(%d) %4.1f %4.1f"%(t.name,t.updates,dist,val))
+    #logging.debug("   >%s(%d) %4.1f %4.1f"%(t.name,t.updates,dist,val))
     return(val)
 
 #- sort tracks by number of updates
@@ -216,7 +216,7 @@ class Tracker(threading.Thread):
             self.frame = 0
             self.direction = 0
             self.detectionDelay = -0.999
-        #print("Tracker::getStatus (%d)" % frame)
+        #logging.debug("Tracker::getStatus (%d)" % frame)
         return (delay, frame, motion)
 
     #--------------------------------------------------------------------
@@ -239,6 +239,7 @@ class Tracker(threading.Thread):
             self.frame  = frame
             self.motion = motion
             self.direction = 1 if positive_direction else -1
+            sleep(0.5)
 
         return True
 
@@ -325,7 +326,7 @@ class Tracker(threading.Thread):
             # >>> debug
             #cx = rn[0] + rn[2] / 2
             #cy = rn[1] + rn[3] / 2
-            #print( "frame:%d %d,%d ===============================" % ( frame,rn[0],rn[1] ))
+            #logging.debug( "frame:%d %d,%d ===============================" % ( frame,rn[0],rn[1] ))
             # <<< debug
             #-- sorting by distance really makes sence here
             for track in sorted(self.track_pool, key=lambda t: weighted_distance(t,rn)):
@@ -337,18 +338,18 @@ class Tracker(threading.Thread):
                 dist = distance(track,rn)
                 maxDist = max(self.maxDist,2*(rn[2]+rn[3]))
                 if dist > maxDist:
-                    #print("   [%s] precheck: dist too big! %d > %d" % (track.name, dist, maxDist))
+                    #logging.debug("   [%s] precheck: dist too big! %d > %d" % (track.name, dist, maxDist))
                     break
 
                 # >>> debug
-                #print("   check: [%s](%d): @%d,%d dist:%d" % (track.name,track.updates,track.re[0],track.re[1],dist))
+                #logging.debug("   check: [%s](%d): @%d,%d dist:%d" % (track.name,track.updates,track.re[0],track.re[1],dist))
                 # <<< debug
 
                 #-- check if track takes coordinates
                 tracked = track.update(timestamp,frame,rn,vn)
                 if tracked:
                     has_been_tracked |= tracked
-                    #print( "   [%s](%d) updated with: %d,%d" % (track.name, track.updates, rn[0],rn[1]))
+                    #logging.debug( "   [%s](%d) updated with: %d,%d" % (track.name, track.updates, rn[0],rn[1]))
                     self.updated = True
                     break
 
@@ -356,7 +357,7 @@ class Tracker(threading.Thread):
             if not tracked:
                 for track in self.track_pool:
                     if track.updates == 0:
-                        #print("   [%s] new %d/%d" % (track.name, rn[0],rn[1]))
+                        #logging.debug("   [%s] new %d/%d" % (track.name, rn[0],rn[1]))
                         track.new_track(timestamp,frame,rn,vn)
                         self.updated = True
                         break
@@ -427,7 +428,7 @@ class Track:
         if self.updates < 1:
             return
 
-        #print("[%s](%d) reset" % (self.name,self.updates))
+        #logging.debug("[%s](%d) reset" % (self.name,self.updates))
 
         self.updates = 0
         self.tr   = []
@@ -476,12 +477,12 @@ class Track:
         if self.updates > 0:
             # TODO: keep this status alive for a couple of frames
             #if self.updates > 20 and self.progressx == 0 and self.progressy == 0:
-            #    print "[%s](%d) no motion!" % (self.name, self.updates)
+            #    logging.debug "[%s](%d) no motion!" % (self.name, self.updates)
             #    self.reset()
             #    return
 
             if frame - self.lastFrame > Track.maxLifeTime:
-                #print "[%s] (%d) clean" % (self.name, self.updates)
+                #logging.debug "[%s] (%d) clean" % (self.name, self.updates)
                 self.reset()
 
     def leadingEdge(self,rn):
@@ -510,10 +511,10 @@ class Track:
         """
 
         #if rn[0] + vn[0] < 0 or rn[1] + vn[1] < 0:
-        #    #print("[%s]: %d/%d %3.1f/%3.1f new track rejected (too low)" % (self.name,rn[0],rn[1],vn[0],vn[1]))
+        #    #logging.debug("[%s]: %d/%d %3.1f/%3.1f new track rejected (too low)" % (self.name,rn[0],rn[1],vn[0],vn[1]))
         #    return 0
         #if rn[0] + rn[2] + vn[0] > Track.maxX or rn[1] + rn[3] + vn[1] > Track.maxY:
-        #    #print("[%s]: %d/%d %3.1f/%3.1f new track rejected (too high)" % (self.name, rn[0]+rn[2],rn[1]+rn[3],vn[0],vn[1]))
+        #    #logging.debug("[%s]: %d/%d %3.1f/%3.1f new track rejected (too high)" % (self.name, rn[0]+rn[2],rn[1]+rn[3],vn[0],vn[1]))
         #    return 0
 
         # determine followup type
@@ -585,7 +586,7 @@ class Track:
                 if y0 < (Track.yCross - delta) and y1 > y0:
                     return True
 
-                #print("[%s](%d) start failed: yc: %d dy: %d" % (self.name, self.updates, y0, (y1-y0)))
+                #logging.debug("[%s](%d) start failed: yc: %d dy: %d" % (self.name, self.updates, y0, (y1-y0)))
 
         return False
 
@@ -623,7 +624,9 @@ class Track:
         self.minx = minx
         self.miny = miny
 
-        self.isGrowing =  self.progressx or self.progressy
+        self.isGrowing = self.progressx or self.progressy
+
+        return self.isGrowing
 
     #--------------------------------------------------------------------
     #-- check if object is turnung before crossing plane
@@ -644,7 +647,7 @@ class Track:
                               (dy0 > 0 and self.maxy < Track.yCross and abs(Track.yCross-self.maxy) < checkDist)
                 self.distyOK = abs(dy0) > rel * self.deltaY
                 #dist = (Track.yCross-self.maxy) if dy > 0 else (self.miny-Track.yCross)
-                #print("[%s](%d) dy: %d, md: %d rel: %4.2f<%4.2f? dist: %d" % (self.name, self.updates, dy0, self.deltaY, rel, abs(dy0)/self.deltaY, dist))
+                #logging.debug("[%s](%d) dy: %d, md: %d rel: %4.2f<%4.2f? dist: %d" % (self.name, self.updates, dy0, self.deltaY, rel, abs(dy0)/self.deltaY, dist))
 
             # track needs some maturity to have a turn detected
             self.noprogressy += 1
@@ -664,7 +667,7 @@ class Track:
                 self.dirxOK = (dx0 < 0 and self.minx > Track.xCross and abs(self.minx-Track.xCross) < checkDist) or \
                               (dx0 > 0 and self.maxx < Track.xCross and abs(Track.xCross-self.maxx) < checkDist)
                 self.distxOK = abs(dx0) > rel * self.deltaX
-                #print("[%s](%d) dy: %d, md: %d rel: %4.2f<%4.2f?" % (self.name, self.updates, dx0, self.deltaX, rel, abs(dx0)/self.deltaX))
+                #logging.debug("[%s](%d) dy: %d, md: %d rel: %4.2f<%4.2f?" % (self.name, self.updates, dx0, self.deltaX, rel, abs(dx0)/self.deltaX))
 
             # track needs some maturity to have a turn detected
             self.noprogressx += 1
@@ -719,7 +722,7 @@ class Track:
             if vy_ > delta:
                 delta = int(vy_) + 1
 
-            #@@print("vy: %6.2f (%6.2f) dy: %3d delta: %3d" % (vy,-self.vv[1], dy,delta))
+            #@@logging.debug("vy: %6.2f (%6.2f) dy: %3d delta: %3d" % (vy,-self.vv[1], dy,delta))
             # moving quality
             coverage = self.distance[1] / self.deltaY
 
@@ -854,14 +857,14 @@ class Track:
 
                 if crossedXPositive:
                     delay = (time() - self.timestamp) * 1000.0
-                    print("[%s](%02d/%4.1f) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED++++++++++++++++++++"
+                    logging.debug("[%s](%02d/%4.1f) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED++++++++++++++++++++"
                         % (self.name,self.updates,delay,x1,y0,vx,vy,dx,dy))
                     self.crossedX = True
                     self.crossed(positive=True)
 
                 if crossedXNegative:
                     delay = (time() - self.timestamp) * 1000.0
-                    print("[%s](%02d/%4.1f) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED--------------------"
+                    logging.debug("[%s](%02d/%4.1f) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED--------------------"
                         % (self.name,self.updates,delay,x0,y0,vx,vy,dx,dy))
                     self.crossedX = True
                     self.crossed(positive=False)
@@ -905,7 +908,7 @@ class Track:
         if self.cx == cxn and self.cy == cyn and self.re[2] == rn[2] and self.re[3] == rn[3]:
             self.updates += 1
             self.updateGrowingStatus(rn)
-            #logging.info "[%s] double hit" % self.name
+            #logging.debug "[%s] double hit" % self.name
             return self.id
 
 
@@ -936,7 +939,7 @@ class Track:
         max_dist = Track.maxDist
         fill_grade = area / Track.maxArea
 
-        # fast crossing check
+        # fast crossing check (fully empiric 8-)
         if(fill_grade > 0.3 and self.updates > 2):
             speed = hypot(vx,vy)
             m_factor = 10. if (fill_grade > 0.9) else 1.0 / (1.0 - fill_grade)
@@ -1002,8 +1005,10 @@ class Track:
                         return 0x00000000
 
                 #- is the coverered area still growing?
-                self.updateGrowingStatus(rn)
+                isGrowing = self.updateGrowingStatus(rn)
 
+                #@@ logging.debug("%s[%d] distance %3d/%3d Growing: %s",self.name,self.updates,self.distance[0],self.distance[1],"Yes" if isGrowing else "No")
+                
                 #- does the track leave the playground?
                 if self.isLeaving(dx,dy):
                     self.reset()
