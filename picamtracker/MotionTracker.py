@@ -371,9 +371,9 @@ class Tracker(threading.Thread):
                 active += 1
                 if updates < 3:
                     noise += 1
-            if frame - track.lastFrame > 2:
-                track.reset()
-                continue
+            #if frame - track.lastFrame > 2:
+            #    track.reset()
+            #    continue
             if updates and frame - track.lastFrame > self.trackLifeTime:
                 track.reset()
 
