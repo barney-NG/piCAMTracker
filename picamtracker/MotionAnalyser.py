@@ -79,6 +79,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.maxMovements = 100
         self.debug = False
         self.fobj = None
+        self.emptyPoints = [[[],[]]]
         self.max_debugged_frames = 1200 # 30 secs at 40f/s
         self.max_debugged_files = 10
         self.debugged_frames = 0
@@ -374,7 +375,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         #- STOP HERE IF THERE IS NO MOVEMENT! (NEW)
         if moving_elements == 0:
-            self.tracker.update_tracks(t1,self.frame,[[[],[]]])
+            self.tracker.update_tracks(t1,self.frame,self.emptyPoints)
             return
 
         # >> debug    
@@ -403,9 +404,10 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 u  = a[y,x]['x']
                 v  = a[y,x]['y']
                 m =  min(512,a[y,x]['sad'])
-                c =  255 - int(255.0/512.0 * m)
-                #c =  255-int(mask[y,x])
-                #c = 220
+                # old: sad high -> color dark
+                #c =  255 - int(255.0/512.0 * m)
+                # new: sad low -> color dark
+                c =  int(255.0/512.0 * m)
                 cv2.rectangle(self.big,(x*8,y*8),((x+1)*8,(y+1)*8),(0,c,c),-1)
                 #-- nice arrows
                 if self.show & 0x0008:
@@ -459,9 +461,21 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             else:
                 vx = np.mean(a[y0:y1,x0:x1]['x'])
                 vy = np.mean(a[y0:y1,x0:x1]['y'])
-                #if (abs(vx) + abs(vy) < self.vmin):
-                #    rejects += 1
-                #    continue
+
+                # SLOW! ( ~+2ms on RPi4)
+                #-- we are searching for regions which don't differ much (sad is small)
+                #sad_var = a[y0:y1,x0:x1]['sad'].var()
+                #sad_weights = a[y0:y1,x0:x1]['sad'].flatten()
+                #sad_weights = 512000.0 - 100.0 * sad_weights
+                
+                #-- develope composite vector from weightened vectors in region
+                #try:
+                #    vx = np.average(a[y0:y1,x0:x1]['x'].flatten(),weights=sad_weights)
+                #    vy = np.average(a[y0:y1,x0:x1]['y'].flatten(),weights=sad_weights)
+                #except ZeroDivisionError:
+                #    vx = np.mean(a[y0:y1,x0:x1]['x'])
+                #    vy = np.mean(a[y0:y1,x0:x1]['y'])
+                
 
 	        #-- check baseB option (allow movement from one direction only)
             append = True

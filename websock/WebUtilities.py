@@ -34,6 +34,7 @@ import threading
 import socket
 from time import sleep
 import logging
+import prctl
 
 
 class TrackerWS(WebSocketServer):
@@ -45,6 +46,7 @@ class TrackerWS(WebSocketServer):
         self.ip = '0.0.0.0'
         self.port = port
         self.debug = debug
+        prctl.set_name('ptrk.WebSock')
         # initialize web socket server
         super(TrackerWS,self).__init__(
             ip = self.ip,

@@ -82,6 +82,7 @@ default_config = \
     # "cmdFIFO": "/home/pi/piCAMTracker/www/FIFO",
     # "serialPort": "/dev/serial0",
     # "serialConf": "9600 8N1",
+    "loggingLevel": "WARNING",
     "ssid": "PICAM",
     "accessPoint": False
     # "streamServer": True

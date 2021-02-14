@@ -17,7 +17,7 @@ from websock import WebUtilities
 import logging
 import logging.handlers
 
-logging.basicConfig(filename = 'ws.log')
+logging.basicConfig(filename = '/dev/null')
 #handler = logging.handlers.RotatingFileHandler(LOGFILENAME,maxBytes = 3*1024*1024, backupCount = 2)
 #logging.basicConfig(filename = LOGFILENAME,
 #                format='%(asctime)s: %(module)s::%(funcName)s: %(message)s',
@@ -111,21 +111,20 @@ def setFastMode(value):
                 set_fastmode = False
                 rerun_main = True
 
+def evaluateLoggingLevel( level ):
+    levels = {"CRITICAL":logging.CRITICAL,"ERROR":logging.ERROR,"WARNING":logging.WARNING,"INFO":logging.INFO,"DEBUG":logging.DEBUG}
+    level = level.upper()
+    if level in levels:
+        return levels[level]
+    logging.error("wrong logging level: %s", level)
+    return logging.WARNING
+    
 def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=None):
     global config
     global rerun_main
     rerun_main = False
     show = 1 if ashow else 0
     
-    # configure logging
-    if logfilename:
-        log_root = logging.getLogger() 
-        log_handler = logging.handlers.RotatingFileHandler(logfilename, maxBytes = 3*1024*1024, backupCount = 2)
-        log_formatter = logging.Formatter('%(asctime)s: %(module)s::%(funcName)s: %(message)s',datefmt='%Y/%m/%d %H:%M:%S')
-        log_handler.setFormatter(log_formatter)
-        log_root.addHandler(log_handler)
-        log_root.setLevel(logging.INFO)
-
     # here we go
     logging.info("<<<<<<<<<<<<<< starting tracker >>>>>>>>>>>>")
 
@@ -436,7 +435,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
                     camera.wait_recording(t_wait)
 
             except KeyboardInterrupt:
-                logging.error("Got keyborad interrupt")
+                logging.error("Got keyboard interrupt")
                 pass
 
             finally:
@@ -479,6 +478,10 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
     return rerun_main
 
 if __name__ == '__main__':
+    global config
+    global set_fastmode
+
+    # parse command line arguments
     parser = ArgumentParser(prog='piCAMTracker')
     parser.add_argument('-s', '--show', action='store_true',
                       help   = 'show internal graphical information (slow!)')
@@ -489,29 +492,37 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # update config file (or create it if it does not exists)
-    global config
-    global set_fastmode
     set_fastmode = False
     config = picamtracker.Configuration('config.json')
     config.write()
     
     # prepare OS environment
     os.system("[ ! -d /run/picamtracker ] && sudo mkdir -p /run/picamtracker && sudo chown pi:www-data /run/picamtracker && sudo chmod 775 /run/picamtracker")
-    # this does not work -> we need to creat the first logfile from outside :-/
+
+    # create directory under /var/log and adapt access rights
     logdir = '/var/log/picamtracker'
     logfile = 'picamtracker.log'
     mkdir_cmd = "[ ! -d %s ] && sudo mkdir -p %s && sudo chown -R pi:pi %s" % (logdir, logdir, logdir)
     mklog_cmd = "sudo touch %s/%s && sudo chown pi:pi %s/%s" % (logdir,logfile,logdir,logfile)
     os.system(mkdir_cmd)
     os.system(mklog_cmd)
+    
+    # configure logging
+    logfilename = "%s/%s" % (logdir,logfile)
+    log_root = logging.getLogger() 
+    log_handler = logging.handlers.RotatingFileHandler(logfilename, maxBytes = 3*1024*1024, backupCount = 2)
+    log_formatter = logging.Formatter('%(asctime)s: %(module)s::%(funcName)s: %(message)s',datefmt='%Y/%m/%d %H:%M:%S')
+    log_handler.setFormatter(log_formatter)
+    log_root.addHandler(log_handler)
+    log_level = evaluateLoggingLevel(config.conf["loggingLevel"])
+    log_root.setLevel(log_level)
+
+    # start acces point if requested
     if 'accessPoint' in config.conf and config.conf['accessPoint'] == True and 'ssid' in config.conf and len(config.conf['ssid']) >= 3:
             cmd = "sudo /home/pi/piCAMTracker/etc/start-access-point.sh --ssid %s" % config.conf['ssid']
             os.system(cmd.encode())
     os.system("/home/pi/piCAMTracker/etc/background_service.sh </dev/null&")
-
-    # configure logging
-    logfilename = "%s/%s" % (logdir,logfile)
-        
+     
     # just a test ...
     # out = shell('/usr/bin/vcgencmd', 'measure_temp')
     # print("Actual core %s" % out)
