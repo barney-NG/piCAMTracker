@@ -489,11 +489,13 @@ if __name__ == '__main__':
                       help = 'write debug information for later investigation')
     parser.add_argument( '-f', '--fast', action='store_true',
                       help = 'run in 640x480 mode as fast as possible')
+    parser.add_argument( '-c', '--config', type=str, default="config.json",
+                      help = 'load specific config (default config.json)')
     args = parser.parse_args()
 
     # update config file (or create it if it does not exists)
     set_fastmode = False
-    config = picamtracker.Configuration('config.json')
+    config = picamtracker.Configuration(args.config)
     config.write()
     
     # prepare OS environment
