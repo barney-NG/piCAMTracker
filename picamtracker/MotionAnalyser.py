@@ -464,8 +464,6 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 vy = np.average(a[y0:y1,x0:x1]['y'])
             else:
                 #-- give blocks which don't differ much (sad is small) higher priority
-                # ~ +1.5ms on RPi4)
-                sad_var = a[y0:y1,x0:x1]['sad'].var()
                 sad_weights = a[y0:y1,x0:x1]['sad'].flatten()
                 sad_weights = 65536 - sad_weights
                 #-- develope composite vector from weightened vectors in region
