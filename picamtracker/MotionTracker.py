@@ -239,7 +239,6 @@ class Tracker(threading.Thread):
             self.frame  = frame
             self.motion = motion
             self.direction = 1 if positive_direction else -1
-            sleep(0.5)
 
         return True
 
@@ -699,6 +698,15 @@ class Track:
         min_fill_grade = 0.25 # validate this!
         speed_limit = 5.0 # validate this!
 
+        # variables
+        vx = -self.vv[0]
+        vy = -self.vv[1] # remember the velocity has wrong direction!
+        x0 = r[0]
+        y0 = r[1]
+        x1 = r[0] + r[2]
+        y1 = r[1] + r[3]
+        area = r[2] * r[3]
+
         if Track.yCross > 0 and self.crossedY == False and self.progressy:
             # track is crossing target line in Y direction
             #  x0,y0 +--------------+
@@ -709,12 +717,8 @@ class Track:
             #        |              |
             #  v < 0 |<---          |
             
-            # variables
-            vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
-            x0 = r[0]; y0 = r[1]
-            y1 = r[1] + r[3]
-            # for low speeds take distance as indicator
             
+            # for low speeds take distance as indicator            
             vy_ = abs(vy)
             if vy_ < 0.1:
                 vy = float(dy)
@@ -753,16 +757,15 @@ class Track:
                         
             if crossedYPositive:
                 delay = (time() - self.timestamp) * 1000.0
-                
-                logging.info("[%s](%02d/%4.1fms) y1:%2d/%2d vy:%+5.1f/%+5.1f dy:%2d/%2d deltaY:%2d dist:%3d cov:%4.1f %sY-CROSSED++++++++++++++++++++"
-                    % (self.name,self.updates,delay,y1,x0,vy,vx,dy,dx,self.deltaY,self.distance[1],coverage,fastText))
+                logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d height:%2d dist:%3d area:%4d %sY-CROSSED++++++++++++++++++++",
+                    self.name,self.updates,delay,x0,y1,vx,vy,dx,dy,self.deltaY,self.distance[1],area,fastText)
                 self.crossedY = True
                 self.crossed(positive=True)
 
             if crossedYNegative:
                 delay = (time() - self.timestamp) * 1000.0
-                logging.info("[%s](%02d/%4.1fms) y0:%2d/%2d vy:%+5.1f/%+5.1f dy:%2d/%2d deltaY:%2d dist:%3d cov:%4.1f %sY-CROSSED--------------------"
-                    % (self.name,self.updates,delay,y0,x0,vy,vx,dy,dx,self.deltaY,self.distance[1],coverage,fastText))
+                logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d height:%2d dist:%3d area:%4d %sY-CROSSED--------------------",
+                    self.name,self.updates,delay,x0,y0,vx,vy,dx,dy,self.deltaY,self.distance[1],area,fastText)
                 self.crossedY = True
                 self.crossed(positive=False)
 
@@ -776,10 +779,6 @@ class Track:
             #        |              |
             #  v < 0 |<---          |
             
-            # variables
-            vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
-            x0 = r[0]; y0 = r[1]
-            x1 = r[0] + r[2]
             # for low speeds take distance as indicator
             vx_ = abs(vx)
             if vx_ < 0.1:

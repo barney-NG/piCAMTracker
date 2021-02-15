@@ -453,29 +453,28 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             x1  = x0 + w
             y1  = y0 + h
 
-            #-- reduce vectors
+            #-- evaluate average moving vector
             if w < 2 and h < 2:
-                #-- examine single moving vectors
+                #-- simply take the moving vector
                 vx = a[y0,x0]['x'].astype(np.float64)
                 vy = a[y0,x0]['y'].astype(np.float64)
+            elif area < 16:
+                # for small areas take average
+                vx = np.average(a[y0:y1,x0:x1]['x'])
+                vy = np.average(a[y0:y1,x0:x1]['y'])
             else:
-                vx = np.mean(a[y0:y1,x0:x1]['x'])
-                vy = np.mean(a[y0:y1,x0:x1]['y'])
-
-                # SLOW! ( ~+2ms on RPi4)
-                #-- we are searching for regions which don't differ much (sad is small)
-                #sad_var = a[y0:y1,x0:x1]['sad'].var()
-                #sad_weights = a[y0:y1,x0:x1]['sad'].flatten()
-                #sad_weights = 512000.0 - 100.0 * sad_weights
-                
+                #-- give blocks which don't differ much (sad is small) higher priority
+                # ~ +1.5ms on RPi4)
+                sad_var = a[y0:y1,x0:x1]['sad'].var()
+                sad_weights = a[y0:y1,x0:x1]['sad'].flatten()
+                sad_weights = 65536 - sad_weights
                 #-- develope composite vector from weightened vectors in region
                 #try:
-                #    vx = np.average(a[y0:y1,x0:x1]['x'].flatten(),weights=sad_weights)
-                #    vy = np.average(a[y0:y1,x0:x1]['y'].flatten(),weights=sad_weights)
+                vx = np.average(a[y0:y1,x0:x1]['x'].flatten(),weights=sad_weights)
+                vy = np.average(a[y0:y1,x0:x1]['y'].flatten(),weights=sad_weights)
                 #except ZeroDivisionError:
-                #    vx = np.mean(a[y0:y1,x0:x1]['x'])
-                #    vy = np.mean(a[y0:y1,x0:x1]['y'])
-                
+                #    vx = np.average(a[y0:y1,x0:x1]['x'])
+                #    vy = np.average(a[y0:y1,x0:x1]['y'])
 
 	        #-- check baseB option (allow movement from one direction only)
             append = True
