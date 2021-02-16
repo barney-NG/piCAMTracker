@@ -810,16 +810,15 @@ class Track:
                         
             if crossedXPositive:
                 delay = (time() - self.timestamp) * 1000.0
-                
-                logging.info("[%s](%02d/%4.1f) x1:%2d/%2d vx:%+5.1f/%+5.1f dx:%2d/%2d deltaX:%2d dist:%3d cov:%4.1f %sX-CROSSED++++++++++++++++++++"
-                    % (self.name,self.updates,delay,x1,y0,vx,vy,dx,dy,self.deltaX,self.distance[0],coverage,fastText))
+                logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d height:%2d dist:%3d area:%4d %sY-CROSSED++++++++++++++++++++",
+                    self.name,self.updates,delay,x1,y0,vx,vy,dx,dy,self.deltaX,self.distance[0],area,fastText)
                 self.crossedX = True
                 self.crossed(positive=True)
 
             if crossedXNegative:
                 delay = (time() - self.timestamp) * 1000.0
-                logging.info("[%s](%02d/%4.1f) x0:%2d/%2d vx:%+5.1f/%+5.1f dx:%2d/%2d deltaX:%2d dist:%3d cov:%4.1f %sY-CROSSED--------------------"
-                    % (self.name,self.updates,delay,x0,y0,vx,vy,dx,dy,self.deltaX,self.distance[0],coverage,fastText))
+                logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d height:%2d dist:%3d area:%4d %sY-CROSSED--------------------",
+                    self.name,self.updates,delay,x0,y0,vx,vy,dx,dy,self.deltaY,self.distance[1],area,fastText)
                 self.crossedY = True
                 self.crossed(positive=False)
 
