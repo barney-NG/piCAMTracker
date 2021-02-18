@@ -93,7 +93,6 @@ def get_temp():
 
     return temp
 
-#set_fastmode = False
 def setFastMode(value):
         """
         callback to start/stop fastmode
@@ -111,14 +110,29 @@ def setFastMode(value):
                 set_fastmode = False
                 rerun_main = True
 
-def evaluateLoggingLevel( level ):
-    levels = {"CRITICAL":logging.CRITICAL,"ERROR":logging.ERROR,"WARNING":logging.WARNING,"INFO":logging.INFO,"DEBUG":logging.DEBUG}
-    level = level.upper()
-    if level in levels:
-        return levels[level]
-    logging.error("wrong logging level: %s", level)
+def evaluateLoggingLevel(level):
+    if isinstance(level, str):
+        levels = {"CRITICAL":logging.CRITICAL,"ERROR":logging.ERROR,"WARNING":logging.WARNING,"INFO":logging.INFO,"DEBUG":logging.DEBUG}
+        level = level.upper()
+        if level in levels:
+            return levels[level]
+        logging.error("wrong logging level: %s", level)
+    elif isinstance(level, int):
+        levels = [logging.CRITICAL,logging.ERROR,logging.WARNING,logging.INFO,logging.DEBUG]
+        if level in levels:
+            return level
+        logging.error("wrong logging level: %d", level)
+        
     return logging.WARNING
-    
+
+def setLoggingLevel(level):
+    """
+    call back to set logging level
+    """
+    log_level = evaluateLoggingLevel(level)
+    log_root = logging.getLogger() 
+    log_root.setLevel(log_level)
+
 def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=None):
     global config
     global rerun_main
@@ -134,6 +148,9 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
     if debug:
         config.conf['debug'] = True
 
+    # I am testing if camera,capture is fast enough for us
+    capture = True
+    
     # where are we
     logging.info(get_raspi_revision())
     # get screen resolution (0,0) if no monitor is connected
@@ -228,9 +245,9 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
             y_disp = config.conf['offsetY']
             width = resy/2
             height = resx/2
-            if fastmode:
-                width = resy
-                height = resx
+            #if fastmode:
+            #    width = resy
+            #    height = resx
             display = picamtracker.Display(caption='piCAMTracker',x=x_disp,y=y_disp,w=width,h=height)
         else:
             display = None
@@ -310,6 +327,8 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
         #camera.exposure_mode = 'auto'
         camera.exposure_mode = 'sports'
         camera.exposure_compensation = config.conf["exposure"]
+        # >>> debug
+        # camera.annotate_frame_num = True
         
         # setup UDP broadcaster
         if 'IPUDPBEEP' in config.conf and re.match('.*\.255$', config.conf['IPUDPBEEP']):
@@ -322,7 +341,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
         vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
         writer = picamtracker.Writer(camera, stream=vstream, config=config, wsserver=wsserver)
         vwriter = picamtracker.vWriter(stream=vstream, config=config)        
-        tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, udpThread=udpThread)
+        tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, udpThread=udpThread, capture=capture)
        
 
         # assign external command interface
@@ -332,6 +351,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
         cmds.subscribe(tracker.testCrossing, 'testBeep')
         cmds.subscribe(config.set_storeParams, 'storeParams')
         cmds.subscribe(setFastMode, 'fastMode')
+        cmds.subscribe(setLoggingLevel, 'loggingLevel')
 
 
         # enable overwritten camera's analyse callback 
@@ -401,35 +421,18 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
                         if rerun_main:
                             break
                     
-                        # set exposure mode 'off'
-                        #if auto_mode >= 0:
-                        #    auto_mode -= 1
-                        #    if auto_mode == 0:
-                        #        log.info("auto_mode: off")
-                        #        camera.exposure_mode = 'off'
-                        #        camera.shutter_speed = camera.exposure_speed
-                        #        g = camera.awb_gains
-                        #        camera.awb_mode  = 'off'
-                        #        camera.awb_gains = g
-
                     # crossing event happend?
                     delay,frame,motion = tracker.getStatus()
                     if frame != 0:
                         # if crossing detected -> take a snapshot of the event
                         #t0 = time()
-                        writer.takeSnapshot(delay, frame, motion)
+                        if capture:
+                            writer.update_hits(delay, frame, motion, tracker.image.copy())
+                        else:
+                            writer.takeSnapshot(delay, frame, motion)
                         tracker.releaseLock()
                         #print("capture time: %4.2fms" % (1000.0 * (time() - t0)))
 
-                        # now there is some time to adapt exposure -> enable it for 5s
-                        # minimum time between 2 auto-exposures is 3 minutes
-                        #auto_diff = time() - last_auto_mode
-                        #if fastmode and auto_diff > 180 and auto_mode < 0:
-                        #    camera.exposure_mode = 'auto'
-                        #    camera.awb_mode  = 'auto'
-                        #    auto_mode = 10
-                        #    last_auto_mode = time()
-                        #    logging.info("auto_mode: on")
                     # check for USB stick every 60 seconds
 
                     camera.wait_recording(t_wait)

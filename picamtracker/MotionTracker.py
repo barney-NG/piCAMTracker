@@ -105,7 +105,7 @@ class Tracker(threading.Thread):
     #--------------------------------------------------------------------
     #-- constructor
     #--------------------------------------------------------------------
-    def __init__(self, camera, greenLed=None, redLed=None, udpThread=None, config=None):
+    def __init__(self, camera, greenLed=None, redLed=None, udpThread=None, config=None, capture=False):
         super(Tracker,self).__init__()
         self.lock = threading.Lock()
         self.config = config
@@ -130,6 +130,10 @@ class Tracker(threading.Thread):
         self.rows = 0
         self.direction = 0
         self.detectionDelay = -0.999
+        #@@check
+        self.image = np.empty((self.resx * self.resy * 3), dtype=np.uint8)
+        self.capture = capture
+        
         prctl.set_name('ptrk.Tracker')
 
         #- initialize a fixed number of threads (less garbarge collection)
@@ -234,7 +238,10 @@ class Tracker(threading.Thread):
             if self.greenLEDThread:
                 self.greenLEDThread.event.set()
             self.detectionDelay = time() - timestamp
-            self.camera.request_key_frame()
+            if self.capture:
+                self.camera.capture(self.image,'bgr', use_video_port=True, splitter_port=2)
+            else:
+                self.camera.request_key_frame()
             self.updates  = updates
             self.frame  = frame
             self.motion = motion

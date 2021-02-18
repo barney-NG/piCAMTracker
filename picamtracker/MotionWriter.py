@@ -141,8 +141,8 @@ class Writer(threading.Thread):
     #--------------------------------------------------------------------
     #-- queue new points and feed worker
     #--------------------------------------------------------------------
-    def update_hits(self, delay,framenb, motion):
-        self.q.append([delay,framenb,motion])
+    def update_hits(self, delay,framenb, motion, image=None):
+        self.q.append([delay,framenb,motion,image])
         self.event.set()
 
     #--------------------------------------------------------------------
@@ -158,19 +158,23 @@ class Writer(threading.Thread):
     def run(self):
         while not self.terminated:
             try:
-                delay,framenb,motion = self.q.popleft()
-                fdata = None
-                with self.lock:
-                    fdata,nbytes = self.decoder.decode_frame(self.frame2decode)
+                delay,framenb,motion,cam_image = self.q.popleft()
 
-                
-                image = self.image
-                image.fill(220)
-                
-                if fdata:
-                    (frame,w,h,ls) = fdata
-                    if frame:
-                        image = np.fromstring(frame, dtype=np.uint8)
+                if cam_image is not None:
+                    image = cam_image
+                else:
+                    fdata = None
+                    with self.lock:
+                        fdata,nbytes = self.decoder.decode_frame(self.frame2decode)
+
+                    
+                    image = self.image
+                    image.fill(220)
+                    
+                    if fdata:
+                        (frame,w,h,ls) = fdata
+                        if frame:
+                            image = np.fromstring(frame, dtype=np.uint8)
                 
                 w = self.resx
                 h = self.resy    
@@ -220,6 +224,11 @@ class Writer(threading.Thread):
                 #txt = "%4.1fms" % (delay*1000.0)
                 txt = "v:%4.1f" % (np.linalg.norm(motion[1]))
                 cv2.putText(image,txt,(int(x0), int(y0)),cv2.FONT_HERSHEY_SIMPLEX,0.5,(20,220,20),1)
+
+                #txt = "%d" % (framenb/2)
+                #xpos = int(self.resx/2) - len(txt) * 8
+                #cv2.putText(image,txt,(xpos, 120),cv2.FONT_HERSHEY_SIMPLEX,0.7,(220,220,220),2)
+                
                 xm = int((x1+x0) / 2)
                 ym = int((y1+y0) / 2)
                 xe = int(xm - vv[0])
@@ -297,7 +306,7 @@ class Writer(threading.Thread):
                 # positive diff -> frame was created after event
                 # we allow i-frames created very short before the crossing event
                 if diff > -5 and diff <= self.maxDiff:
-                    #logging.debug("found key/sps frame @ %d (type:%d delta:%d)" % (index,ftype,diff))
+                    #logging.debug("found key/sps frame @ %d (type:%d delta:%d)",index,ftype,diff)
                     record = True
                 # stop loop if difference is too big
                 if diff < minus_max_diff:
