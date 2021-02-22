@@ -1,4 +1,6 @@
 # next version
+* web interface: with touchmove scroll through the last snapshots
+* snapshot via camera.capture now (let's see how good it works)
 * full cleanup of the html/js part
   * endless loop which GETs the actual image every 500ms has been replaced by:
   * a websocket based approach which syncs the snapshots only when a new one has arrived

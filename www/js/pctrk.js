@@ -34,6 +34,61 @@ connectWS();
 //    clientWS.send(text);
 //}
 
+// remember last N images
+class ImageContainer {
+    constructor(target, maxImages=50) {
+        this.imgArray = new Array();
+        this.maxImages = maxImages;
+        this.target = target;
+        this.imgPointer = 0;
+        this.oldX = 0;
+        for(var i=0; i<this.maxImages; i++) {
+            nbstr = ("000" + i).slice(-3) 
+            this.imgArray[i] = new Image();
+        }
+    }
+    insert( name, src ) {
+        this.target.src = src;
+        var newImage = new Image();
+        newImage.src = src;
+        this.imgArray.unshift(newImage);
+        this.imgArray.pop();
+        this.imgPointer = 0;
+    }
+    prevImage() {
+        if(this.imgPointer < (this.maxImages-1)) {
+            if(this.imgArray[this.imgPointer+1].src) {
+                this.imgPointer++;
+                this.target.src = this.imgArray[this.imgPointer].src;
+            }
+        }
+    }
+    nextImage() {
+        if(this.imgPointer > 0) {
+            if(this.imgArray[this.imgPointer-1].src) {
+                this.imgPointer--;
+                this.target.src = this.imgArray[this.imgPointer].src;
+            }
+        }
+    }
+    
+    touchmoveHandler(event) {
+        var x = event.touches[0].clientX;
+        if(x > this.oldX+15) {
+            this.oldX = x;
+            this.prevImage();
+            return;
+        }
+        if(x < this.oldX-15) {
+            this.oldX = x;
+            this.nextImage();
+            return;
+        }
+        //this.oldX = x
+    }
+}
+
+var Images;
 
 // How to create an HTTP request
 function create_XMLHttpRequest()
@@ -52,7 +107,10 @@ var refreshtime = url.substring(url.lastIndexOf("=")+1);
 if (refreshtime == "") { refreshtime = 970; }
 
 function loadImage( name ) {
-    mjpeg.src = 'mjpeg_read.php?time=' + new Date().getTime() + "&image=" + name;
+    // TODO set img expiration time!
+    //mjpeg.src = 'mjpeg_read.php?time=' + new Date().getTime() + "&image=" + name;
+    //mjpeg.src = "mjpeg_read.php?image=" + name;
+    Images.insert(name, "mjpeg_read.php?image=" + name);
 }
 function loadLastImage( name ) {
     mjpeg.src = 'mjpeg_read.php';
@@ -70,6 +128,7 @@ function mjpeg_start()
     //mjpeg.onload = mjpeg_read;
     mjpeg.onerror = mjpeg_error;
     //mjpeg_read();
+    Images = new ImageContainer(mjpeg);
 }
 
 

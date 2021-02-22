@@ -137,8 +137,8 @@
 		    <a href="#page2" data-transition="flip" class="ui-btn-left">Config</a>
 		    <a href="#page1" data-transition="flip" class="ui-btn-right">Params</a>
 	    </div><!-- /header -->
-	    <div role="main" class="ui-content">
-		<img id="mjpeg_image" width="100%" style="border: 1px white" alt="web server not runnig?"/>
+	    <div role="main" class="ui-content" ontouchmove="Images.touchmoveHandler(event)">
+		<img id="mjpeg_image" width="100%" style="border: 1px white" alt="web server not runnig?" />
 		<!-- canvas id="videoCanvas" width="360" height="640"></canvas -->
 	    </div><!-- /content -->
 	    <input type="submit" id = "test" value="Test Crossing Beep" onclick="fifo_command('testBeep:',1) ;">
