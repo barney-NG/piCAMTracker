@@ -39,22 +39,50 @@ class ImageContainer {
     constructor(target, maxImages=50) {
         this.imgArray = new Array();
         this.maxImages = maxImages;
+        this.imgURL = "mjpeg_read.php"
         this.target = target;
         this.imgPointer = 0;
         this.oldX = 0;
+        this.imageName = "";
         for(var i=0; i<this.maxImages; i++) {
-            nbstr = ("000" + i).slice(-3) 
             this.imgArray[i] = new Image();
         }
     }
-    insert( name, src ) {
-        this.target.src = src;
+    // fill the history after first image load (number rotation ignored)
+    fillArray ( name ) {
+        console.log("name: " + name)
+        this.imageName = name
+        var len = name.length;
+        var nbpart = name.substr(len-7,3);
+        var nb = parseInt(nbpart)
+        var index = 1;
+        for(var i = nb; i >=0; i--) {
+            var nbstr = ("000" + i).slice(-3)
+            var newname = name;
+            newname = newname.replace(nbpart,nbstr);
+            this.imgArray[index].src = this.imgURL + "?image=" + newname;
+            if(++index > this.maxImages-1) break;
+        }
+    }
+    // load latest image (php takes care)
+    last() {
+        this.load('')
+    }
+    // load image by name
+    load( name ) {
         var newImage = new Image();
-        newImage.src = src;
+        if(name) {
+            newImage.src = this.imgURL + "?image=" + name;
+        } else {
+            newImage.src = this.imgURL;
+        }
+        this.target.src = newImage.src;
         this.imgArray.unshift(newImage);
         this.imgArray.pop();
         this.imgPointer = 0;
+        if( name && this.imageName.length == 0 ) this.fillArray(name)
     }
+    // show older images
     prevImage() {
         if(this.imgPointer < (this.maxImages-1)) {
             if(this.imgArray[this.imgPointer+1].src) {
@@ -63,6 +91,7 @@ class ImageContainer {
             }
         }
     }
+    // show newer images
     nextImage() {
         if(this.imgPointer > 0) {
             if(this.imgArray[this.imgPointer-1].src) {
@@ -71,7 +100,7 @@ class ImageContainer {
             }
         }
     }
-    
+    // left -> newer; right -> older
     touchmoveHandler(event) {
         var x = event.touches[0].clientX;
         if(x > this.oldX+15) {
@@ -84,7 +113,6 @@ class ImageContainer {
             this.nextImage();
             return;
         }
-        //this.oldX = x
     }
 }
 
@@ -110,7 +138,7 @@ function loadImage( name ) {
     // TODO set img expiration time!
     //mjpeg.src = 'mjpeg_read.php?time=' + new Date().getTime() + "&image=" + name;
     //mjpeg.src = "mjpeg_read.php?image=" + name;
-    Images.insert(name, "mjpeg_read.php?image=" + name);
+    Images.load(name);
 }
 function loadLastImage( name ) {
     mjpeg.src = 'mjpeg_read.php';
@@ -192,7 +220,8 @@ read_config.onreadystatechange = function()
         }
 
         // fill page3 with last image
-        loadLastImage();
+        //loadLastImage();
+        Images.last()
         
         // show green status
         if(clientWS.readyState == 1) {
