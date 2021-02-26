@@ -72,7 +72,7 @@ class ImageContainer {
     load( name ) {
         var newImage = new Image();
         if(name) {
-            newImage.src = this.imgURL + "?image=" + name;
+            newImage.src = this.imgURL + "?time=" + new Date().getTime() + "&image=" + name;
         } else {
             newImage.src = this.imgURL;
         }
@@ -105,12 +105,12 @@ class ImageContainer {
         var x = event.touches[0].clientX;
         if(x > this.oldX+15) {
             this.oldX = x;
-            this.prevImage();
+            this.nextImage();
             return;
         }
         if(x < this.oldX-15) {
             this.oldX = x;
-            this.nextImage();
+            this.prevImage();
             return;
         }
     }
