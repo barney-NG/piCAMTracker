@@ -226,7 +226,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             return rects
 
     def debug_button(self, source):
-        self.set_debug(15)
+        self.set_debug(30)
 
     def set_debug(self, value):
         """
@@ -367,7 +367,6 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #-- IDENTIFY MOVEMENT
         #---------------------------------------------------------------
         mag = np.abs(a['x']) + np.abs(a['y'])
-        #has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax, a['sad'] > self.sadThreshold)
         has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
 
         #- reject if more than 80% of the macro blocks are moving
@@ -387,11 +386,11 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         #- mask out movement
         mask = has_movement.astype(np.uint8) * 255
+        sad = 0xffff - np.array(a['sad'], np.uint16)
 
         # prepare background image 
         if self.show:
             if self.big is None:
-                #self.big = np.ones((8*(self.cols-1),8*self.rows,3), np.uint8) * 220
                 self.big = np.ones((8*self.rows,8*(self.cols-1),3), np.uint8) * 220
             else:
                 self.big.fill(200)
@@ -403,11 +402,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             for y,x in coords:
                 u  = a[y,x]['x']
                 v  = a[y,x]['y']
-                m =  min(512,a[y,x]['sad'])
-                # old: sad high -> color dark
-                #c =  255 - int(255.0/512.0 * m)
-                # new: sad low -> color dark
-                c =  int(255.0/512.0 * m)
+                c = sad[y,x] & 0x00ff
                 cv2.rectangle(self.big,(x*8,y*8),((x+1)*8,(y+1)*8),(0,c,c),-1)
                 #-- nice arrows
                 if self.show & 0x0008:
@@ -415,17 +410,17 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                     ym = y
                     xm *= 8
                     ym *= 8
-                    xe  = xm - 3 * u
-                    ye  = ym - 3 * v
+                    xe  = xm - 4 * u
+                    ye  = ym - 4 * v
                     cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(c,0,c),1)
 
         #---------------------------------------------------------------
         #-- MARK MOVING REGIONS
         #---------------------------------------------------------------
-        #_, mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        if self.rows > 40:
+            mask = cv2.dilate(mask, None, borderType=cv2.BORDER_REPLICATE)
+        #cv2.imshow("mask",mask)
         contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) 
-        #_,contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # opencv-3.X
-        
         rects = self.removeIntersections(contours)
 
         #---------------------------------------------------------------
@@ -464,15 +459,9 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 vy = np.average(a[y0:y1,x0:x1]['y'])
             else:
                 #-- give blocks which don't differ much (sad is small) higher priority
-                sad_weights = a[y0:y1,x0:x1]['sad'].flatten()
-                sad_weights = 65536 - sad_weights
-                #-- develope composite vector from weightened vectors in region
-                #try:
+                sad_weights = sad[y0:y1,x0:x1].flatten()
                 vx = np.average(a[y0:y1,x0:x1]['x'].flatten(),weights=sad_weights)
                 vy = np.average(a[y0:y1,x0:x1]['y'].flatten(),weights=sad_weights)
-                #except ZeroDivisionError:
-                #    vx = np.average(a[y0:y1,x0:x1]['x'])
-                #    vy = np.average(a[y0:y1,x0:x1]['y'])
 
 	        #-- check baseB option (allow movement from one direction only)
             append = True
