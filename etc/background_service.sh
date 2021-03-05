@@ -8,6 +8,7 @@ trap go_exit 1 2 3 15
 temp_dir=/run/picamtracker
 temp_file=temp
 local_image_to_path=/home/pi/piCAMTracker/media/stills
+local_videos_path=/home/pi/piCAMTracker/media/videos
 
 
 mkdir -p $temp_dir
@@ -19,8 +20,9 @@ function save_images {
   local usb_mount_point=$(/home/pi/piCAMTracker/etc/mount_usb.sh)
   local image_to_path=$local_image_to_path
   if [[ -n "$usb_mount_point" ]]; then
-   local path_to=$usb_mount_point/media/stills
-   mkdir -p "$path_to" && image_to_path=$path_to
+   local path_to=$usb_mount_point/media
+   mkdir -p "$path_to/stills" && image_to_path=$path_to/stills
+   mkdir -p "$path_to/videos" && rsync -aq $local_videos_path $path_to
   fi
   echo "saving images to $image_to_path..."
   rsync -aq $temp_dir/ "$image_to_path/."
