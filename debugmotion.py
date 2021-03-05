@@ -143,7 +143,10 @@ def main(fobj=None,width=1280,height=960,video=False):
             if writer and chunks_read > 1:
                 writer.write(np.rot90(analyser.big,k=k))
                 #writer.write(np.flipud(np.rot90(np.flipud(analyser.big),k=k)))
-                
+
+            # show track status
+            for track in tracker.track_pool:
+                track.printTrack(chunks_read)
             # show input window
             cv2.imshow(caption,rot_img)
             

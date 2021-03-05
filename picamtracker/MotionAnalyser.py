@@ -79,7 +79,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.maxMovements = 100
         self.debug = False
         self.fobj = None
-        self.emptyPoints = [[[],[]]]
+        self.emptyPoints = [[[],[],[]]]
         self.max_debugged_frames = 1200 # 30 secs at 40f/s
         self.max_debugged_files = 10
         self.debugged_frames = 0
@@ -402,7 +402,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             for y,x in coords:
                 u  = a[y,x]['x']
                 v  = a[y,x]['y']
-                c = sad[y,x] & 0x00ff
+                c = int(sad[y,x] & 0x00ff)
                 cv2.rectangle(self.big,(x*8,y*8),((x+1)*8,(y+1)*8),(0,c,c),-1)
                 #-- nice arrows
                 if self.show & 0x0008:
@@ -417,8 +417,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #---------------------------------------------------------------
         #-- MARK MOVING REGIONS
         #---------------------------------------------------------------
-        if self.rows > 40:
-            mask = cv2.dilate(mask, None, borderType=cv2.BORDER_REPLICATE)
+        #if self.rows > 40:
+        #    mask = cv2.dilate(mask, None, borderType=cv2.BORDER_REPLICATE) # -> minArea = 9!
         #cv2.imshow("mask",mask)
         contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) 
         rects = self.removeIntersections(contours)
@@ -449,20 +449,32 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             y1  = y0 + h
 
             #-- evaluate average moving vector
+            vstats = [0,0,0,0]
             if w < 2 and h < 2:
                 #-- simply take the moving vector
                 vx = a[y0,x0]['x'].astype(np.float64)
                 vy = a[y0,x0]['y'].astype(np.float64)
-            elif area < 16:
-                # for small areas take average
-                vx = np.average(a[y0:y1,x0:x1]['x'])
-                vy = np.average(a[y0:y1,x0:x1]['y'])
+                if vx >= 0.:
+                    vstats[0] = 1
+                else:
+                    vstats[2] = 1
+                if vy >= 0.:
+                    vstats[1] = 1
+                else:
+                    vstats[3] = 1
             else:
                 #-- give blocks which don't differ much (sad is small) higher priority
+                arx = np.array(a[y0:y1,x0:x1]['x'])
+                ary = np.array(a[y0:y1,x0:x1]['y'])
                 sad_weights = sad[y0:y1,x0:x1].flatten()
-                vx = np.average(a[y0:y1,x0:x1]['x'].flatten(),weights=sad_weights)
-                vy = np.average(a[y0:y1,x0:x1]['y'].flatten(),weights=sad_weights)
-
+                vx = np.average(arx.flatten(),weights=sad_weights)
+                vy = np.average(ary.flatten(),weights=sad_weights)
+                #-- count element movings
+                vstats[0] = np.count_nonzero(arx > 0)
+                vstats[1] = np.count_nonzero(ary > 0)
+                vstats[2] = np.count_nonzero(arx < 0)
+                vstats[3] = np.count_nonzero(ary < 0)
+                
 	        #-- check baseB option (allow movement from one direction only)
             append = True
             if self.checkX:
@@ -475,7 +487,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 if self.checkY < 0 and vy <= 0: append = True                
             #-- add points to list
             if append:
-                new_points.append([[x0,y0,w,h],[vx,vy]])
+                new_points.append([[x0,y0,w,h],[vx,vy],vstats])
 
         # insert/update new movements
         self.tracker.update_tracks(t1,self.frame,new_points)

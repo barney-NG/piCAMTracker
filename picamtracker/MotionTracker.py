@@ -326,7 +326,7 @@ class Tracker(threading.Thread):
         has_been_tracked = 0x00000000
         min_dist = 0
 
-        for rn,vn in motion:
+        for rn,vn,vstats in motion:
             #-- search a track for this coordinate
             tracked = 0x00000000
             # >>> debug
@@ -352,7 +352,7 @@ class Tracker(threading.Thread):
                 # <<< debug
 
                 #-- check if track takes coordinates
-                tracked = track.update(timestamp,frame,rn,vn)
+                tracked = track.update(timestamp,frame,rn,vn,vstats)
                 if tracked:
                     has_been_tracked |= tracked
                     #logging.debug( "   [%s](%d) updated with: %d,%d" % (track.name, track.updates, rn[0],rn[1]))
@@ -364,7 +364,7 @@ class Tracker(threading.Thread):
                 for track in self.track_pool:
                     if track.updates == 0:
                         #logging.debug("   [%s] new %d/%d" % (track.name, rn[0],rn[1]))
-                        track.new_track(timestamp,frame,rn,vn)
+                        track.new_track(timestamp,frame,rn,vn,vstats)
                         self.updated = True
                         break
 
@@ -377,10 +377,9 @@ class Tracker(threading.Thread):
                 active += 1
                 if updates < 3:
                     noise += 1
-            #if frame - track.lastFrame > 2:
-            #    track.reset()
-            #    continue
-            if updates and frame - track.lastFrame > self.trackLifeTime:
+            age = frame - track.lastFrame
+            #print("[%s](%02d): frame: %d, age: %d" % (track.name,updates,frame, age))
+            if updates and age > self.trackLifeTime:
                 track.reset()
 
         #self.noise = float(noise / len(self.track_pool))
@@ -423,6 +422,7 @@ class Track:
         self.id = 1 << index
         self.name = Track.track_names[index]
         self.parent = parent
+        self.lastFrame = 0
         # reset track data
         self.updates = 9999
         self.reset()
@@ -434,7 +434,7 @@ class Track:
         if self.updates < 1:
             return
 
-        #logging.debug("[%s](%d) reset" % (self.name,self.updates))
+        #logging.debug("[%s](%d) lastFrame: %d reset" % (self.name,self.updates, self.lastFrame))
 
         self.updates = 0
         self.tr   = []
@@ -443,6 +443,7 @@ class Track:
         self.cx   = 0
         self.cy   = 0
         self.distance = [0,0]
+        self.sum_vstats = np.array([0,0,0,0])
         self.dirxOK = False
         self.diryOK = False
         self.direction = 0
@@ -511,7 +512,7 @@ class Track:
         return rn[0] + rn[2]/2, rn[1] + rn[3]/2
 
 
-    def new_track(self,timestamp,frame,rn,vn):
+    def new_track(self,timestamp,frame,rn,vn,vstats):
         """
         start a new track
         """
@@ -555,6 +556,7 @@ class Track:
         self.cx  = cxn
         self.cy  = cyn
         self.tr.append([cxn,cyn])
+        self.sum_vstats = np.array(vstats)
         self.updates = 1
         self.lastFrame = frame
         self.timestamp = timestamp
@@ -764,15 +766,17 @@ class Track:
                         
             if crossedYPositive:
                 delay = (time() - self.timestamp) * 1000.0
-                logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d height:%2d dist:%3d area:%4d %sY-CROSSED++++++++++++++++++++",
-                    self.name,self.updates,delay,x0,y1,vx,vy,dx,dy,self.deltaY,self.distance[1],area,fastText)
+                vs = self.sum_vstats
+                logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d height:%2d dist:%3d area:%4d [%03d %03d] %sY-CROSSED++++++++++++++++++++",
+                    self.name,self.updates,delay,x0,y1,vx,vy,dx,dy,self.deltaY,self.distance[1],area,vs[3],vs[1],fastText)
                 self.crossedY = True
                 self.crossed(positive=True)
 
             if crossedYNegative:
                 delay = (time() - self.timestamp) * 1000.0
-                logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d height:%2d dist:%3d area:%4d %sY-CROSSED--------------------",
-                    self.name,self.updates,delay,x0,y0,vx,vy,dx,dy,self.deltaY,self.distance[1],area,fastText)
+                vs = self.sum_vstats
+                logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d height:%2d dist:%3d area:%4d [%03d %03d] %sY-CROSSED--------------------",
+                    self.name,self.updates,delay,x0,y0,vx,vy,dx,dy,self.deltaY,self.distance[1],area,vs[3],vs[1],fastText)
                 self.crossedY = True
                 self.crossed(positive=False)
 
@@ -886,7 +890,7 @@ class Track:
     #--------------------------------------------------------------------
     #-- update track data
     #--------------------------------------------------------------------
-    def update(self,timestamp,frame,rn,vn):
+    def update(self,timestamp,frame,rn,vn,vstats):
 
         # this is not the place for new tracks
         if self.updates < 1:
@@ -1000,6 +1004,7 @@ class Track:
                 self.cy = cyn
                 self.updates += 1
                 self.tr.append([cxn,cyn])
+                self.sum_vstats += vstats
                 if(len(self.tr) > 36):
                     del self.tr[0]
 
@@ -1098,11 +1103,11 @@ class Track:
     #--
     #--------------------------------------------------------------------
     def printTrack(self, frame=0):
-        if self.progressx != 0 or self.progressy != 0:
-            sys.stdout.write("[%s]:" %(self.name))
+        if self.progressx or self.progressy:
+            sys.stdout.write("[%s]:(%02d)" %(self.name,self.updates))
             for x,y in self.tr[-4:]:
                 sys.stdout.write("  %02d,%02d -> " %(x,y))
-            logging.info("(#%2d vx:%02d vy:%02d) age:%d" % (self.updates,int(-self.vv[0]),int(-self.vv[1]),frame-self.lastFrame))
+            print("vx:%02d vy:%02d) age:%d" % (int(-self.vv[0]),int(-self.vv[1]),frame-self.lastFrame))
 
 if __name__ == '__main__':
 
