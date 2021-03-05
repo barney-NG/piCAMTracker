@@ -295,7 +295,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
             #- preview settings
             px = int(config.conf['previewX'])
             py = int(config.conf['previewY'])
-            if fastmode:
+            if resx < 800:
                 pw = int(resx)
                 ph = int(resy)
             else:
