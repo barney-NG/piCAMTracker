@@ -156,8 +156,8 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
     # get screen resolution (0,0) if no monitor is connected
     screen_w,screen_h = get_screen_resolution()
     # preview
-    #preview = False if(screen_w == 0 and screen_h == 0) else config.conf['preview']
-    preview = config.conf['preview']
+    preview = False if(screen_w == 0 and screen_h == 0) else config.conf['preview']
+    #preview = config.conf['preview']
     
     # annotation
     an_height = 24
@@ -497,7 +497,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # update config file (or create it if it does not exists)
-    set_fastmode = False
+    if args.fast:
+        set_fastmode = True
+        # set default config for fast mode
+        if args.config == 'config.json':
+            args.config = 'config.fast.json'
+    else:
+        set_fastmode = False
+
     config = picamtracker.Configuration(args.config)
     config.write()
     
@@ -537,6 +544,19 @@ if __name__ == '__main__':
 
     # run main part until end requested
     while main(args.show, args.debug, args.fast, wsserver=wserver, logfilename=logfilename):
+        reread_config = False
+        if set_fastmode and not args.fast:
+            # switching to fast mode requested by web interface...
+            args.config = 'config.fast.json'
+            reread_config = True
+        if args.fast and not set_fastmode:
+            # switching to 'normal' mode requested by web interface...
+            args.config = 'config.json'
+            reread_config = True
+        if reread_config:
+            logging.info("using <%s> as config", args.config)
+            config = picamtracker.Configuration(args.config)
+            config.write()
         args.fast = set_fastmode
         logging.info("restarting tracker...")
         logfilename = None
