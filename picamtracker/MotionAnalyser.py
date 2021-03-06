@@ -417,8 +417,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #---------------------------------------------------------------
         #-- MARK MOVING REGIONS
         #---------------------------------------------------------------
-        #if self.rows > 40:
-        #    mask = cv2.dilate(mask, None, borderType=cv2.BORDER_REPLICATE) # -> minArea = 9!
+        if self.minArea == 1:
+            mask = cv2.dilate(mask, None, borderType=cv2.BORDER_REPLICATE) # -> minArea = 9!
         #cv2.imshow("mask",mask)
         contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) 
         rects = self.removeIntersections(contours)
