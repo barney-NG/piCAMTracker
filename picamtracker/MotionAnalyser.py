@@ -53,7 +53,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
     Reduce the motion_block array by couple of characteristics:
 
     """
-    def __init__(self,camera, tracker, display, show=0, config=None, vwriter=None):
+    def __init__(self,camera, tracker, display=None, show=0, config=None, vwriter=None):
         super(MotionAnalyser, self).__init__(camera)
         self.camera = camera
         self.tracker = tracker
@@ -353,6 +353,12 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         if not self.started:
             self.tracker.setup_sizes(self.rows, self.cols-1)
             self.maxMovements = int(self.rows * self.cols * 0.8)
+            # prepare background image 
+            if self.show:
+                if self.big is None:
+                    self.big = np.ones((8*self.rows,8*(self.cols-1),3), np.uint8) * 220
+                else:
+                    self.big.fill(200)
             self.started = True
             return
 
@@ -386,14 +392,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         #- mask out movement
         mask = has_movement.astype(np.uint8) * 255
-        sad = 0xffff - np.array(a['sad'], np.uint16)
-
-        # prepare background image 
-        if self.show:
-            if self.big is None:
-                self.big = np.ones((8*self.rows,8*(self.cols-1),3), np.uint8) * 220
-            else:
-                self.big.fill(200)
+        sad = np.array(a['sad'], np.uint16)
 
         # show movement vectors and sad values
         if self.show & 0x0002:
@@ -402,16 +401,16 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             for y,x in coords:
                 u  = a[y,x]['x']
                 v  = a[y,x]['y']
-                c = int(sad[y,x] & 0x00ff)
+                c = int((0xffff - sad[y,x]) & 0x00ff)
                 cv2.rectangle(self.big,(x*8,y*8),((x+1)*8,(y+1)*8),(0,c,c),-1)
                 #-- nice arrows
-                if self.show & 0x0008:
+                if self.show & 0x0004:
                     xm = x
                     ym = y
                     xm *= 8
                     ym *= 8
-                    xe  = xm - 4 * u
-                    ye  = ym - 4 * v
+                    xe  = xm - 8 * u
+                    ye  = ym - 8 * v
                     cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(c,0,c),1)
 
         #---------------------------------------------------------------
@@ -439,6 +438,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 logging.warning( "MAXAEREA! %d > %d (%d/%d)" % (area,self.maxArea,w,h))
                 rejects += 1
                 continue
+
             #-- reject areas which are too small
             if area < self.minArea:
                 rejects += 1
@@ -466,9 +466,9 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 #-- give blocks which don't differ much (sad is small) higher priority
                 arx = np.array(a[y0:y1,x0:x1]['x'])
                 ary = np.array(a[y0:y1,x0:x1]['y'])
-                sad_weights = sad[y0:y1,x0:x1].flatten()
-                vx = np.average(arx.flatten(),weights=sad_weights)
-                vy = np.average(ary.flatten(),weights=sad_weights)
+                similarity = 0xffff - sad[y0:y1,x0:x1].flatten()
+                vx = np.average(arx.flatten(),weights=similarity)
+                vy = np.average(ary.flatten(),weights=similarity)
                 #-- count element movings
                 vstats[0] = np.count_nonzero(arx > 0)
                 vstats[1] = np.count_nonzero(ary > 0)
@@ -503,7 +503,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             cv2.line(self.big,(0,ym),(xe,ym),(0,0,0),1)
             str_frate = "%4.0fms (%d) (%4.2f) (%0d)" % (dt*1000.0, self.camera.analog_gain, self.tracker.noise, self.tracker.active_tracks)
             cv2.putText(self.big, str_frate, (3, 14), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (20,150,20), 1)
-            if self.show & 0x0004:
+            if self.show & 0x0008:
                 for cnt in contours:
                     x,y,w,h = cv2.boundingRect(cnt)
                     x0 = 8*x; y0 = 8*y; x1 = 8*(x+w); y1 = 8*(y+h)
@@ -516,6 +516,13 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                     cv2.line(self.big,(x0,y0),(x1,y1),(0,0,0),1)
                     cv2.line(self.big,(x0,y1),(x1,y0),(0,0,0),1)
 
+            if self.show & 0x0004:
+                for rn,vn,vs in new_points:
+                    x0=8*rn[0];y0=8*rn[1];x1=8*(rn[0]+rn[2]);y1=8*(rn[1]+rn[3])
+                    cv2.rectangle(self.big,(x0-1,y0-1),(x1+1,y1+1),(0,0,220),1)
+                    rect_txt = "[%03d %03d %03d %03d]" % (vs[0],vs[1],vs[2],vs[3])
+                    cv2.putText(self.big, rect_txt, (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,20), 1)
+                    
             # Show the image in the window
             # without imshow we are at 5ms (sometimes 12ms)
             if self.display:

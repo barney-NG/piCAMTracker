@@ -36,7 +36,9 @@ class faked_camera:
         self.frame = faked_frame()
         self.analog_gain = 77
 
-    def request_key_frame(val=0):
+    def capture(self, image=None,fmt=None, use_video_port=True, splitter_port=2):
+        pass
+    def request_key_frame(self, val=0):
         return
 
 def show_input(img, motion):
@@ -105,6 +107,9 @@ def main(fobj=None,width=1280,height=960,video=False):
     chunk_size = cols*rows*4
     chunks_read = 0
     wtime = 0x00
+
+    xcross = config.conf['xCross'] * 16
+    ycross = config.conf['yCross'] * 16
     
     if video:
         writer = cv2.VideoWriter('output.avi', cv2.VideoWriter_fourcc('M','J','P','G'),38,(height/2,width/2))
@@ -119,9 +124,12 @@ def main(fobj=None,width=1280,height=960,video=False):
     x_disp = config.conf['previewX'] + config.conf['offsetX']
     y_disp = config.conf['previewY'] + config.conf['offsetY']
     display = picamtracker.Display(caption='piCAMTracker::debugDisplay',x=x_disp,y=y_disp,w=width/2,h=height/2)
-    analyser = picamtracker.MotionAnalyser(camera, tracker, display, 0xff, config)
+    show = 0x0004 | 0x0002
+    analyser = picamtracker.MotionAnalyser(camera, tracker, display=None, show=show, config=config)
+    
     analyser.rows = rows
     analyser.cols = cols
+    warmup = True
 
     while True:
         buf = fobj.read(chunk_size)
@@ -131,7 +139,9 @@ def main(fobj=None,width=1280,height=960,video=False):
             camera.analog_gain = chunks_read
             a = np.frombuffer(buf, dtype=motion_dtype).reshape((rows,cols))
             analyser.analyse(a)
-            
+            if warmup:
+                warmup = False
+                continue
                 
             delay,frame,motion = tracker.getStatus()
             #tracker.showTracks(chunks_read, image)
@@ -139,17 +149,26 @@ def main(fobj=None,width=1280,height=960,video=False):
                 tracker.releaseLock()
                 #show_input(image, motion)
             
-            
-            if writer and chunks_read > 1:
-                writer.write(np.rot90(analyser.big,k=k))
+            # get tracker image
+            if ycross > 0:
+                cv2.line(analyser.big,(0,int(ycross/2)),(int(width/2),int(ycross/2)),(0,0,0),1)
+            if xcross > 0:
+                cv2.line(analyser.big,(int(xcross/2),0),(int(xcross/2),int(height/2)),(0,0,0),1)
+
+            # read image from analayser 
+            rot_img = np.rot90(analyser.big,k=k)
+                 
+            if writer:
+                writer.write(rot_image)
                 #writer.write(np.flipud(np.rot90(np.flipud(analyser.big),k=k)))
 
             # show track status
-            for track in tracker.track_pool:
-                track.printTrack(chunks_read)
-            # show input window
+            #for track in tracker.track_pool:
+            #    track.printTrack(chunks_read)
+
+            # show debug image
             cv2.imshow(caption,rot_img)
-            
+            analyser.big.fill(220)
                 
             ch = cv2.waitKey(wtime) & 0xFF
             if ch == ord('s'):
@@ -164,10 +183,9 @@ def main(fobj=None,width=1280,height=960,video=False):
                 except:
                     print("frame not reachable")
 
-            if ch == 27:
+            if ch == ord('q') or ch == 27:
                 break
                 
-            image.fill(200)
             print(chunks_read)
         else:
             print("end")
