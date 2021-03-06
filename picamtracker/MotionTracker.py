@@ -422,7 +422,6 @@ class Track:
         self.id = 1 << index
         self.name = Track.track_names[index]
         self.parent = parent
-        self.lastFrame = 0
         # reset track data
         self.updates = 9999
         self.reset()
@@ -570,16 +569,21 @@ class Track:
 
         if self.updates >= 3:
             delta = Track.maxDist
+            vs = self.sum_vstats
             if Track.xCross > 0:
                 x0 = int(self.tr[0][0])
                 x1 = int(self.tr[2][0])
+                
+                
                 #xc = int(Track.maxX / 2)
                 #- if the first occurence is right from center movement must be negative
                 #- objects occuring too near to the center are rejected
-                if x0 > (Track.xCross + delta) and x1 < x0:
+                if x0 > (Track.xCross + delta) and x1 < x0 and vs[0] >= vs[2]:
+                    #logging.debug("[%s]:x-negative: vs-: %d vs+: %d",self.name,vs[0],vs[2])
                     return True
                 #- if the first occurence is left from center movement must be positive
-                if x0 < (Track.xCross - delta) and x1 >= x0:
+                if x0 < (Track.xCross - delta) and x1 >= x0 and vs[2] >= vs[0]:
+                    #logging.debug("[%s]:x-positive: vs-: %d vs+: %d",self.name,vs[0],vs[2])
                     return True
 
             if Track.yCross > 0:
@@ -588,10 +592,12 @@ class Track:
                 #yc = int(Track.maxY / 2)
                 #- if the first occurence is above center movement must be negative
                 #- objects occuring too near to the center are rejected
-                if y0 > (Track.yCross + delta) and y1 < y0:
+                if y0 > (Track.yCross + delta) and y1 < y0 and vs[1] >= vs[3]:
+                    #logging.debug("[%s]:y-negative: vs-: %d vs+: %d",self.name,vs[1],vs[3])
                     return True
                 #- if the first occurence is below center movement must be positive
-                if y0 < (Track.yCross - delta) and y1 > y0:
+                if y0 < (Track.yCross - delta) and y1 > y0 and vs[3] >= vs[1]:
+                    #logging.debug("[%s]:y-positive: vs-: %d vs+: %d",self.name,vs[1],vs[3])
                     return True
 
                 #logging.debug("[%s](%d) start failed: yc: %d dy: %d" % (self.name, self.updates, y0, (y1-y0)))
@@ -738,7 +744,9 @@ class Track:
             #@@logging.debug("vy: %6.2f (%6.2f) dy: %3d delta: %3d" % (vy,-self.vv[1], dy,delta))
             # moving quality
             coverage = self.distance[1] / self.deltaY
-
+            # how many vectors are collected in which direction
+            vs = self.sum_vstats
+            
             # for my memory:
             # deltaY = maxy - miny
             # distance[1] = sum of all dy
@@ -766,7 +774,6 @@ class Track:
                         
             if crossedYPositive:
                 delay = (time() - self.timestamp) * 1000.0
-                vs = self.sum_vstats
                 logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d height:%2d dist:%3d area:%4d [%03d %03d] %sY-CROSSED++++++++++++++++++++",
                     self.name,self.updates,delay,x0,y1,vx,vy,dx,dy,self.deltaY,self.distance[1],area,vs[3],vs[1],fastText)
                 self.crossedY = True
@@ -774,7 +781,6 @@ class Track:
 
             if crossedYNegative:
                 delay = (time() - self.timestamp) * 1000.0
-                vs = self.sum_vstats
                 logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d height:%2d dist:%3d area:%4d [%03d %03d] %sY-CROSSED--------------------",
                     self.name,self.updates,delay,x0,y0,vx,vy,dx,dy,self.deltaY,self.distance[1],area,vs[3],vs[1],fastText)
                 self.crossedY = True
@@ -798,7 +804,8 @@ class Track:
                 delta = int(vx_) + 1
             # moving quality
             coverage = self.distance[0] / self.deltaX
-
+            # how many vectors are collected in which direction
+            vs = self.sum_vstats
             # mature check
             crossedXPositive = crossedXNegative = False
             fastText = ''
@@ -821,63 +828,18 @@ class Track:
                         
             if crossedXPositive:
                 delay = (time() - self.timestamp) * 1000.0
-                logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d width:%2d dist:%3d area:%4d %sX-CROSSED++++++++++++++++++++",
-                    self.name,self.updates,delay,x1,y0,vx,vy,dx,dy,self.deltaX,self.distance[0],area,fastText)
+                logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d width:%2d dist:%3d area:%4d [%03d %03d] %sX-CROSSED++++++++++++++++++++",
+                    self.name,self.updates,delay,x1,y0,vx,vy,dx,dy,self.deltaX,self.distance[0],area,vs[2],vs[0],fastText)
                 self.crossedX = True
                 self.crossed(positive=True)
 
             if crossedXNegative:
                 delay = (time() - self.timestamp) * 1000.0
-                logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d width:%2d dist:%3d area:%4d %sX-CROSSED--------------------",
-                    self.name,self.updates,delay,x0,y0,vx,vy,dx,dy,self.deltaY,self.distance[1],area,fastText)
-                self.crossedY = True
+                logging.info("[%s](%02d/%4.1fms) pos:%2d/%2d spd:%+4.1f/%+4.1f delta:%2d/%2d width:%2d dist:%3d area:%4d [%03d %03d] %sX-CROSSED--------------------",
+                    self.name,self.updates,delay,x0,y0,vx,vy,dx,dy,self.deltaY,self.distance[1],area,vs[2],vs[0],fastText)
+                self.crossedX = True
                 self.crossed(positive=False)
 
-        """
-        if Track.xCross > 0:
-            # track is crossing target line in X direction
-            #  x0,y0 +--------------+
-            #        |              |
-            #        +--------------+ x1,y1
-            #
-            #  v > 0 |          --->|
-            #        |              |
-            #  v < 0 |<---          |
-
-            if self.updates >= self.maturity and self.progressx == True and self.crossedX == False:
-                # develope indicators
-                vx = -self.vv[0]; vy = -self.vv[1] # remember the velocity has wrong direction!
-                x0 = r[0]; y0 = r[1]
-                x1 = r[0] + r[2]
-
-                # for low speeds take distance as indicator
-                vx_ = abs(vx)
-                if vx_ < 0.1:
-                    vx = float(dx)
-                if vx_ > delta:
-                    delta = int(vx_) + 1
-
-                # moving quality
-                coverage = self.distance[0] / self.deltaX
-
-                # this model uses a simple >= limit to detect a crossing event
-                crossedXPositive =  vx >  0.1 and x1 >= Track.xCross and (x1 - delta) < Track.xCross and self.minx < Track.xCross and coverage > 0.4
-                crossedXNegative =  vx < -0.1 and x0 <= Track.xCross and (x0 + delta) > Track.xCross and self.maxx > Track.xCross and coverage < -0.4
-
-                if crossedXPositive:
-                    delay = (time() - self.timestamp) * 1000.0
-                    logging.debug("[%s](%02d/%4.1f) x1:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED++++++++++++++++++++"
-                        % (self.name,self.updates,delay,x1,y0,vx,vy,dx,dy))
-                    self.crossedX = True
-                    self.crossed(positive=True)
-
-                if crossedXNegative:
-                    delay = (time() - self.timestamp) * 1000.0
-                    logging.debug("[%s](%02d/%4.1f) x0:%d/%d vx:%3.1f/%3.1f dx:%d/%d X-CROSSED--------------------"
-                        % (self.name,self.updates,delay,x0,y0,vx,vy,dx,dy))
-                    self.crossedX = True
-                    self.crossed(positive=False)
-        """
         
     #--------------------------------------------------------------------
     #-- does the track leave the tracking area?
