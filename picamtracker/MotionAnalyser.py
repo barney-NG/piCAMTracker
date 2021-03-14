@@ -53,6 +53,9 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
     Reduce the motion_block array by couple of characteristics:
 
     """
+
+
+
     def __init__(self,camera, tracker, display=None, show=0, config=None, vwriter=None):
         super(MotionAnalyser, self).__init__(camera)
         self.camera = camera
@@ -236,7 +239,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             # only start debugging when old session has stopped
             if self.fobj == None:
                 logging.info("MotionAnalyser:debug on (%d)" % value)
-                self.max_debugged_frames = 40 * value
+                self.max_debugged_frames = self.camera.framerate_range[1] * value
                 self.debug = True
         else:
             self.debug = False

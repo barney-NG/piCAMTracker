@@ -416,7 +416,6 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
                         fps = (frames - old_frames)  / (2 * t_wait)
                         old_frames = frames
                         camera.annotate_text = "%s (%3.1f fps) %s" % (dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), fps, add_text)
-
                         # check for restart
                         if rerun_main:
                             break

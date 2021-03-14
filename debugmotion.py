@@ -70,7 +70,8 @@ def cv_getNumber():
 def main(fobj=None,width=1280,height=960,video=False):
     global config
     writer = None
-    
+
+    print("args.video: ", video)
     k = 0
     config.conf['debug'] = False
     if config.conf['viewAngle'] == 90:
@@ -112,18 +113,22 @@ def main(fobj=None,width=1280,height=960,video=False):
     ycross = config.conf['yCross'] * 16
     
     if video:
-        writer = cv2.VideoWriter('output.avi', cv2.VideoWriter_fourcc('M','J','P','G'),38,(height/2,width/2))
-
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        writer = cv2.VideoWriter()
+        writer.open('output.mp4v', 0, fourcc, 25, (int(height/2),int(width/2)))
+        
+        #fourcc = cv2.VideoWriter_fourcc(*'fmp4')
+        #fourcc = cv2.VideoWriter_fourcc(*'mjpg')
+        #writer = cv2.VideoWriter('output.mp4v', 0, fourcc, 25, (int(height/2),int(width/2)))
+        
     caption = 'piCAMTracker::cv2'
     camera = faked_camera(resx=width, resy=height)
     image = np.ones((int(height/2),int(width/2),3), np.uint8) * 220
-    #rot_img = np.flipud(np.rot90(np.flipud(image),k=1))
     rot_img = np.rot90(image,k=k)
     tracker = picamtracker.MotionTracker.Tracker(camera, greenLed=None, redLed=None, config=config)
     tracker.setup_sizes(height/16, width/16)
     x_disp = config.conf['previewX'] + config.conf['offsetX']
     y_disp = config.conf['previewY'] + config.conf['offsetY']
-    display = picamtracker.Display(caption='piCAMTracker::debugDisplay',x=x_disp,y=y_disp,w=width/2,h=height/2)
     show = 0x0004 | 0x0002
     analyser = picamtracker.MotionAnalyser(camera, tracker, display=None, show=show, config=config)
     
@@ -159,8 +164,7 @@ def main(fobj=None,width=1280,height=960,video=False):
             rot_img = np.rot90(analyser.big,k=k)
                  
             if writer:
-                writer.write(rot_image)
-                #writer.write(np.flipud(np.rot90(np.flipud(analyser.big),k=k)))
+                writer.write(rot_img)
 
             # show track status
             #for track in tracker.track_pool:
@@ -198,9 +202,8 @@ def main(fobj=None,width=1280,height=960,video=False):
     tracker.join()
     if writer:
         writer.release()
+    cv2.destroyAllWindows()
         
-    if display is not None:
-        display.terminated = True
 
 if __name__ == '__main__':
     global config
@@ -220,19 +223,18 @@ if __name__ == '__main__':
         help   = 'input height (default: 896)',
         default=896)
     parser.add_argument(
-        '-c','--cfg', 
-        type=str,
-        help   = 'use an alternative config file',
-        default='config.json')
-    parser.add_argument(
         '--video',
         action='store_true',
         help   = 'create output.avi video file',
         default=False)
-        
+    parser.add_argument(
+        '-c','--cfg', 
+        type=str,
+        help   = 'use an alternative config file',
+        default='config.json')
+            
     args = parser.parse_args()
 
     config = picamtracker.ConfigReader.Configuration(args.cfg)
     
-    #curses.wrapper(main)
     main(args.input,args.width,args.height,args.video)
