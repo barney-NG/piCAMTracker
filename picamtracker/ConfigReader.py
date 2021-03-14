@@ -98,8 +98,9 @@ class Configuration:
 
     def read(self, config_file):
         try:
-            self.conf = json.load(open(config_file,'r'))
-            self.configFileName = config_file
+            with open(config_file,'r') as fd:
+                self.conf = json.load(fd)
+                self.configFileName = config_file
         except IOError as err:
             logging.error("I/O error: {0}".format(err))
         except:
