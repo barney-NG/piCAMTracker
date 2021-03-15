@@ -70,7 +70,7 @@ class vWriter(threading.Thread):
         self.video_template = '/home/pi/piCAMTracker/media/videos/deb_video%03d.h264'
         #self.video_template = '/run/picamtracker/debug_motion_%03d.h264'
 
-        self.nvideos = 10
+        self.nvideos = 50
         self.nbvideo = 0
         prctl.set_name('ptrk.vWriter')
 
