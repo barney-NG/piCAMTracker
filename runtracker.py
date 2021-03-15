@@ -156,8 +156,8 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
     # get screen resolution (0,0) if no monitor is connected
     screen_w,screen_h = get_screen_resolution()
     # preview
-    preview = False if(screen_w == 0 and screen_h == 0) else config.conf['preview']
-    #preview = config.conf['preview']
+    #preview = False if(screen_w == 0 and screen_h == 0) else config.conf['preview']
+    preview = config.conf['preview']
     
     # annotation
     an_height = 24
