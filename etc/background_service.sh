@@ -22,9 +22,10 @@ function save_images {
   if [[ -n "$usb_mount_point" ]]; then
    local path_to=$usb_mount_point/media
    mkdir -p "$path_to/stills" && image_to_path=$path_to/stills
+   logger "saving videos to $path_to/videos ..."
    mkdir -p "$path_to/videos" && rsync -aq $local_videos_path $path_to
   fi
-  echo "saving images to $image_to_path..."
+  logger "saving images to $image_to_path..."
   rsync -aq $temp_dir/ "$image_to_path/."
 }
 
