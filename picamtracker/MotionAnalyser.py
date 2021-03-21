@@ -84,7 +84,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.fobj = None
         self.emptyPoints = [[[],[],[]]]
         self.max_debugged_frames = 1200 # 30 secs at 40f/s
-        self.max_debugged_files = 10
+        self.max_debugged_files = config.conf["debugFiles"]
         self.debugged_frames = 0
         self.filenb = 0
         self.name_template = '/run/picamtracker/debug_motion_%03d.data'

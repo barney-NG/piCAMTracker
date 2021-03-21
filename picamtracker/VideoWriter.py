@@ -67,7 +67,7 @@ class vWriter(threading.Thread):
         self.stream = stream
         self.seconds = config.conf["videoLength"]
         self.filename = None
-        self.video_template = '/home/pi/piCAMTracker/media/videos/deb_video%03d.h264'
+        self.video_template = '/home/pi/piCAMTracker/media/videos/video_%03d.h264'
         #self.video_template = '/run/picamtracker/debug_motion_%03d.h264'
 
         self.nvideos = 50

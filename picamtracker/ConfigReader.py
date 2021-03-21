@@ -45,6 +45,7 @@ default_config = \
     "IPUDPBEEP": "255.255.255.255",
     "baseB": "none",
     "debug": False,
+    "debugFiles": 25,
     "debugInputPort": 0,
     "greenLEDPort": 17,
     "redLEDPort": 27,
