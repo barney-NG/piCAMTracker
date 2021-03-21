@@ -757,18 +757,19 @@ class Track:
             fastText = ''
             if self.updates >= self.maturity:
                 # this model uses a simple >= limit to detect a crossing event
-                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and coverage > min_coverage
-                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and coverage < -min_coverage
+                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and coverage > min_coverage and vs[3] > 2*vs[1]
+                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and coverage < -min_coverage and 2*vs[3] < vs[1]
             else:
                 # fast crossing check for big and fast objects
                 # a) object is faster than speed limit
                 # b) object is longer than half of the distance side to turn
                 # c) object front is over the turn line
-                # d) object end is behind the turn line 
+                # d) object end is behind the turn line
+                # e) more positive than negative vectors
                 fill_grade = r[3] / Track.maxY / 2
                 if fill_grade > min_fill_grade and y0 <= Track.yCross and y1 >= Track.yCross:
-                    crossedYPositive = vy > speed_limit
-                    crossedYNegative = vy < -speed_limit
+                    crossedYPositive = vy > speed_limit and vs[3] > 2*vs[1]
+                    crossedYNegative = vy < -speed_limit and 2*vs[3] < vs[1]
                     if crossedYPositive or crossedYNegative:
                         fastText = 'FAST-'
                         
@@ -818,11 +819,12 @@ class Track:
                 # a) object is faster than speed limit
                 # b) object is longer than half of the distance side to turn
                 # c) object front is over the turn line
-                # d) object end is behind the turn line 
+                # d) object end is behind the turn line
+                # e) more positive than negative vectors
                 fill_grade = r[2] / Track.maxX / 2
                 if fill_grade > min_fill_grade and x0 <= Track.xCross and x1 >= Track.xCross:
-                    crossedXPositive = vx > speed_limit
-                    crossedXNegative = vx < -speed_limit
+                    crossedXPositive = vx > speed_limit and vs[2] > 2*vs[0]
+                    crossedXNegative = vx < -speed_limit and 2*vs[2] < vs[0]
                     if crossedXPositive or crossedXNegative:
                         fastText = 'FAST-'
                         

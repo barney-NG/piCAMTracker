@@ -383,6 +383,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         #- STOP HERE IF THERE IS NO MOVEMENT! (NEW)
         if moving_elements == 0:
+            #logging.debug("NO MOVEMENT!")
             self.tracker.update_tracks(t1,self.frame,self.emptyPoints)
             return
 
