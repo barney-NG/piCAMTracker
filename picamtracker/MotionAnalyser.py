@@ -439,7 +439,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             #-- reject areas which are too big
             area = w*h
             if area > self.maxArea:
-                logging.warning( "MAXAEREA! %d > %d (%d/%d)" % (area,self.maxArea,w,h))
+                #logging.debug( "MAXAEREA! %d > %d (%d/%d)" % (area,self.maxArea,w,h))
                 rejects += 1
                 continue
 

@@ -757,8 +757,8 @@ class Track:
             fastText = ''
             if self.updates >= self.maturity:
                 # this model uses a simple >= limit to detect a crossing event
-                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and coverage > min_coverage and vs[3] > 2*vs[1]
-                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and coverage < -min_coverage and 2*vs[3] < vs[1]
+                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and coverage > min_coverage #and vs[3] > 2*vs[1]
+                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and coverage < -min_coverage #and 2*vs[3] < vs[1]
             else:
                 # fast crossing check for big and fast objects
                 # a) object is faster than speed limit
