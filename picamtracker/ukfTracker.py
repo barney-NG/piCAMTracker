@@ -99,16 +99,16 @@ class ukfFilterct2(UnscentedKalmanFilter):
         cos_wt = cos(wt)
         if (abs(w) < 1.e-99):
                       # x       vx        y          vy     
-            self.Ft = [[1.,     1.,       0.,        0.      ],
-                       [0.,   cos_wt,     0.,     -sin_wt    ],
-                       [0.,     0.,       1.,        1.      ],
-                       [0.,   sin_wt,     0.,      cos_wt    ]]
+            self.Ft = np.array([[1.,     1.,       0.,        0.      ],
+                                [0.,   cos_wt,     0.,     -sin_wt    ],
+                                [0.,     0.,       1.,        1.      ],
+                                [0.,   sin_wt,     0.,      cos_wt    ]])
         else:
                       # x       vx         y         vy
-            self.Ft = [[1.,   sin_wt/w,    0., (1.-cos_wt)/w ],
-                       [0.,    cos_wt,     0.,    -sin_wt    ],
-                       [0., (1.-cos_wt)/w, 1.,    sin_wt/w   ],
-                       [0.,    sin_wt,     0.,     cos_wt    ]]
+            self.Ft = np.array([[1.,   sin_wt/w,    0., (1.-cos_wt)/w ],
+                                [0.,    cos_wt,     0.,    -sin_wt    ],
+                                [0., (1.-cos_wt)/w, 1.,    sin_wt/w   ],
+                                [0.,    sin_wt,     0.,     cos_wt    ]])
             
         return
 
@@ -237,7 +237,7 @@ if __name__ == "__main__":
         #print("x:", x)
         return x[[0, 3]]
     N = 30
-    r = 3.0
+    r = 5.0
     T = pi
     dphi = pi/N
     zs = []
