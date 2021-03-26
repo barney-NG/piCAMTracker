@@ -13,14 +13,26 @@ function mount_usb {
 }
 
 # we check just the first partition of the first drive
-device=/dev/sda1
-eval $(sudo blkid -o export $device)
+UUID=
+for n in {1..4}
+do
+  device="/dev/sda$n"
+  eval $(sudo blkid -o export $device)
 
-#echo "LABEL: $LABEL"
-#echo "UUID:  $UUID"
-#echo "TYPE:  $TYPE"
-#echo "PARTUUID:  $PARTUUID"
+  #echo "LABEL: $LABEL"
+  #echo "UUID:  $UUID"
+  #echo "TYPE:  $TYPE"
+  #echo "PARTUUID:  $PARTUUID"
 
+  if [[ -z "$UUID" ]]; then
+    echo ""
+    exit 0
+  fi
+  case "$LABEL" in
+    *EFI*) ;;
+    *)     break;;
+  esac
+done
 if [[ -z "$UUID" ]]; then
   echo ""
   exit 0
