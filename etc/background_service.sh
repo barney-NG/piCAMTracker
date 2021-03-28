@@ -23,11 +23,11 @@ function save_images {
    local path_to=$usb_mount_point/media
    mkdir -p "$path_to/stills" && image_to_path=$path_to/stills
    logger "saving videos to $path_to/videos ..."
-   mkdir -p "$path_to/videos" && rsync -aq $local_videos_path $path_to
+   mkdir -p "$path_to/videos" && nice rsync -aq $local_videos_path $path_to
   fi
   logger "saving images to $image_to_path..."
-  rsync -aq $temp_dir/ "$image_to_path/."
-  rm -f $temp_dir/*.data 2>/dev/null
+  nice rsync -aq $temp_dir/ "$image_to_path/."
+  nice rm -f $temp_dir/*.data 2>/dev/null
 }
 
 #- exit trap
