@@ -27,6 +27,7 @@ function save_images {
   fi
   logger "saving images to $image_to_path..."
   rsync -aq $temp_dir/ "$image_to_path/."
+  rm -f $temp_dir/*.data 2>/dev/null
 }
 
 #- exit trap
