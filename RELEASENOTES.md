@@ -1,4 +1,7 @@
-# next version
+# Version 0.7: 28.03.2021
+* improve USB handling
+* use sum of vectors to reduce noise
+* debugging improved a bit. (far from usable)
 * web interface: with touchmove scroll through the last snapshots
 * snapshot via camera.capture now (let's see how good it works)
 * full cleanup of the html/js part
