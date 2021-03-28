@@ -533,6 +533,9 @@ if __name__ == '__main__':
             cmd = "sudo /home/pi/piCAMTracker/etc/start-access-point.sh --ssid %s" % config.conf['ssid']
             os.system(cmd.encode())
     os.system("/home/pi/piCAMTracker/etc/background_service.sh </dev/null&")
+
+    # create a config.fast.json
+    os.system("[ -e config.json -a ! -e config.fast.json ] && cp config.json config.fast.json")
      
     # just a test ...
     # out = shell('/usr/bin/vcgencmd', 'measure_temp')
