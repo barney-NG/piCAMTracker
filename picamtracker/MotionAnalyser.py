@@ -84,10 +84,20 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.fobj = None
         self.emptyPoints = [[[],[],[]]]
         self.max_debugged_frames = 1200 # 30 secs at 40f/s
-        self.max_debugged_files = config.conf["debugFiles"]
+        self.max_debugged_files = config.conf['debugFiles']
         self.debugged_frames = 0
         self.filenb = 0
         self.name_template = '/run/picamtracker/debug_motion_%03d.data'
+        self.number_safe = '/home/pi/piCAMTracker/media/stills/debug_last.txt'
+
+        try:
+            with open(self.number_safe, "r") as fd:
+                last_str = fd.readline()
+                last = int(last_str)
+                logging.info("last debug file number: %d", last)
+                self.filenb = last
+        except:
+            pass
         
         self.checkY = 0
         self.checkX = 0
@@ -105,7 +115,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         write out the the macro blocks for later investigation
         """
         if self.fobj is None:
-            if self.filenb > self.max_debugged_files:
+            if self.filenb >= self.max_debugged_files:
                 self.filenb = 0
             else:
                 self.filenb += 1
@@ -131,6 +141,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             self.fobj = None
             if self.vwriter:
                 self.vwriter.write(self.filenb)
+            with open(self.number_safe, "w") as fd:
+                fd.write("%03d\n" % self.filenb)
 
     def intersects(self,rects,xn,yn,wn,hn):
         """

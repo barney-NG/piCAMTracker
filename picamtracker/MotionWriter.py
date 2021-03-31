@@ -49,6 +49,7 @@ from collections import deque
 #from picamera import mmal,mmalobj as mo
 import numpy as np
 import logging
+import re
 from picamtracker import Display
 if sys.version_info < (3,0):
     from picamtracker.python2 import libh264decoder as h264decoder
@@ -80,6 +81,7 @@ class Writer(threading.Thread):
         self.imgtemplate = '/run/picamtracker/mjpeg%03d.jpg'
         self.imgctrl_file = '/run/picamtracker/act_image.name'
         self.video_template = '/home/pi/piCAMTracker/media/videos/video%03d.h264'
+        self.img_save_ctrl_file = '/home/pi/piCAMTracker/media/stills/act_image.name'
 
         #self.display = Display('Debug',10,10)
         self.image = np.ones((self.resx,self.resy,3), dtype=np.uint8) * 220
@@ -105,11 +107,17 @@ class Writer(threading.Thread):
             self.k = 1
         prctl.set_name('ptrk.Writer')
 
-
-        #pygame.init()
-        #self.screen = pygame.display.set_mode((1280,720))
-
-
+        try:
+            with open(self.img_save_ctrl_file, "r") as fd:
+                img_name = fd.readline()
+                match = re.match('.*/mjpeg(\d+).jpg', img_name)
+                if match:
+                    img_no = int(match.group(1))
+                    logging.info("last image number: %d", img_no)
+                    self.nbimage = img_no
+        except:
+            pass
+            
         #- do things according configuration
         if config is not None:
             self.ycross = config.conf['yCross'] * 16
