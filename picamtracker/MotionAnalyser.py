@@ -89,6 +89,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.filenb = 0
         self.name_template = '/run/picamtracker/debug_motion_%03d.data'
         self.number_safe = '/home/pi/piCAMTracker/media/stills/debug_last.txt'
+        self.kernel = np.ones((3,3),np.uint8)
 
         try:
             with open(self.number_safe, "r") as fd:
@@ -433,8 +434,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #-- MARK MOVING REGIONS
         #---------------------------------------------------------------
         if self.minArea == 1:
-            mask = cv2.dilate(mask, None, borderType=cv2.BORDER_REPLICATE) # -> minArea = 9!
-        #cv2.imshow("mask",mask)
+            mask = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,self.kernel,iterations=2) # -> minArea = 9
+            #cv2.imshow("mask",mask)
         contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) 
         rects = self.removeIntersections(contours)
 
