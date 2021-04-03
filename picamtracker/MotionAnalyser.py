@@ -69,6 +69,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.extension = config.conf['extension']
         # 32768 is absolute maximum ; 8192 is maximum
         self.sadThreshold = config.conf['sadThreshold']
+        if self.sadThreshold < 160:
+            self.sadThreshold = 160
         self.big = None
         self.show = show
         self.started = False
@@ -433,10 +435,17 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #---------------------------------------------------------------
         #-- MARK MOVING REGIONS
         #---------------------------------------------------------------
-        if self.minArea == 1:
-            mask = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,self.kernel,iterations=2) # -> minArea = 9
-            #cv2.imshow("mask",mask)
-        contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) 
+        mask = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,self.kernel,iterations=2)
+        #mask1 = np.rot90(mask,k=-1)
+        #mask1 = cv2.resize(mask1,None,fx=8,fy=8,interpolation=cv2.INTER_AREA)
+        #cv2.imshow("mask1",mask1)
+        _,sadm = cv2.threshold(sad,self.sadThreshold,65535,cv2.THRESH_BINARY)
+        sadm = sadm.astype(np.uint8)
+        #sadm1 = np.rot90(sadm,k=-1)
+        #sadm1 = cv2.resize(sadm1,None,fx=8,fy=8,interpolation=cv2.INTER_AREA)
+        #cv2.imshow("sad",sadm1)
+        mask2 = np.bitwise_or(mask,sadm)
+        contours,_ = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         rects = self.removeIntersections(contours)
 
         #---------------------------------------------------------------

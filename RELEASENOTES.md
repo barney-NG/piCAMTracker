@@ -1,3 +1,5 @@
+# Version 0.7.1: 08.04.2021
+* make detection more sensible (using sad + v-vectors now to build motion mask)
 # Version 0.7: 28.03.2021
 * improve USB handling
 * use sum of vectors to reduce noise
