@@ -313,7 +313,7 @@ class Writer(threading.Thread):
                     # positive diff -> frame was created after event
                     # we allow i-frames created very short before the crossing event
                     if diff > -10 and diff <= self.maxDiff:
-                        logging.debug("found key/sps frame @ %d (type:%d delta:%d)",index,ftype,diff)
+                        logging.debug("found key/sps frame @ %d (target:%d delta:%d)",index,framenb,diff)
                         record = True
                     # stop loop if difference is too big
                     if diff < minus_max_diff:

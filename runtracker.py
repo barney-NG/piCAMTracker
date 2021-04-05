@@ -149,7 +149,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
         config.conf['debug'] = True
 
     # I am testing if camera,capture is fast enough for us
-    capture = True
+    capture = False
     
     # where are we
     logging.info(get_raspi_revision())
