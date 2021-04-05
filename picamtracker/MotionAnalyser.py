@@ -71,6 +71,10 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.sadThreshold = config.conf['sadThreshold']
         if self.sadThreshold < 160:
             self.sadThreshold = 160
+        self.rects = None
+        self.num_rects = 20
+        self.rect_index = 0
+        self.rect_average = 0.0
         self.big = None
         self.show = show
         self.started = False
@@ -88,6 +92,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.max_debugged_frames = 1200 # 30 secs at 40f/s
         self.max_debugged_files = config.conf['debugFiles']
         self.debugged_frames = 0
+        self.first_debugged_frame = 0
         self.filenb = 0
         self.name_template = '/run/picamtracker/debug_motion_%03d.data'
         self.number_safe = '/home/pi/piCAMTracker/media/stills/debug_last.txt'
@@ -113,11 +118,22 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         if self.xcross > 0 and config.conf["baseB"] == "right":
             self.checkX = 1
 
-    def debug_out(self, array):
+    def rect_avg(self, value):
+        if self.rects is None:
+            self.rects = np.zeros(self.num_rects)
+        self.rects[self.rect_index] = value
+        self.rect_index += 1
+        if self.rect_index >= self.num_rects:
+            self.rect_index = 0
+        return np.mean(self.rects)
+        
+    def debug_out(self, array, framenb):
         """
         write out the the macro blocks for later investigation
         """
         if self.fobj is None:
+            self.first_debugged_frame = framenb
+            self.camera.request_key_frame()
             if self.filenb >= self.max_debugged_files:
                 self.filenb = 0
             else:
@@ -137,13 +153,13 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.fobj.write(array)
 
         self.debugged_frames += 1
-        if self.debugged_frames > self.max_debugged_frames:
+        if self.debugged_frames >= self.max_debugged_frames:
             logging.info("MotionAnalyser:debug off")
             self.debug = False
             self.fobj.close()
             self.fobj = None
             if self.vwriter:
-                self.vwriter.write(self.filenb)
+                self.vwriter.write(self.filenb, self.first_debugged_frame, self.debugged_frames )
             with open(self.number_safe, "w") as fd:
                 fd.write("%03d\n" % self.filenb)
 
@@ -253,8 +269,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         if value > 0:
             # only start debugging when old session has stopped
             if self.fobj == None:
-                logging.info("MotionAnalyser:debug on (%d)" % value)
                 self.max_debugged_frames = self.camera.framerate_range[1] * value
+                logging.info("MotionAnalyser:debug on (%ds / %d frames)" % (value,self.max_debugged_frames))
                 self.debug = True
         else:
             self.debug = False
@@ -382,7 +398,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
 
         # save the motion blocks
         if self.debug:
-            self.debug_out(a)
+            self.debug_out(a, self.frame)
         
         #logging.debug("---%5.0fms ---" % (dt*1000.0))
         #return
@@ -420,7 +436,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             for y,x in coords:
                 u  = a[y,x]['x']
                 v  = a[y,x]['y']
-                c = int((0xffff - sad[y,x]) & 0x00ff)
+                c = int((0x0fff - sad[y,x]) & 0x00ff)
                 cv2.rectangle(self.big,(x*8,y*8),((x+1)*8,(y+1)*8),(0,c,c),-1)
                 #-- nice arrows
                 if self.show & 0x0004:
@@ -435,17 +451,20 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #---------------------------------------------------------------
         #-- MARK MOVING REGIONS
         #---------------------------------------------------------------
-        mask = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,self.kernel,iterations=2)
+        #mask = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,self.kernel,iterations=2)
         #mask1 = np.rot90(mask,k=-1)
         #mask1 = cv2.resize(mask1,None,fx=8,fy=8,interpolation=cv2.INTER_AREA)
-        #cv2.imshow("mask1",mask1)
-        _,sadm = cv2.threshold(sad,self.sadThreshold,65535,cv2.THRESH_BINARY)
+        #cv2.imshow("v-vector",mask1)
+        threshold = self.sadThreshold + 4 * int(self.rect_average)
+        _,sadm = cv2.threshold(sad, threshold,255,cv2.THRESH_BINARY)
         sadm = sadm.astype(np.uint8)
         #sadm1 = np.rot90(sadm,k=-1)
         #sadm1 = cv2.resize(sadm1,None,fx=8,fy=8,interpolation=cv2.INTER_AREA)
         #cv2.imshow("sad",sadm1)
         mask2 = np.bitwise_or(mask,sadm)
         contours,_ = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        self.rect_average = self.rect_avg(len(contours))
+        #print("rects: %6.2f" % self.rect_average)
         rects = self.removeIntersections(contours)
 
         #---------------------------------------------------------------
@@ -492,7 +511,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                 #-- give blocks which don't differ much (sad is small) higher priority
                 arx = np.array(a[y0:y1,x0:x1]['x'])
                 ary = np.array(a[y0:y1,x0:x1]['y'])
-                similarity = 0xffff - sad[y0:y1,x0:x1].flatten()
+                similarity = 0x1000 - sad[y0:y1,x0:x1].flatten()
                 vx = np.average(arx.flatten(),weights=similarity)
                 vy = np.average(ary.flatten(),weights=similarity)
                 #-- count element movings
@@ -554,5 +573,5 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
             if self.display:
               self.display.imshow( self.big )
 
-        #if self.processed_frames % 10 == 0:
-        #    print("--- %4.2fms (%d)" % (1000.0 * (time() - self.t0), num_rects))
+        #if self.processed_frames % 50 == 0:
+        #    logging.debug("--- %4.2fms (%d)" % (1000.0 * (time() - self.t0), num_rects))
