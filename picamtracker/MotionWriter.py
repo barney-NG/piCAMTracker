@@ -291,48 +291,47 @@ class Writer(threading.Thread):
         
         sleep(0.1) # wait for keyframe is written in circular buffer
         # lock stream by reading it
-        for frame in reversed(self.stream.frames):
-            n += 1
-            index = frame.index
-            ftype = frame.frame_type
-            #if n == 1:
-            #    logging.debug("index: %d type: %d (_%d_)" % (index,ftype,framenb))
-            fmin = min(fmin,index)
-            fmax = max(fmax,index)
-            
-            if not record:
-                diff = 99999
-                # sps frame
-                if ftype == 1:
-                    i_size = frame.frame_size
-                # i-frame
-                if ftype == 2:
-                    diff = index - framenb
-                    #logging.debug("index: %d type 2 diff: %d" % (index,diff))
+        with self.stream.lock:
+            for frame in reversed(self.stream.frames):
+                n += 1
+                index = frame.index
+                ftype = frame.frame_type
+                fmin = min(fmin,index)
+                fmax = max(fmax,index)
+                
+                if not record:
+                    diff = 99999
+                    # sps frame
+                    if ftype == 1:
+                        i_size = frame.frame_size
+                    # i-frame
+                    if ftype == 2:
+                        diff = index - framenb
+                        #logging.debug("index: %d type 2 diff: %d" % (index,diff))
 
-                # negative diff -> frame was created before event
-                # positive diff -> frame was created after event
-                # we allow i-frames created very short before the crossing event
-                if diff > -5 and diff <= self.maxDiff:
-                    #logging.debug("found key/sps frame @ %d (type:%d delta:%d)",index,ftype,diff)
-                    record = True
-                # stop loop if difference is too big
-                if diff < minus_max_diff:
+                    # negative diff -> frame was created before event
+                    # positive diff -> frame was created after event
+                    # we allow i-frames created very short before the crossing event
+                    if diff > -10 and diff <= self.maxDiff:
+                        logging.debug("found key/sps frame @ %d (type:%d delta:%d)",index,ftype,diff)
+                        record = True
+                    # stop loop if difference is too big
+                    if diff < minus_max_diff:
+                        break
+                        
+                # decode the next sps + i-frame
+                if record:
+                    save_pos = self.stream.tell()
+                    pos = frame.position
+                    szs = frame.frame_size + i_size + 32
+                    self.stream.seek(pos)
+                    with self.lock:
+                        self.frame2decode = self.stream.read(szs)
+                        if self.isCut:
+                            framenb = -framenb
+                        self.update_hits(delay, framenb, motion)
+                    self.stream.seek(save_pos)
                     break
-                    
-            # decode the next sps + i-frame
-            if record:
-                save_pos = self.stream.tell()
-                pos = frame.position
-                szs = frame.frame_size + i_size + 32
-                self.stream.seek(pos)
-                with self.lock:
-                    self.frame2decode = self.stream.read(szs)
-                    if self.isCut:
-                        framenb = -framenb
-                    self.update_hits(delay, framenb, motion)
-                self.stream.seek(save_pos)
-                break
 
         if record == False:
             logging.error("%d frames searched (%d < _%d_ < %d) no i-frame found!" % (n,fmin,framenb,fmax))

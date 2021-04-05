@@ -149,8 +149,8 @@ class vWriter(threading.Thread):
                         first = frame
                         diff = index - self.first_frame
                         #logging.debug("index: %d type 1 diff: %d" % (index,diff))
-                    if diff >= -100 and diff <= 75:
-                        #logging.debug("found sps frame @ %d (type:%d delta:%d)",index,ftype,diff)
+                    if diff >= -150 and diff <= 50:
+                        logging.debug("found sps frame @ %d (type:%d delta:%d)",index,ftype,diff)
                         record = True
                     # stop loop if difference is too big
                     if diff < minus_max_diff:
