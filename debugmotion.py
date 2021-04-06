@@ -167,8 +167,8 @@ def main(fobj=None,width=1280,height=960,video=False):
                 writer.write(rot_img)
 
             # show track status
-            #for track in tracker.track_pool:
-            #    track.printTrack(chunks_read)
+            for track in tracker.track_pool:
+                track.printTrack(chunks_read)
 
             # show debug image
             cv2.imshow(caption,rot_img)

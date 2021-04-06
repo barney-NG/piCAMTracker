@@ -69,8 +69,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.extension = config.conf['extension']
         # 32768 is absolute maximum ; 8192 is maximum
         self.sadThreshold = config.conf['sadThreshold']
-        if self.sadThreshold < 160:
-            self.sadThreshold = 160
+        if self.sadThreshold < 150:
+            self.sadThreshold = 150
         self.rects = None
         self.num_rects = 20
         self.rect_index = 0
@@ -386,7 +386,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         # initialize values not known at class initialization
         if not self.started:
             self.tracker.setup_sizes(self.rows, self.cols-1)
-            self.maxMovements = int(self.rows * self.cols * 0.8)
+            self.maxMovements = int(self.rows * self.cols * 0.6)
             # prepare background image 
             if self.show:
                 if self.big is None:
@@ -406,10 +406,12 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #---------------------------------------------------------------
         #-- IDENTIFY MOVEMENT
         #---------------------------------------------------------------
+        threshold = self.sadThreshold + 4 * int(self.rect_average)
         mag = np.abs(a['x']) + np.abs(a['y'])
         has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
+        has_movement = np.logical_or(has_movement, a['sad'] >= threshold)
 
-        #- reject if more than 80% of the macro blocks are moving
+        #- reject if more than 60% of the macro blocks are moving
         moving_elements = np.count_nonzero(has_movement)
 
         #- STOP HERE IF THERE IS NO MOVEMENT! (NEW)
@@ -444,27 +446,29 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
                     ym = y
                     xm *= 8
                     ym *= 8
-                    xe  = xm - 8 * u
-                    ye  = ym - 8 * v
+                    xe  = xm - 4 * u
+                    ye  = ym - 4 * v
                     cv2.arrowedLine(self.big,(xm,ym),(xe,ye),(c,0,c),1)
 
         #---------------------------------------------------------------
         #-- MARK MOVING REGIONS
         #---------------------------------------------------------------
-        #mask = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,self.kernel,iterations=2)
-        #mask1 = np.rot90(mask,k=-1)
-        #mask1 = cv2.resize(mask1,None,fx=8,fy=8,interpolation=cv2.INTER_AREA)
-        #cv2.imshow("v-vector",mask1)
-        threshold = self.sadThreshold + 4 * int(self.rect_average)
+        mask = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,self.kernel,iterations=2)
+
+        """ >>> debug
+        mask1 = np.rot90(mask,k=-1)
+        mask1 = cv2.resize(mask1,None,fx=8,fy=8,interpolation=cv2.INTER_AREA)
+        cv2.imshow("v-vector",mask1)
         _,sadm = cv2.threshold(sad, threshold,255,cv2.THRESH_BINARY)
         sadm = sadm.astype(np.uint8)
-        #sadm1 = np.rot90(sadm,k=-1)
-        #sadm1 = cv2.resize(sadm1,None,fx=8,fy=8,interpolation=cv2.INTER_AREA)
-        #cv2.imshow("sad",sadm1)
-        mask2 = np.bitwise_or(mask,sadm)
-        contours,_ = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        sadm1 = np.rot90(sadm,k=-1)
+        sadm1 = cv2.resize(sadm1,None,fx=8,fy=8,interpolation=cv2.INTER_AREA)
+        cv2.imshow("sad",sadm1)
+        #mask2 = np.bitwise_or(mask,sadm)
+        <<< debug """
+
+        contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         self.rect_average = self.rect_avg(len(contours))
-        #print("rects: %6.2f" % self.rect_average)
         rects = self.removeIntersections(contours)
 
         #---------------------------------------------------------------
