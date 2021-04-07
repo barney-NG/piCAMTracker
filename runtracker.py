@@ -338,7 +338,7 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
             udpThread = None
 
         # setup used objects 
-        vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'])
+        vstream = picamera.PiCameraCircularIO(camera, seconds=config.conf['videoLength'], bitrate=50000000)
         writer = picamtracker.Writer(camera, stream=vstream, config=config, wsserver=wsserver)
         vwriter = picamtracker.vWriter(stream=vstream, config=config)        
         tracker = picamtracker.Tracker(camera, greenLed=greenLED, redLed=redLED, config=config, udpThread=udpThread, capture=capture)

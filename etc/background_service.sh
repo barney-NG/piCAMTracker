@@ -3,6 +3,14 @@
 #- the background service shall only be called once
 [[ $(pgrep -f -c background_service.sh) -gt 1 ]] && exit 1
 
+while getopts ":o" opts; do
+  case "$opts" in
+    o) once="yes"
+       ;;
+  esac
+done
+
+
 trap go_exit 1 2 3 15
 
 temp_dir=/run/picamtracker
@@ -26,7 +34,7 @@ function save_images {
    mkdir -p "$path_to/videos" && nice rsync -aq $local_videos_path $path_to
   fi
   logger "saving images to $image_to_path..."
-  nice rsync -aq $temp_dir/ "$image_to_path/."
+  nice rsync -aq $temp_dir/* "$image_to_path/."
   nice rm -f $temp_dir/*.data 2>/dev/null
 }
 
@@ -44,6 +52,12 @@ function get_temp {
   str=${str//\'C/}
   echo $str
 }
+
+if [[ "$once" == "yes" ]]
+then
+  save_images
+  exit 0
+fi
 
 #- make a one minute loop
 loop=1

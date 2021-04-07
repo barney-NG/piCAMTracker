@@ -69,8 +69,10 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.extension = config.conf['extension']
         # 32768 is absolute maximum ; 8192 is maximum
         self.sadThreshold = config.conf['sadThreshold']
+        # block all old standard sadThresholds which where 0
         if self.sadThreshold < 150:
             self.sadThreshold = 150
+            config.conf['sadThreshold'] = 150
         self.rects = None
         self.num_rects = 20
         self.rect_index = 0

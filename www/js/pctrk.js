@@ -210,7 +210,7 @@ read_config.onreadystatechange = function()
             $('#slider-vMax').val(cfg.vMax).slider('refresh');
             $('#slider-MinArea').val(cfg.minArea).slider('refresh');
             $('#slider-MaxArea').val(cfg.maxArea).slider('refresh');
-            //$('#slider-NoiseLevel').val(cfg.sadThreshold).slider('refresh');
+            $('#slider-NoiseLevel').val(cfg.sadThreshold).slider('refresh');
             $('#slider-MaxMotionDistance').val(cfg.maxDist).slider('refresh');
             $('#slider-DetectionMaturity').val(cfg.trackMaturity).slider('refresh');
             $('#slider-ObjectExtension').val(cfg.extension).slider('refresh');
