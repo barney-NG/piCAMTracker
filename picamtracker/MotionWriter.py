@@ -249,7 +249,14 @@ class Writer(threading.Thread):
                     self.nbimage = 0
                 else:
                     self.nbimage += 1
-                cv2.imwrite(imagepath, image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+
+                try:
+                    cv2.imwrite(imagepath, image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                    logging.info("image: %s" % imagepath)
+                except:
+                    logging.error("cannot write %s" % imagepath)
+                    pass
+
                 try:
                     fs = open(self.imgctrl_file, "w")
                     fs.write(imagepath)

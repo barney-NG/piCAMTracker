@@ -388,7 +388,7 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         # initialize values not known at class initialization
         if not self.started:
             self.tracker.setup_sizes(self.rows, self.cols-1)
-            self.maxMovements = int(self.rows * self.cols * 0.6)
+            self.maxMovements = int(self.rows * self.cols * 0.7)
             # prepare background image 
             if self.show:
                 if self.big is None:
