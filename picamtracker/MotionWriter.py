@@ -230,8 +230,8 @@ class Writer(threading.Thread):
                     cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
                     
                 #txt = "%4.1fms" % (delay*1000.0)
-                txt = "%d/%4.1f" % (updates,np.linalg.norm(motion[1]))
-                cv2.putText(image,txt,(int(x0), int(y0)),cv2.FONT_HERSHEY_SIMPLEX,0.3,(20,220,20),1)
+                txt = "%d/%3.1f" % (updates,np.linalg.norm(motion[1]))
+                cv2.putText(image,txt,(int(x0-2), int(y0-2)),cv2.FONT_HERSHEY_SIMPLEX,0.4,(200,200,200),1)
 
                 #txt = "%d" % (framenb/2)
                 #xpos = int(self.resx/2) - len(txt) * 8
