@@ -408,10 +408,27 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #---------------------------------------------------------------
         #-- IDENTIFY MOVEMENT
         #---------------------------------------------------------------
-        threshold = self.sadThreshold + 4 * int(self.rect_average)
+        threshold = self.sadThreshold + 5 * int(self.rect_average)
         mag = np.abs(a['x']) + np.abs(a['y'])
-        has_movement = np.logical_and(mag >= self.vmin, mag < self.vmax)
-        has_movement = np.logical_or(has_movement, a['sad'] >= threshold)
+        has_movement0 = np.logical_and(mag >= self.vmin, mag < self.vmax)
+        has_movement = np.logical_or(has_movement0, a['sad'] >= threshold)
+
+        #- mask out movement
+        mask = has_movement.astype(np.uint8) * 255
+        sad = np.array(a['sad'], np.uint16)
+
+        """ >>> debug
+        mask1 = has_movement0.astype(np.uint8) * 255
+        #mask1 = np.rot90(mask1,k=-1)
+        mask1 = cv2.resize(mask1,None,fx=8,fy=8,interpolation=cv2.INTER_AREA)
+        cv2.imshow("v-vector",mask1)
+        _,sadm = cv2.threshold(sad, threshold,255,cv2.THRESH_BINARY)
+        sadm = sadm.astype(np.uint8)
+        #sadm1 = np.rot90(sadm,k=-1)
+        sadm1 = cv2.resize(sadm,None,fx=8,fy=8,interpolation=cv2.INTER_AREA)
+        cv2.imshow("sad",sadm1)
+        #mask2 = np.bitwise_or(mask,sadm)
+        debug """
 
         #- reject if more than 60% of the macro blocks are moving
         moving_elements = np.count_nonzero(has_movement)
@@ -428,10 +445,6 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         if moving_elements > self.maxMovements:
             logging.warning("MAXMOVEMENT! (%d)" % moving_elements)
             return
-
-        #- mask out movement
-        mask = has_movement.astype(np.uint8) * 255
-        sad = np.array(a['sad'], np.uint16)
 
         # show movement vectors and sad values
         if self.show & 0x0002:
@@ -456,19 +469,6 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         #-- MARK MOVING REGIONS
         #---------------------------------------------------------------
         mask = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,self.kernel,iterations=2)
-
-        """ >>> debug
-        mask1 = np.rot90(mask,k=-1)
-        mask1 = cv2.resize(mask1,None,fx=8,fy=8,interpolation=cv2.INTER_AREA)
-        cv2.imshow("v-vector",mask1)
-        _,sadm = cv2.threshold(sad, threshold,255,cv2.THRESH_BINARY)
-        sadm = sadm.astype(np.uint8)
-        sadm1 = np.rot90(sadm,k=-1)
-        sadm1 = cv2.resize(sadm1,None,fx=8,fy=8,interpolation=cv2.INTER_AREA)
-        cv2.imshow("sad",sadm1)
-        #mask2 = np.bitwise_or(mask,sadm)
-        <<< debug """
-
         contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         self.rect_average = self.rect_avg(len(contours))
         rects = self.removeIntersections(contours)

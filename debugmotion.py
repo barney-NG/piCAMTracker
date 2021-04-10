@@ -148,7 +148,7 @@ def main(fobj=None,width=1280,height=960,video=False):
                 warmup = False
                 continue
                 
-            delay,frame,motion = tracker.getStatus()
+            delay,updates,frame,motion = tracker.getStatus()
             #tracker.showTracks(chunks_read, image)
             if frame > 0:
                 tracker.releaseLock()

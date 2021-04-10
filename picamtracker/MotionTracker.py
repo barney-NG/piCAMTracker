@@ -217,11 +217,11 @@ class Tracker(threading.Thread):
             frame  = self.frame
             motion = self.motion
             delay = self.detectionDelay
-            self.frame = 0
-            self.direction = 0
+            updates = self.updates
+            self.frame = self.direction = self.updates = 0
             self.detectionDelay = -0.999
         #logging.debug("Tracker::getStatus (%d)" % frame)
-        return (delay, frame, motion)
+        return (delay, updates, frame, motion)
 
     #--------------------------------------------------------------------
     #-- callback for crossing event
@@ -329,10 +329,11 @@ class Tracker(threading.Thread):
         for rn,vn,vstats in motion:
             #-- search a track for this coordinate
             tracked = 0x00000000
+            vstat_sum = sum(vstats)
             # >>> debug
             #cx = rn[0] + rn[2] / 2
             #cy = rn[1] + rn[3] / 2
-            #logging.debug( "frame:%d %d,%d ===============================" % ( frame,rn[0],rn[1] ))
+            #logging.debug( "frame:%d %d,%d vsum: %d ===============================" % ( frame,rn[0],rn[1],vstat_sum ))
             # <<< debug
             #-- sorting by distance really makes sence here
             for track in sorted(self.track_pool, key=lambda t: weighted_distance(t,rn)):
@@ -348,7 +349,7 @@ class Tracker(threading.Thread):
                     break
 
                 # >>> debug
-                #logging.debug("   check: [%s](%d): @%d,%d dist:%d" % (track.name,track.updates,track.re[0],track.re[1],dist))
+                #logging.debug("   check: [%s](%d): @%d,%d dist:%d", track.name,track.updates,track.re[0],track.re[1],dist)
                 # <<< debug
 
                 #-- check if track takes coordinates
@@ -360,7 +361,8 @@ class Tracker(threading.Thread):
                     break
 
             #-- not yet tracked -> find a free slot
-            if not tracked and sum(vstats):
+            if not tracked and vstat_sum > 0:
+                #logging.debug("not tracked -> vstats %d", vstat_sum)
                 for track in self.track_pool:
                     if track.updates == 0:
                         #logging.debug("   [%s] new %d/%d" % (track.name, rn[0],rn[1]))
@@ -757,8 +759,8 @@ class Track:
             fastText = ''
             if self.updates >= self.maturity:
                 # this model uses a simple >= limit to detect a crossing event
-                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and coverage > min_coverage and vs[3] > self.updates
-                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and coverage < -min_coverage and vs[1] > self.updates
+                crossedYPositive =  vy >  0.1 and y1 >= Track.yCross and (y1 - delta) < Track.yCross and self.miny < Track.yCross and coverage > min_coverage
+                crossedYNegative =  vy < -0.1 and y0 <= Track.yCross and (y0 + delta) > Track.yCross and self.maxy > Track.yCross and coverage < -min_coverage
             else:
                 # fast crossing check for big and fast objects
                 # a) object is faster than speed limit
@@ -812,8 +814,8 @@ class Track:
             fastText = ''
             if self.updates >= self.maturity:
                 # this model uses a simple >= limit to detect a crossing event
-                crossedXPositive =  vx >  0.1 and x1 >= Track.xCross and (x1 - delta) < Track.xCross and self.minx < Track.xCross and coverage > min_coverage and vs[2] > self.updates
-                crossedXNegative =  vx < -0.1 and x0 <= Track.xCross and (x0 + delta) > Track.xCross and self.maxx > Track.xCross and coverage < -min_coverage and vs[0] > self.updates
+                crossedXPositive =  vx >  0.1 and x1 >= Track.xCross and (x1 - delta) < Track.xCross and self.minx < Track.xCross and coverage > min_coverage
+                crossedXNegative =  vx < -0.1 and x0 <= Track.xCross and (x0 + delta) > Track.xCross and self.maxx > Track.xCross and coverage < -min_coverage
             else:
                 # fast crossing check for big and fast objects
                 # a) object is faster than speed limit

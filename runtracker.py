@@ -421,14 +421,14 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
                             break
                     
                     # crossing event happend?
-                    delay,frame,motion = tracker.getStatus()
+                    delay,updates,frame,motion = tracker.getStatus()
                     if frame != 0:
                         # if crossing detected -> take a snapshot of the event
                         #t0 = time()
                         if capture:
-                            writer.update_hits(delay, frame, motion, tracker.image.copy())
+                            writer.update_hits(delay, updates, frame, motion, tracker.image.copy())
                         else:
-                            writer.takeSnapshot(delay, frame, motion)
+                            writer.takeSnapshot(delay, updates, frame, motion)
                         tracker.releaseLock()
                         #print("capture time: %4.2fms" % (1000.0 * (time() - t0)))
 

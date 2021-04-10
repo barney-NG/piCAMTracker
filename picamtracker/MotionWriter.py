@@ -149,8 +149,8 @@ class Writer(threading.Thread):
     #--------------------------------------------------------------------
     #-- queue new points and feed worker
     #--------------------------------------------------------------------
-    def update_hits(self, delay,framenb, motion, image=None):
-        self.q.append([delay,framenb,motion,image])
+    def update_hits(self, delay,updates,framenb, motion, image=None):
+        self.q.append([delay,updates,framenb,motion,image])
         self.event.set()
 
     #--------------------------------------------------------------------
@@ -166,7 +166,7 @@ class Writer(threading.Thread):
     def run(self):
         while not self.terminated:
             try:
-                delay,framenb,motion,cam_image = self.q.popleft()
+                delay,updates,framenb,motion,cam_image = self.q.popleft()
 
                 if cam_image is not None:
                     image = cam_image
@@ -230,8 +230,8 @@ class Writer(threading.Thread):
                     cv2.rectangle(image,(x0,y0),(x1,y1),(20,220,20),1)
                     
                 #txt = "%4.1fms" % (delay*1000.0)
-                txt = "v:%4.1f" % (np.linalg.norm(motion[1]))
-                cv2.putText(image,txt,(int(x0), int(y0)),cv2.FONT_HERSHEY_SIMPLEX,0.5,(20,220,20),1)
+                txt = "%d/%4.1f" % (updates,np.linalg.norm(motion[1]))
+                cv2.putText(image,txt,(int(x0), int(y0)),cv2.FONT_HERSHEY_SIMPLEX,0.3,(20,220,20),1)
 
                 #txt = "%d" % (framenb/2)
                 #xpos = int(self.resx/2) - len(txt) * 8
@@ -283,7 +283,7 @@ class Writer(threading.Thread):
     #-- lock stream and find frame to take as snapshot
     #--------------------------------------------------------------------
     #def takeSnapshot(self, framenb):
-    def takeSnapshot(self, delay, framenb, motion):
+    def takeSnapshot(self, delay, updates, framenb, motion):
         n = 0
         fmin = 9999999
         fmax = 0
@@ -320,7 +320,7 @@ class Writer(threading.Thread):
                     # positive diff -> frame was created after event
                     # we allow i-frames created very short before the crossing event
                     if diff > -10 and diff <= self.maxDiff:
-                        logging.debug("found key/sps frame @ %d (target:%d delta:%d)",index,framenb,diff)
+                        logging.debug("found sps frame @ %d (delta:%d)",index,diff)
                         record = True
                     # stop loop if difference is too big
                     if diff < minus_max_diff:
@@ -336,7 +336,7 @@ class Writer(threading.Thread):
                         self.frame2decode = self.stream.read(szs)
                         if self.isCut:
                             framenb = -framenb
-                        self.update_hits(delay, framenb, motion)
+                        self.update_hits(delay, updates, framenb, motion)
                     self.stream.seek(save_pos)
                     break
 
