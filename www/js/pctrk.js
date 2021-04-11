@@ -191,6 +191,7 @@ read_config.onreadystatechange = function()
             console.log("CFG: " + JSON.stringify(cfg));
             
             // set fastmode checkbox status
+            // console.log("fast mode: " + cfg.fastMode)
             if(cfg.fastMode == true) {
                 document.getElementById("fm_on").click();
             } else {

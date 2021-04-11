@@ -71,8 +71,8 @@ class MotionAnalyser(picamera.array.PiMotionAnalysis):
         self.sadThreshold = config.conf['sadThreshold']
         # block all old standard sadThresholds which where 0
         if self.sadThreshold < 150:
-            self.sadThreshold = 150
-            config.conf['sadThreshold'] = 150
+            self.sadThreshold = 180
+            config.conf['sadThreshold'] = 180
         self.rects = None
         self.num_rects = 20
         self.rect_index = 0

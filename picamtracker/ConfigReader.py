@@ -59,7 +59,7 @@ default_config = \
     "minArea": 2,
     "maxArea": 4200,
     "maxSnapshots": 100,
-    "sadThreshold": 160,
+    "sadThreshold": 180,
     "trackLifeTime": 17,
     "trackMaturity": 5,
     "xCross": -1,

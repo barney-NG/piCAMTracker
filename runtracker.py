@@ -536,6 +536,7 @@ if __name__ == '__main__':
 
     # create a config.fast.json
     os.system("[ -e config.json -a ! -e config.fast.json ] && cp config.json config.fast.json")
+    os.system("[ -e %s ] && (cd www && ln -sf ../%s config.json)" % (args.config,args.config))
      
     # just a test ...
     # out = shell('/usr/bin/vcgencmd', 'measure_temp')
@@ -557,6 +558,7 @@ if __name__ == '__main__':
             reread_config = True
         if reread_config:
             logging.info("using <%s> as config", args.config)
+            os.system("[ -e %s ] && (cd www && ln -sf ../%s config.json)" % (args.config,args.config))
             config = picamtracker.Configuration(args.config)
             config.write()
         args.fast = set_fastmode

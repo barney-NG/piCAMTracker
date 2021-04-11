@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -51,7 +52,7 @@
 	    <input type="range" id="slider-vMin" value="1" min="1" max="25" step="2" data-highlight="true"
 		   onchange="fifo_command('vMin:',$('#slider-vMin').val()) ;" />
 	    <label for="slider-vMax">Maximum Speed: (faster objects are ignored)</label>
-	    <input type="range" id="slider-vMax" value="30" min="10" max="50" step="5" data-highlight="true"
+	    <input type="range" id="slider-vMax" value="15" min="10" max="30" step="5" data-highlight="true"
 		   onchange="fifo_command('vMax:',$('#slider-vMax').val()) ;" />
 	    <label for="slider-MinArea">Minimum Area: (smaller objects are ignored)</label>
 	    <input type="range" name="slider-MinArea" id="slider-MinArea" value="1" min="1" max="25" step="1" data-highlight="true"
@@ -63,7 +64,7 @@
 	    <input type="range" name="slider-MaxMotionDistance" id="slider-MaxMotionDistance" value="4" min="1" max="10" step="2" data-highlight="true"
 		   onchange="fifo_command('maxDist:',$('#slider-MaxMotionDistance').val()) ;" />
 	    <label for="slider-NoiseLevel">Noise Level: (low numbers: more sensitivity, more noise; high numbers: less sensitivity, less noise)</label>
-	    <input type="range" name="slider-NoiseLevel" id="slider-NoiseLevel" value="160" min="150" max="250" step="10" data-highlight="true"
+	    <input type="range" name="slider-NoiseLevel" id="slider-NoiseLevel" value="180" min="150" max="250" step="10" data-highlight="true"
 		   onchange="fifo_command('sadThreshold:',$('#slider-NoiseLevel').val()) ;" />
 	    <label for="slider-DetectionMaturity">Detection Maturity: (number of frames to enable crossing detection)</label>
 	    <input type="range" name="slider-DetectionMaturity" id="slider-DetectionMaturity" value="7" min="4" max="10" step="1" data-highlight="true"
