@@ -1,8 +1,12 @@
-# Version 0.7.1: 08.04.2021
+# Version 0.7.1: 12.04.2021
+* snapshots now have some more text inside. (number of track updates until detection and current v-vector)
 * make detection more sensible (using sad + v-vectors now to build motion mask)
+* camera snapshot disabled because the stream picking seems to be faster
+* videos now should start together with the debug signal
+  * making this work the stream buffer is much bigger now. (50% of pi3 memory!)
 # Version 0.7: 28.03.2021
 * improve USB handling
-* use sum of vectors to reduce noise
+* use sum of v-vectors to reduce noise
 * debugging improved a bit. (far from usable)
 * web interface: with touchmove scroll through the last snapshots
 * snapshot via camera.capture now (let's see how good it works)
