@@ -70,8 +70,6 @@ def cv_getNumber():
 def main(fobj=None,width=1280,height=960,video=False):
     global config
     writer = None
-
-    print("args.video: ", video)
     k = 0
     config.conf['debug'] = False
     if config.conf['viewAngle'] == 90:
@@ -81,7 +79,6 @@ def main(fobj=None,width=1280,height=960,video=False):
     if config.conf['viewAngle'] == 270:
         k = 1
 
-    
     #          0xa1a1a1a1WH
     headerfmt = 'Lll'
     headersz = calcsize(headerfmt)
@@ -108,14 +105,19 @@ def main(fobj=None,width=1280,height=960,video=False):
     chunk_size = cols*rows*4
     chunks_read = 0
     wtime = 0x00
+    writer = None
 
     xcross = config.conf['xCross'] * 16
     ycross = config.conf['yCross'] * 16
     
     if video:
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video_name = fobj.name.replace('data','avi')
+        print(video_name)
+        #fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fourcc = cv2.VideoWriter_fourcc(*'mjpg')
         writer = cv2.VideoWriter()
-        writer.open('output.mp4v', 0, fourcc, 25, (int(height/2),int(width/2)))
+        #writer.open('output.mp4v', fourcc=fourcc, fps=25, frameSize=(int(height/2),int(width/2)))
+        writer.open(video_name, fourcc=fourcc, fps=25, frameSize=(int(height/2),int(width/2)))
         
         #fourcc = cv2.VideoWriter_fourcc(*'fmp4')
         #fourcc = cv2.VideoWriter_fourcc(*'mjpg')
@@ -163,7 +165,7 @@ def main(fobj=None,width=1280,height=960,video=False):
             # read image from analayser 
             rot_img = np.rot90(analyser.big,k=k)
                  
-            if writer:
+            if video:
                 writer.write(rot_img)
 
             # show track status
@@ -200,7 +202,7 @@ def main(fobj=None,width=1280,height=960,video=False):
     fobj.close()
     tracker.stop()
     tracker.join()
-    if writer:
+    if video:
         writer.release()
     cv2.destroyAllWindows()
         
