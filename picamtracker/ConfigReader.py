@@ -136,8 +136,9 @@ class Configuration:
 if __name__ == '__main__':
     cc = Configuration('does-not-exist.json')
     print(cc.conf)
-    cc.conf['fps'] = 77
+    cc.conf['fps'] = [77,88]
     cc.conf['AAAAA'] = 'text'
     cc.write('test.json')
     cc.read('test.json')
     print(cc.conf)
+    

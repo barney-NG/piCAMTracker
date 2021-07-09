@@ -267,9 +267,10 @@ def main(ashow=True, debug=False, fastmode=False, wsserver=None, logfilename=Non
             is_active_low=config.conf['ledActiveLow'],
             duration=config.conf['signalLength'],
             start_blinks=3)
-        redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'],
-            duration=config.conf['signalLength'],
-            is_active_low=config.conf['ledActiveLow'])
+        redLED = None
+        #redLED = picamtracker.GPIOPort.gpioPort(config.conf['redLEDPort'],
+        #    duration=config.conf['signalLength'],
+        #    is_active_low=config.conf['ledActiveLow'])
         sleep(1.0)
         picamtracker.GPIOPort.statusLED(config.conf['statusLEDPort'], on=True)
 

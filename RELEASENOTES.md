@@ -1,3 +1,5 @@
+# Next Version
+* enable signal on more than one GPIO pin. (use greenLED: [17,19,20,...],)
 # Version 0.7.1: 12.04.2021
 * snapshots now have some more text inside. (number of track updates until detection and current v-vector)
 * make detection more sensible (using sad + v-vectors now to build motion mask)

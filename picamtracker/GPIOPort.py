@@ -41,16 +41,21 @@ class gpioPort(threading.Thread):
     def __init__(self, port, duration=200., is_active_low=False, start_blinks=0):
         super(gpioPort, self).__init__()
         self.terminated = False
-        self.duration   = duration
-        self.event      = threading.Event()
-        self.port       = port
+        self.duration = duration
+        self.event = threading.Event()
+        self.ports = []
+        if isinstance(port, int):
+            self.ports.append(port)
+        else:
+            self.ports = port
         self.activate   = GPIO.HIGH
         self.deactivate = GPIO.LOW
         prctl.set_name('ptrk.GPIO')
 
         GPIO.setmode(GPIO.BCM)
-        logging.info("port: %d" % port)
-        GPIO.setup(self.port,GPIO.OUT)
+        logging.info("port: ", port)
+        for p in self.ports:
+            GPIO.setup(p,GPIO.OUT)
 
         if is_active_low:
             self.activate   = GPIO.LOW
@@ -59,7 +64,8 @@ class gpioPort(threading.Thread):
         if start_blinks > 0:
             self.blink(start_blinks)
 
-        GPIO.output(self.port,self.deactivate)
+        for p in self.ports:
+            GPIO.output(p,self.deactivate)
 
         self.daemon = True
         self.event.clear()
@@ -67,9 +73,11 @@ class gpioPort(threading.Thread):
 
     def blink(self, numbers):
         for i in range(0,numbers):
-            GPIO.output(self.port,self.activate)
+            for port in self.ports:
+                GPIO.output(port,self.activate)
             sleep(self.duration/1000.0)
-            GPIO.output(self.port,self.deactivate)
+            for port in self.ports:
+                GPIO.output(port,self.deactivate)
             sleep(self.duration/1000.0)
 
     def check(self, value):
@@ -80,24 +88,26 @@ class gpioPort(threading.Thread):
             # wait until somebody throws an event
             if self.event.wait(1):
                 # create rectangle signal on GPIO port
-                GPIO.output(self.port,self.activate)
+                for port in self.ports:
+                    GPIO.output(port,self.activate)
                 sleep(self.duration/1000.0)
-                GPIO.output(self.port,self.deactivate)
+                for port in self.ports:
+                    GPIO.output(port,self.deactivate)
                 self.event.clear()
-
-        GPIO.cleanup(self.port)
+        for port in self.ports:
+            GPIO.cleanup(port)
 
 if __name__ == '__main__':
     def pressed(value):
         print("pressed %d" % value)
 
     addCallback(2,pressed)
-    statusLED(23,on=True)
+    #statusLED(23,on=True)
 
     p1=17
     p2=27
 
-    port1 = gpioPort(p1)
+    port1 = gpioPort([17,23])
     port2 = gpioPort(p2, duration=3000)
     port1.event.set()
     port2.event.set()
