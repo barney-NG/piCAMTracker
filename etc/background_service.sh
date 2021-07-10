@@ -11,7 +11,7 @@ while getopts ":o" opts; do
 done
 
 
-trap go_exit 1 2 3 15
+trap go_exit SIGINT
 
 temp_dir=/run/picamtracker
 temp_file=temp
